@@ -1,0 +1,40 @@
+{
+  "common": {
+    "app_name": "Glyph",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "continue": "Continue"
+  },
+  "intake": {
+    "welcome_title": "Welcome! How can we help you today?",
+    "patient_button": "I am the patient",
+    "attendant_button": "I am with the patient",
+    "capture_rx": "Capture prescription photo",
+    "capture_lab": "Capture lab report photo",
+    "listening": "Listening...",
+    "processing": "Processing...",
+    "send_to_doctor": "Send to doctor",
+    "review_summary": "Review summary"
+  },
+  "doctor": {
+    "dashboard_title": "Dashboard",
+    "patient_queue": "Patient Queue",
+    "start_consult": "Start Consultation",
+    "end_consult": "End Consultation",
+    "approve_note": "Approve Note",
+    "briefing_title": "Patient Briefing"
+  },
+  "consent": {
+    "recording": "I consent to recording this conversation",
+    "data_storage": "I consent to storage of my data",
+    "ai_processing": "I consent to AI-assisted analysis of my data",
+    "agree": "I agree"
+  }
+}
