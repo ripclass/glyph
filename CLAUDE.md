@@ -1,0 +1,430 @@
+# CLAUDE.md — Glyph by KhaM Health
+
+> Memory file for any future Claude Code session working on this repo.
+> Update this file when you learn something a future session would need to know.
+
+---
+
+## 1. Project Identity
+
+**Glyph** is a clinical AI copilot for Bangladeshi doctors — a PWA (Next.js App Router) that:
+
+1. Runs patient **intake** on a clinic tablet (voice-first, Bangla), capturing history and camera-reading prior prescriptions and lab reports.
+2. Generates a **briefing card** for the doctor before the patient walks in — structured, source-attributed, with red-flag detection.
+3. Provides **ambient recording + real-time clinical research** during the consultation (UpToDate + Perplexity + PubMed).
+4. Drafts **visit notes** in Bangladesh prescription format (**CC / O-E / Ix / Rx / Advice — NOT SOAP**).
+5. Sends **WhatsApp follow-ups** with a patient-friendly Bangla summary 2-3 days later.
+
+The soul behind Glyph is called **Saarah**. She is *not* in the product name or UI. She is in every design decision. When in doubt: *would this feel soulful or mechanical?*
+
+- **Company:** KhaM Health
+- **Product:** Glyph
+- **Founder:** Ripon
+- **Location:** Dhaka, Bangladesh
+
+---
+
+## 2. Tech Stack (from actual package.json)
+
+Monorepo: root workspace + `web/` workspace. Node >=20.
+
+| Layer | Technology | Version |
+|---|---|---|
+| Framework | Next.js (App Router) | ^14.2.0 |
+| UI runtime | React | ^18.3.0 |
+| Language | TypeScript | ^5.4.0 |
+| Styling | Tailwind CSS | ^3.4.0 |
+| UI primitives | shadcn/ui style (`components/ui/*`), class-variance-authority, clsx, tailwind-merge | — |
+| Icons | lucide-react | ^0.400.0 |
+| Toasts | sonner | ^1.5.0 |
+| State | Zustand | ^4.5.0 |
+| PWA | next-pwa | ^5.6.0 |
+| Markdown | react-markdown | ^9.0.0 |
+| Dates | date-fns | ^3.6.0 |
+| Database/Auth/Realtime/Storage | Supabase (`@supabase/supabase-js` ^2.45, `@supabase/ssr` ^0.5) | — |
+| Edge Functions runtime | Deno (Supabase Edge Functions) | — |
+| Tests | Vitest, React Testing Library, jsdom | ^1.6 / ^16 / ^24 |
+| Lint/Format | ESLint (`eslint-config-next`), Prettier | ^8.57 / ^3.3 |
+
+**Fonts:** Inter, Noto Sans Bengali, JetBrains Mono. **Theme colors:** `glyph-*` (green scale) and `clinical-*` (slate neutrals), `red_flag` for alerts (see `web/tailwind.config.ts`).
+
+**LLM providers wired in `supabase/functions/_shared/llm-router.ts`:** Gemini, MedGemma (via Vertex AI), Claude, OpenAI, Perplexity. Streaming is supported for Gemini and Claude.
+
+---
+
+## 3. Project Structure (real tree, not the scaffold prompt)
+
+```
+Glyph/
+├── .env.example
+├── .github/workflows/ci.yml
+├── README.md
+├── package.json                    # workspace root (dev/build/lint/test/type-check proxies)
+├── docs/                           # Long-form design docs (see §12)
+│   ├── architecture.md
+│   ├── api-routing.md
+│   ├── data-model.md
+│   ├── clinical-workflow.md
+│   ├── attendant-protocol.md
+│   ├── abridge-patterns.md
+│   ├── pdpo-compliance.md
+│   ├── uptodate-integration.md
+│   └── deployment.md
+├── prompts/                        # Production prompt library (see §10)
+│   ├── README.md
+│   ├── persona/glyph-core.md
+│   ├── intake/{welcome,conversation,attendant-mode,summary-generation}.md
+│   ├── extraction/{prescription-reading,lab-report-reading}.md
+│   ├── doctor/{briefing-card,clinical-consult,note-generation,linked-evidence}.md
+│   ├── patient/{whatsapp-summary,followup-message}.md
+│   └── reference/{bangla-medical-glossary,bd-drug-names,bd-prescription-format,bd-diagnostic-centers}.md
+├── supabase/
+│   ├── config.toml                 # Local dev: api 54321, db 54322, studio 54323
+│   ├── seed.sql
+│   ├── migrations/
+│   │   └── 001_initial_schema.sql  # All 8 tables, RLS, triggers
+│   └── functions/
+│       ├── _shared/
+│       │   ├── cors.ts
+│       │   ├── cost-logger.ts
+│       │   ├── deidentify.ts       # PII strip + re-identify (names/phones/NID/addr)
+│       │   ├── llm-router.ts       # Multi-provider + streaming + fallback
+│       │   └── types.ts
+│       ├── intake-start/
+│       ├── intake-turn/
+│       ├── intake-complete/
+│       ├── extract-document/
+│       ├── generate-briefing/
+│       ├── consult-query/          # The router-of-routers (see §4)
+│       ├── consult-uptodate/
+│       ├── generate-note/
+│       ├── generate-patient-summary/
+│       └── send-followup/
+└── web/                            # Next.js PWA
+    ├── next.config.js              # next-pwa wrapper; supabase.co image remote pattern
+    ├── package.json
+    ├── tailwind.config.ts
+    ├── tsconfig.json
+    ├── postcss.config.js
+    ├── public/
+    │   ├── manifest.json
+    │   ├── sw.js                   # ⚠ Currently modified (uncommitted)
+    │   └── workbox-*.js
+    └── src/
+        ├── app/
+        │   ├── layout.tsx          # <html lang="bn">, sonner Toaster
+        │   ├── page.tsx            # Landing: Doctor Login / রোগী ইনটেক শুরু করুন
+        │   ├── api/[...path]/route.ts   # Catch-all proxy → Supabase Edge Functions
+        │   ├── intake/
+        │   │   ├── layout.tsx
+        │   │   ├── page.tsx             # role selection (patient vs attendant)
+        │   │   ├── history/page.tsx
+        │   │   ├── conversation/page.tsx   # ⚠ uses simulated STT + fake streaming
+        │   │   └── summary/page.tsx
+        │   └── doctor/
+        │       ├── layout.tsx
+        │       ├── page.tsx             # ⚠ uses MOCK_PATIENTS
+        │       ├── briefing/[visitId]/page.tsx
+        │       ├── consult/[visitId]/page.tsx
+        │       ├── note/[visitId]/page.tsx
+        │       └── patient/[patientId]/page.tsx
+        ├── components/
+        │   ├── doctor/              # BriefingCard, ConsultChat, NoteEditor, NoteFormatBD,
+        │   │                        # AmbientRecorder, PatientQueue, PatientTimeline,
+        │   │                        # MedicationTimeline, LabTrendChart, RedFlagAlert,
+        │   │                        # SourceTag, CitationChip, LinkedEvidence, UpToDatePanel
+        │   ├── intake/              # VoiceOrb, SaaraMessage, PatientMessage, AttendantBanner,
+        │   │                        # DocumentCapture, ExtractedRxCard, ExtractedLabCard, ConsentPrompt
+        │   ├── shared/              # Logo, LanguageToggle, LoadingStream
+        │   └── ui/                  # badge, button, card, dialog, input, skeleton, textarea
+        ├── lib/
+        │   ├── hooks/               # useVoiceInput, useAmbientRecording, useIntakeConversation,
+        │   │                        # useConsultChat, usePatientHistory, useRealtimeQueue
+        │   ├── services/            # ai, camera, speech, patients, visits, whatsapp
+        │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
+        │   ├── supabase/            # client.ts, server.ts, types.ts (Database type)
+        │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
+        │   └── utils/               # cn, cost-tracker, format-date-bd, format-prescription
+        └── styles/globals.css
+```
+
+---
+
+## 4. AI Routing Table (actual — read from Edge Functions)
+
+| Task | Primary Model | Fallback | Edge Function | Streams? | Notes |
+|---|---|---|---|---|---|
+| Intake greeting | `gemini-2.0-flash` | `gemini-1.5-flash` | `intake-start` | No | Creates consent rows, initializes transcript |
+| Intake turn (convo) | `gemini-2.0-flash` | `gemini-1.5-flash` | `intake-turn` | **Yes (SSE)** | Streams tee'd to client + transcript capture |
+| Intake summarization | `gemini-2.0-flash` | `claude-3-haiku-20240307` | `intake-complete` | No | Fires `generate-briefing` afterward |
+| Prescription / lab OCR | `medgemma-4b` (vision) | `gemini-2.0-flash` | `extract-document` | No | Image fetched from Supabase Storage `documents` bucket |
+| Briefing card | `medgemma-27b` | `claude-sonnet-4-20250514` | `generate-briefing` | **Yes (SSE)** | Outputs strict `BriefingCard` JSON, red-flag rules in system prompt |
+| Consult: guideline | UpToDate Connect API → `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` → `consult-uptodate` | No | Falls through to LLM synthesis if UpToDate unavailable |
+| Consult: drug interaction | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | Deidentifies context first |
+| Consult: differential Dx | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | — |
+| Consult: recent studies | `perplexity sonar-pro` | `claude-sonnet-4-20250514` | `consult-query` | No | — |
+| Consult: lab interpretation | `medgemma-27b` | `claude-sonnet-4-20250514` | `consult-query` | No | — |
+| Consult: generic clinical | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | Default route |
+| Clinical note generation | `medgemma-27b` | `claude-sonnet-4-20250514` | `generate-note` | **Yes (SSE)** | BD format default, SOAP optional |
+| Patient WhatsApp summary | `gemini-2.0-flash` | `gemini-1.5-flash` | `generate-patient-summary` | No | Entirely in Bangla, no emoji |
+| WhatsApp delivery | WhatsApp Business Cloud API v19 | — | `send-followup` | No | Requires `whatsapp_followup` consent row |
+
+**Routing inside `consult-query`** is regex-driven (`detectQueryType`) — see `supabase/functions/consult-query/index.ts`. Every external call is preceded by `deidentify()` and the response is passed through `reidentify()` before returning.
+
+**Cost + usage logging:** `callLLM()` in `llm-router.ts` fires `logUsage()` to `api_usage_log` after every successful call. When the primary fails and fallback runs, the row is flagged `was_fallback = true`.
+
+---
+
+## 5. Database Schema Summary
+
+From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enabled.
+
+**Tables:**
+
+| Table | Key columns | Notes |
+|---|---|---|
+| `clinics` | `id`, `name`, `district` | Single clinic per doctor (via `doctors.clinic_id`) |
+| `doctors` | `id → auth.users(id)`, `clinic_id`, `bmdc_reg_no`, `preferred_language`, `preferred_note_format` | Phone unique; BMDC = Bangladesh Medical & Dental Council |
+| `patients` | `clinic_id`, `name`/`name_bn`, `phone`, `age`, `blood_group`, `known_allergies JSONB`, `chronic_conditions JSONB` | Soft-denormalized allergies/conditions for fast briefing |
+| `visits` | **central table** — `status` enum: `intake → intake_complete → in_consultation → note_review → completed → followup_sent`; includes `intake_transcript`, `intake_summary`, `briefing_card`, `consultation_transcript`, `consultation_queries`, `generated_note`, `doctor_edits`, `approved_note`, `evidence_links`, `api_costs`, attendant fields | Auto `visit_number` via trigger per patient |
+| `prescriptions` | `patient_id`, `visit_id`, `source` (`photo_historical`/`photo_current`/`generated`), `medications JSONB`, `extraction_confidence` | Linked to image in Storage |
+| `lab_reports` | Same pattern as prescriptions + `test_category`, `results JSONB` | — |
+| `consent_records` | `consent_type` enum: `recording`, `data_storage`, `ai_processing`, `image_capture`, `whatsapp_followup`, `data_sharing`; `granted_by` ∈ {patient, attendant, guardian} | Tracks withdrawal + device info for PDPO audit |
+| `api_usage_log` | `edge_function`, `model_used`, `was_fallback`, input/output tokens, latency, cost, error | Populated by `cost-logger.ts` |
+
+**Indexes:** on `visits(patient_id|doctor_id|visit_date DESC|status|clinic_id,visit_date)`, `prescriptions(patient_id)`, `lab_reports(patient_id|category)`, `patients(phone|clinic_id)`, `consent_records(patient_id)`, `api_usage_log(visit_id)`.
+
+**RLS:** Enabled on all 8 tables. Policy is **doctor-scoped-by-clinic** — a doctor can only see rows whose path traces back to their own `doctors.clinic_id`. `doctors` table has a self-access policy (`id = auth.uid()`).
+
+**Triggers/functions:**
+- `set_visit_number()` — auto-increments `visit_number` per `patient_id` on insert.
+- `update_timestamp()` — bumps `updated_at` on `patients` and `visits`.
+
+---
+
+## 6. Commands
+
+```bash
+# Root workspace
+npm install
+npm run dev             # → web workspace: next dev
+npm run build           # → web workspace: next build
+npm run lint            # → next lint
+npm run type-check      # → tsc --noEmit (web workspace)
+npm run test            # → vitest (web workspace)
+npm run test -- --run   # single run / CI mode
+
+# Supabase (local)
+supabase start                                     # boots Postgres, Auth, Storage, Realtime, Studio
+supabase stop
+supabase db reset                                  # re-apply migrations + seed
+supabase migration new <name>
+supabase migration list
+supabase functions serve                           # local Edge Function runner
+supabase functions deploy                          # deploy all (remote)
+supabase functions deploy <name>                   # deploy one
+supabase gen types typescript --local > web/src/lib/supabase/types.ts
+
+# Studio URL: http://localhost:54323
+# App URL:    http://localhost:3000
+```
+
+---
+
+## 7. Environment Variables
+
+From `.env.example` (copy to `web/.env.local` — **Next.js loads from the workspace, not the repo root**).
+
+| Variable | Required for | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | **Required** for dev | From `supabase start` output |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Required** for dev | Same |
+| `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions (service writes) | Do NOT expose to client |
+| `GOOGLE_CLOUD_PROJECT_ID` | Vertex AI / MedGemma | — |
+| `GOOGLE_CLOUD_SPEECH_KEY` | Google STT | Not yet wired end-to-end |
+| `GOOGLE_AI_STUDIO_KEY` | Gemini API | ⚠ **See §8 bug #1** — `llm-router.ts` actually reads `GEMINI_API_KEY` |
+| `ANTHROPIC_API_KEY` | Claude | Matches code |
+| `OPENAI_API_KEY` | OpenAI (unused by any current function, but router supports it) | Optional |
+| `PERPLEXITY_API_KEY` | Consult: recent studies | Optional |
+| `UPTODATE_API_KEY` | UpToDate Connect | Optional — falls back to Claude synthesis |
+| `UPTODATE_BASE_URL` | UpToDate endpoint | ⚠ Not currently read by code (hard-coded to `https://connect.uptodate.com/...`) |
+| `WHATSAPP_BUSINESS_TOKEN` | WhatsApp Business API | ⚠ **See §8 bug #2** — `send-followup` reads `WHATSAPP_ACCESS_TOKEN` |
+| `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business API | Matches code |
+| `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
+| `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
+| `NEXT_PUBLIC_APP_NAME` | App | `Glyph` |
+
+**Undocumented env vars read by code (must add to `.env.example` before these work):**
+- `GEMINI_API_KEY` — `llm-router.ts`
+- `VERTEX_AI_API_KEY` — `llm-router.ts` (but see §8 bug #5 — Vertex expects OAuth, not a raw key)
+- `GCP_PROJECT_ID`, `GCP_LOCATION` — `llm-router.ts` (`callVertexMedGemma`), defaults `"kham-health"` / `"us-central1"`
+- `WHATSAPP_ACCESS_TOKEN` — `send-followup`
+
+---
+
+## 8. Current Status (honest read of the code as of 2026-04-12)
+
+### ✅ Implemented and structurally complete
+- Full Supabase schema + RLS + triggers (`001_initial_schema.sql`).
+- All 10 Edge Functions exist with auth, prompt text, LLM routing, cost logging, and DB writes.
+- Multi-provider LLM router with fallback + streaming (Gemini, Claude); non-streaming (MedGemma/Vertex, OpenAI, Perplexity).
+- PII de-identify/re-identify utility (covers BD phones, NID, emails, Bangla + English name patterns, addresses).
+- Next.js App Router skeleton for both `/intake` and `/doctor` flows, with PWA manifest + service worker.
+- shadcn-style `components/ui/*` primitives + Glyph-themed Tailwind config (green `glyph-*` palette + slate `clinical-*`).
+- Zustand stores (`auth`, `intake`, `consult`, `queue`) and hooks (`useVoiceInput`, `useAmbientRecording`, etc.) are scaffolded.
+- i18n utility with `bn` / `en` JSON dictionaries (40 lines each — very thin, many strings are still inline).
+- `/api/[...path]/route.ts` catch-all proxy to Supabase Edge Functions (supports streaming passthrough via SSE).
+- Prompt library is *real and substantial* — every file in `prompts/` is 138-358 lines (see §10).
+- Supabase client split into browser (`client.ts`) and SSR (`server.ts`).
+
+### ⚠ Implemented but not connected / broken
+- **`intake/conversation/page.tsx`** — VoiceOrb is wired to *simulated* transcription and a faked streaming text response. No real STT, no real call to `intake-turn`.
+- **`doctor/page.tsx`** — dashboard renders a hard-coded `MOCK_PATIENTS` array. No `useRealtimeQueue` subscription yet.
+- **Client service layer (`web/src/lib/services/ai.ts`) sends snake_case keys** (`visit_id`, `is_attendant`, `image_url`, `message`) — **Edge Functions read camelCase** (`visitId`, `isAttendant`, `imageUrl`, `messageSource`). Every client→function call will fail validation until this is reconciled. **This is the #1 integration bug.**
+- `ai.ts::consultQuery` declares a streaming return, but `consult-query/index.ts` returns a non-streaming JSON response. Mismatch.
+- MedGemma/Vertex path authenticates with `Authorization: Bearer ${apiKey}` and a raw env var. Vertex AI requires a short-lived OAuth access token, not a static API key. **This path will not work without replacing the auth flow.**
+- `UPTODATE_BASE_URL` in `.env.example` is unused — `consult-uptodate` hard-codes `https://connect.uptodate.com/services/search/v1/search`.
+- Env-var name mismatches (see §7): `GOOGLE_AI_STUDIO_KEY` vs `GEMINI_API_KEY`, `WHATSAPP_BUSINESS_TOKEN` vs `WHATSAPP_ACCESS_TOKEN`.
+- `web/public/sw.js` has uncommitted local modifications (git status at session start).
+- No tests exist yet. Vitest is installed but `web/` has no `*.test.ts(x)` files.
+
+### 🧱 Stubs / placeholders
+- `AmbientRecorder.tsx`, `useAmbientRecording.ts` — scaffolded, not wired.
+- `ConsentPrompt.tsx` — component exists; consent flow UI is not integrated into intake.
+- `useRealtimeQueue.ts` — exists but the doctor dashboard doesn't use it yet.
+- `consult-uptodate` falls back to Claude synthesis because no real UpToDate key is assumed present.
+- `services/{camera,speech,whatsapp,patients,visits}.ts` — thin layers; verify each one before relying on it.
+
+### 🐛 Known bugs to fix (ordered by blast radius)
+1. **Client/server parameter casing mismatch** — nothing end-to-end works until this is fixed. Decide: standardize on camelCase in edge functions OR change `services/ai.ts` to camelCase. The code leans camelCase on the server, so fix the client.
+2. Env-var name mismatches (`GEMINI_API_KEY`, `WHATSAPP_ACCESS_TOKEN`) — either rename in code or rename in `.env.example`.
+3. Vertex AI auth — MedGemma calls need a real Google Cloud access token flow, not a raw env-var key.
+4. `consultQuery` streaming mismatch — either make the edge function stream, or change the client to non-streaming.
+
+---
+
+## 9. Clinical Domain Context (DO NOT IGNORE)
+
+- Bangladesh has ~1 doctor per 1,400 people. Volume is extreme — doctors see 50-100+ patients/day.
+- Patients almost always come with an **attendant** (family member) who speaks on their behalf. The attendant protocol (source-tagging every fact as patient-reported / attendant-reported / attendant-translated / attendant-observed) is a differentiator, not a nice-to-have. See `docs/attendant-protocol.md` and `prompts/intake/attendant-mode.md`.
+- Doctors use **paper Rx pads**, not EHRs. Glyph augments paper, it doesn't replace it.
+- **Bangladesh prescription format:** `CC / O-E / Ix / Rx / Advice`. **Never SOAP** unless the doctor explicitly switches (`ClinicalNote.format: 'soap'` is supported as an opt-in, not the default).
+- Rx dosing convention: `1+0+1` = morning + afternoon + night. Bangla numerals `১+০+১` also accepted in OCR.
+- **Primary language is Bangla (বাংলা)** with English medical terms code-switched in. The UI defaults to Bangla (`<html lang="bn">`, `NEXT_PUBLIC_DEFAULT_LANGUAGE=bn`).
+- Currency: ৳ (BDT/Taka).
+- **PDPO 2025** (Bangladesh Personal Data Protection Ordinance) governs health data — consent is required, and health data is a sensitive category. See `docs/pdpo-compliance.md`.
+- 74% of healthcare spending is out-of-pocket. **Cost-consciousness matters** when suggesting investigations.
+- Drug names should prefer Bangladeshi brand/generic names (e.g., `Napa`, `Seclo`, `Losectil`, `Tab. Amlodipine`) not American brands (`Tylenol`, `Norvasc`). The reference data is in `prompts/reference/bd-drug-names.md`.
+- Lab reports come from local diagnostic centers (Popular Diagnostics, Ibn Sina, Square, Labaid, etc.) with varying formats — see `prompts/reference/bd-diagnostic-centers.md`.
+- **WhatsApp is the communication channel** for follow-ups (not SMS, not email).
+- BMDC = Bangladesh Medical and Dental Council (registration authority). `doctors.bmdc_reg_no` is how doctors are identified professionally.
+
+---
+
+## 10. Prompts Inventory
+
+All prompt files in `prompts/` are **real, detailed, and versioned** per the structure in `prompts/README.md` (§ "Prompt Structure"). None are placeholders.
+
+| File | Lines | Purpose |
+|---|---:|---|
+| `persona/glyph-core.md` | 138 | Foundational identity, safety invariants, tone — the anchor every other prompt composes onto. |
+| `intake/welcome.md` | 159 | Intake greeting prompt; warm Bangla opening. |
+| `intake/conversation.md` | 301 | Main conversation policy — how to probe, when to stop, empathy rules. |
+| `intake/attendant-mode.md` | 211 | How Glyph handles the attendant protocol and source-tags claims. |
+| `intake/summary-generation.md` | 358 | Post-intake structured JSON summarization schema + rules. |
+| `extraction/prescription-reading.md` | 312 | BD-prescription OCR grammar: 1+0+1 dosing, Rx/Ix/Dx abbreviations, Bangla/English mix. |
+| `extraction/lab-report-reading.md` | 309 | BD-lab OCR grammar: reference ranges, abnormal markers, common panels (CBC/RFT/LFT/HbA1c/Thyroid/Urine). |
+| `doctor/briefing-card.md` | 289 | Briefing-card schema + red-flag detection rules. |
+| `doctor/clinical-consult.md` | 309 | Mid-consult research query policy. |
+| `doctor/note-generation.md` | 246 | BD-format note generator (CC/O-E/Ix/Rx/Advice) + SOAP variant. |
+| `doctor/linked-evidence.md` | 220 | How claims are mapped back to sources (patient utterance, document, UpToDate, etc.). |
+| `patient/whatsapp-summary.md` | 249 | Patient-facing Bangla summary generator — no jargon, no emoji, 200-300 words. |
+| `patient/followup-message.md` | 191 | Follow-up check-in message template. |
+| `reference/bangla-medical-glossary.md` | 263 | Bangla ↔ English medical term mapping. |
+| `reference/bd-drug-names.md` | 211 | Bangladeshi brand/generic drug reference. |
+| `reference/bd-prescription-format.md` | 317 | BD Rx format specification. |
+| `reference/bd-diagnostic-centers.md` | 283 | Major lab chains and their report formats. |
+| `prompts/README.md` | — | Prompt engineering guide; model/temperature matrix, versioning, safety invariants. |
+
+**Important:** `prompts/README.md` lists a model matrix that differs from what edge functions actually use. For example, `prompts/README.md` says briefing card uses `Gemini 2.0 Flash @ 0.2 / 4096`, but `generate-briefing/index.ts` uses `medgemma-27b @ 0.2 / 4000` with Claude Sonnet 4 fallback. **The running code is the source of truth**; treat the README table as aspirational until reconciled.
+
+---
+
+## 11. Conventions
+
+Observed patterns in the code. Follow these for new work.
+
+**File naming**
+- React components: `PascalCase.tsx` (e.g. `BriefingCard.tsx`).
+- Hooks: `useThing.ts` (e.g. `useIntakeConversation.ts`).
+- Services/utils/stores: `kebab-case.ts` (e.g. `cost-tracker.ts`, `intake-store.ts`).
+- Edge Functions: each function is its own directory with `index.ts`. Shared utilities live in `_shared/`.
+- Prompts: `kebab-case.md`, grouped by workflow stage.
+
+**Imports**
+- Always use the `@/*` path alias for anything under `web/src/`. No relative `../../..` across modules.
+
+**Component structure**
+- Client Components: start with `"use client";`. Default to RSC where possible, but most interactive clinical screens are client-side for voice/realtime/camera.
+- One component per file; colocate small internal subcomponents (see `BriefingCard.tsx` → `BriefingSection`, `ClaimList`).
+- JSDoc on exported components describing purpose, "THE" language for hero components (VoiceOrb = "THE primary interaction element", BriefingCard = "THE core UI component").
+- Use `cn()` from `@/lib/utils/cn` for conditional classes. Never template-string class names.
+- Semantic colors use Tailwind classes `glyph-*` (green primary), `clinical-*` (neutrals), `red_flag` (critical alerts).
+
+**API / data flow**
+- Client never calls LLM providers directly. Client → `web/src/lib/services/ai.ts` → (fetch) → Supabase Edge Function → provider.
+- Edge Functions always: (a) validate `Authorization` header via `supabase.auth.getUser()`, (b) use an anon-key client for reads respecting RLS, (c) use a service-role client for writes that bypass RLS, (d) log usage via `cost-logger.ts`, (e) deidentify before sending PII to external LLMs.
+- Streaming responses use SSE (`text/event-stream`). The edge function `tee()`s the stream so one branch goes to the client while the other captures the full text to persist to the DB (see `intake-turn`, `generate-briefing`, `generate-note`).
+- The Next.js `/api/[...path]/route.ts` catch-all proxies every `POST` to Supabase functions and passes SSE through as-is.
+
+**State management**
+- Zustand for cross-screen state (`auth-store`, `intake-store`, `consult-store`, `queue-store`). One store per workflow.
+- React local state for screen-level interaction.
+- Never fetch Supabase data directly from a component — go through a service in `lib/services/`.
+
+**i18n**
+- `useLanguage()` hook from `@/lib/i18n`. Default language is `bn`. Dictionaries are `bn.json` / `en.json`, keyed as `section.field` (two-level dots only).
+- **Many components still have Bangla strings inlined** with `TODO: i18n key` comments. New code should use `t('section.field')`.
+
+**Errors**
+- Edge Functions return `{ success: false, error, code }` envelopes (`EdgeFunctionResponse<T>` in `types.ts`). HTTP status mirrors severity.
+- Client services `throw new Error(...)` on non-ok responses; callers decide how to surface it (`sonner` Toaster is mounted at the root for notifications).
+
+**Clinical output rules (baked into prompts — keep these invariant)**
+- Never diagnose. Never prescribe. Always flag uncertainty. Always surface red flags. Never fabricate sources. Respect PDPO. Never override the doctor.
+
+---
+
+## 12. What NOT to do
+
+- **Do not use SOAP note format by default.** BD format (CC/O-E/Ix/Rx/Advice) is the default. SOAP is an opt-in (`ClinicalNote.format: 'soap'`).
+- **Do not send patient-identifying info to cloud LLMs.** Always pass through `deidentify()` first. Already wired for `consult-query`; extend any new external-facing function the same way.
+- **Do not hardcode API keys** anywhere. All keys go through `Deno.env.get()` in edge functions and `process.env.NEXT_PUBLIC_*` in the client.
+- **Do not put Bangla strings inline in new components.** Use `t('section.field')`. (Existing inline strings are tech debt — don't copy the pattern.)
+- **Do not use the names "Saara" or "Saarah" anywhere in the product UI or visible copy.** The soul behind Glyph is internal design language only. Note: the existing `SaaraMessage.tsx` component is named that internally, which is fine — the *rendered* text must not expose the name.
+- **Do not build native-app features.** Glyph is a PWA. Service worker + manifest only.
+- **Do not assume patients come alone.** Every screen that captures input must account for the attendant scenario.
+- **Do not use Western clinical defaults** — drug names, disease prevalence, workflow assumptions, insurance gatekeeping, etc. Bangladesh-specific references live in `prompts/reference/`.
+- **Do not add new dependencies without checking** what's already installed (see `web/package.json`). We're intentionally tight — Zustand for state, shadcn primitives for UI, lucide for icons, sonner for toasts, date-fns for dates. No new UI libs, no redux, no tanstack-query unless there's a strong reason.
+- **Do not skip cost logging** in new Edge Functions. Every LLM call must end with a `logUsage()`.
+- **Do not bypass RLS with the service-role client for reads** — use the anon client scoped to the user's `Authorization` header. Service role is for trusted writes only.
+- **Do not amend existing prompts for style.** They're versioned and may require clinical review (`prompts/README.md` § "Iteration Process"). Style-only tweaks are fine; anything affecting clinical output is not.
+- **Do not invent models.** The latest Claude model family as of now is 4.6/4.5 (`claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`). The code currently uses `claude-sonnet-4-20250514` — when upgrading, use a real current model ID, not a guess.
+
+---
+
+## 13. Open Questions / Next Moves
+
+Things a future session should probably pick up before shipping anything:
+
+1. Decide the client/server parameter casing convention and fix the `services/ai.ts` ↔ edge function mismatch in one pass.
+2. Wire `intake/conversation/page.tsx` to real STT (`useVoiceInput`) + real `intake-turn` streaming.
+3. Replace `MOCK_PATIENTS` in the doctor dashboard with `useRealtimeQueue` backed by Supabase Realtime on `visits`.
+4. Decide the Vertex AI auth strategy — move to Google OAuth access tokens, or swap MedGemma for an API-key-based endpoint (Gemini / a different deployment).
+5. Reconcile the `prompts/README.md` model matrix with the actual Edge Function routing table in §4.
+6. Commit or revert the uncommitted `web/public/sw.js` change.
+7. Add a first `vitest` test — probably for `deidentify.ts` since it's pure and high-leverage.
+
+---
+
+*Last updated: 2026-04-12. Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
