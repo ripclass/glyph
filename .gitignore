@@ -10,6 +10,13 @@ coverage/
 web/.next/
 web/out/
 
+# next-pwa generated service worker + workbox (regenerated on every build)
+web/public/sw.js
+web/public/sw.js.map
+web/public/workbox-*.js
+web/public/workbox-*.js.map
+web/public/fallback-*.js
+
 # production
 build/
 dist/
