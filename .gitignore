@@ -7,15 +7,15 @@ node_modules/
 coverage/
 
 # next.js
-web/.next/
-web/out/
+apps/glyph/.next/
+apps/glyph/out/
 
 # next-pwa generated service worker + workbox (regenerated on every build)
-web/public/sw.js
-web/public/sw.js.map
-web/public/workbox-*.js
-web/public/workbox-*.js.map
-web/public/fallback-*.js
+apps/glyph/public/sw.js
+apps/glyph/public/sw.js.map
+apps/glyph/public/workbox-*.js
+apps/glyph/public/workbox-*.js.map
+apps/glyph/public/fallback-*.js
 
 # production
 build/
