@@ -1,145 +1,121 @@
 /**
  * @fileoverview WhatsApp messaging trigger service for the Glyph PWA.
- * Calls Supabase Edge Functions to send patient summaries and follow-up
- * messages via the WhatsApp Business API. The client never communicates
- * with the WhatsApp API directly.
+ * Calls the `send-followup` Supabase Edge Function, which generates the message
+ * (a patient summary or a follow-up check-in) and sends it via the WhatsApp
+ * Business API. The client never communicates with the WhatsApp API directly.
  *
  * @module lib/services/whatsapp
  */
 
 import { createClient } from '@/lib/supabase/client';
 
-/** Response from a WhatsApp send operation */
+/** Data returned by the `send-followup` function. */
 export interface WhatsAppSendResult {
-  /** Whether the message was accepted by the Edge Function */
-  success: boolean;
-  /** WhatsApp message ID if available */
-  message_id: string | null;
-  /** Human-readable status or error message */
-  message: string;
+  messageSent: boolean;
+  messageType: 'summary' | 'followup';
+  whatsappMessageId: string | null;
+  messagePreview: string;
+  /** Masked phone number. */
+  phone: string;
 }
 
-/**
- * Calls a Supabase Edge Function with auth headers.
- *
- * @param functionName - Edge Function name
- * @param body - Request payload
- * @returns Parsed JSON response
- */
-async function callEdgeFunction<T>(
-  functionName: string,
-  body: Record<string, unknown>
-): Promise<T> {
+interface EdgeEnvelope<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+}
+
+/** Calls the `send-followup` Edge Function and unwraps the `{ success, data }` envelope. */
+async function sendViaFollowupFunction(
+  body: Record<string, unknown>,
+): Promise<WhatsAppSendResult> {
   const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!supabaseUrl) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured');
   }
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-  const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+  const response = await fetch(`${supabaseUrl}/functions/v1/send-followup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session?.access_token ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''}`,
-      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+      Authorization: `Bearer ${session?.access_token ?? anon}`,
+      apikey: anon,
     },
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Edge Function "${functionName}" failed (${response.status}): ${errorText}`);
+    throw new Error(
+      `Edge Function "send-followup" failed (${response.status}): ${errorText}`,
+    );
   }
 
-  return response.json() as Promise<T>;
+  const json = (await response.json()) as EdgeEnvelope<WhatsAppSendResult>;
+  if (!json.success) {
+    throw new Error(json.error ?? 'send-followup returned success: false');
+  }
+  return json.data as WhatsAppSendResult;
 }
 
 /**
- * Sends a patient visit summary via WhatsApp.
- * The Edge Function generates a formatted summary from the visit record
- * and sends it to the patient's phone number using the WhatsApp Business API.
+ * Sends a patient visit summary via WhatsApp. The Edge Function generates the
+ * summary from the approved note and sends it.
  *
- * @param visitId - The visit UUID whose summary to send
- * @param phone - The patient's phone number in BD format (e.g. `"01711223344"`)
- * @returns Result indicating success or failure with message details
- * @throws {Error} If the Edge Function call fails
- *
- * @example
- * ```ts
- * const result = await sendPatientSummary('visit-uuid', '01711223344');
- * if (result.success) {
- *   console.log('Summary sent:', result.message_id);
- * }
- * ```
+ * @param visitId - The visit whose summary to send.
+ * @param phone - The patient's phone number in any common BD format.
  */
 export async function sendPatientSummary(
   visitId: string,
-  phone: string
+  phone: string,
 ): Promise<WhatsAppSendResult> {
-  return callEdgeFunction<WhatsAppSendResult>('whatsapp-send-summary', {
-    visit_id: visitId,
+  return sendViaFollowupFunction({
+    visitId,
     phone: normalizePhoneNumber(phone),
+    messageType: 'summary',
   });
 }
 
 /**
- * Sends a follow-up message to a patient via WhatsApp.
- * Used for post-visit instructions, medication reminders,
- * or appointment follow-ups.
+ * Sends a follow-up check-in to a patient via WhatsApp. The Edge Function
+ * composes the follow-up message server-side (there is no custom-message path).
  *
- * @param visitId - The visit UUID for context tracking
- * @param phone - The patient's phone number in BD format
- * @param message - The follow-up message text to send
- * @returns Result indicating success or failure
- * @throws {Error} If the Edge Function call fails
- *
- * @example
- * ```ts
- * await sendFollowUp(
- *   'visit-uuid',
- *   '01711223344',
- *   'আপনার পরবর্তী অ্যাপয়েন্টমেন্ট ১০ দিন পর। ওষুধ নিয়মিত খাবেন।'
- * );
- * ```
+ * @param visitId - The visit for context tracking.
+ * @param phone - The patient's phone number in any common BD format.
  */
 export async function sendFollowUp(
   visitId: string,
   phone: string,
-  message: string
 ): Promise<WhatsAppSendResult> {
-  return callEdgeFunction<WhatsAppSendResult>('whatsapp-send-followup', {
-    visit_id: visitId,
+  return sendViaFollowupFunction({
+    visitId,
     phone: normalizePhoneNumber(phone),
-    message,
+    messageType: 'followup',
   });
 }
 
 /**
- * Normalizes a Bangladeshi phone number to the international format
- * expected by the WhatsApp Business API.
- *
- * @param phone - Phone number in any common BD format
- * @returns Phone number in `+880XXXXXXXXXX` format
+ * Normalizes a Bangladeshi phone number to `+880XXXXXXXXXX`.
  *
  * @example
- * ```ts
  * normalizePhoneNumber('01711223344');    // "+8801711223344"
  * normalizePhoneNumber('+8801711223344'); // "+8801711223344"
  * normalizePhoneNumber('8801711223344');  // "+8801711223344"
- * ```
  */
 function normalizePhoneNumber(phone: string): string {
   const digits = phone.replace(/\D/g, '');
-
   if (digits.startsWith('880')) {
     return `+${digits}`;
   }
-
   if (digits.startsWith('0')) {
     return `+880${digits.slice(1)}`;
   }
-
   return `+880${digits}`;
 }
