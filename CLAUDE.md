@@ -26,7 +26,15 @@ The soul behind Glyph is called **Saarah**. She is *not* in the product name or 
 
 ## 2. Tech Stack (from actual package.json)
 
-Monorepo: root workspace + `web/` workspace. Node >=20.
+Monorepo: npm workspaces `apps/*` + `packages/*`. Node >=20.
+
+| Workspace | Name | What it is |
+|---|---|---|
+| `apps/glyph` | `glyph-web` | The Next.js 14 PWA (was `web/` before the Phase 2 restructure) |
+| `packages/identity` | `@kham/identity` | Shared identity envelope lifted from EIN: Ed25519 (`@noble/ed25519` v3), did:web, VC sign/verify/issue, JCS canonicalization. Framework-agnostic, no DB. Gated by 7 trust-root tests. |
+| `packages/schemas-clinical` | `@kham/schemas-clinical` | Zod schemas for clinical VC *payloads* (`credentialSubject.data`): PhysicianRegistration, VisitNote (CC/O-E/Ix/Rx/Advice), Prescription (1+0+1 dosing), LabResult, DispensingEvent + shared envelope/registry. |
+
+Both packages are TS-source packages (`main: ./src/index.ts`) consumed via `transpilePackages` in `apps/glyph/next.config.js`. Inside packages use **relative imports** (no `@/*` alias); private-key ops are server-only **by convention, guarded at the app boundary** (no `server-only` import — that was deliberately dropped at extraction).
 
 | Layer | Technology | Version |
 |---|---|---|
@@ -46,7 +54,7 @@ Monorepo: root workspace + `web/` workspace. Node >=20.
 | Tests | Vitest, React Testing Library, jsdom | ^1.6 / ^16 / ^24 |
 | Lint/Format | ESLint (`eslint-config-next`), Prettier | ^8.57 / ^3.3 |
 
-**Fonts:** Inter, Noto Sans Bengali, JetBrains Mono. **Theme colors:** `glyph-*` (green scale) and `clinical-*` (slate neutrals), `red_flag` for alerts (see `web/tailwind.config.ts`).
+**Fonts:** Inter, Noto Sans Bengali, JetBrains Mono. **Theme colors:** `glyph-*` (green scale) and `clinical-*` (slate neutrals), `red_flag` for alerts (see `apps/glyph/tailwind.config.ts`).
 
 **LLM providers wired in `supabase/functions/_shared/llm-router.ts`:** Gemini, MedGemma (via Vertex AI), Claude, OpenAI, Perplexity. Streaming is supported for Gemini and Claude.
 
@@ -57,9 +65,12 @@ Monorepo: root workspace + `web/` workspace. Node >=20.
 ```
 Glyph/
 ├── .env.example
-├── .github/workflows/ci.yml
+├── .github/workflows/ci.yml       # npm ci → lint → type-check → test → build (genuinely green since M0)
 ├── README.md
-├── package.json                    # workspace root (dev/build/lint/test/type-check proxies)
+├── AUDIT.md                        # Phase 1 audit (2026-05-30) — ground truth on every claimed-vs-measured gap. READ THIS.
+├── glyph-vision-v3.1.md            # ⚠ UNTRACKED working doc — northstar; known to overstate (see AUDIT.md). Do not treat as ground truth.
+├── inlinePrompt.md                 # ⚠ UNTRACKED working doc — founder ↔ session channel; contents change between sessions
+├── package.json                    # workspace root: workspaces ["apps/*","packages/*"]; dev/build/lint proxy to glyph-web; test/type-check run --workspaces --if-present
 ├── docs/                           # Long-form design docs (see §12)
 │   ├── architecture.md
 │   ├── api-routing.md
@@ -100,16 +111,18 @@ Glyph/
 │       ├── generate-note/
 │       ├── generate-patient-summary/
 │       └── send-followup/
-└── web/                            # Next.js PWA
-    ├── next.config.js              # next-pwa wrapper; supabase.co image remote pattern
+├── packages/
+│   ├── identity/                   # @kham/identity — src/{crypto,credentials,did}, test/trust-root.test.ts (7 tests = CI gate)
+│   └── schemas-clinical/           # @kham/schemas-clinical — src/{common,registry,*-schemas}, test/schemas.test.ts (11 tests)
+└── apps/glyph/                     # Next.js PWA (workspace name: glyph-web; was web/)
+    ├── next.config.js              # next-pwa wrapper; transpilePackages for @kham/*; supabase.co image remote pattern
     ├── package.json
     ├── tailwind.config.ts
     ├── tsconfig.json
     ├── postcss.config.js
     ├── public/
     │   ├── manifest.json
-    │   ├── sw.js                   # ⚠ Currently modified (uncommitted)
-    │   └── workbox-*.js
+    │   └── (sw.js / workbox-*.js are build artifacts, untracked since M0)
     └── src/
         ├── app/
         │   ├── layout.tsx          # <html lang="bn">, sonner Toaster
@@ -119,11 +132,11 @@ Glyph/
         │   │   ├── layout.tsx
         │   │   ├── page.tsx             # role selection (patient vs attendant)
         │   │   ├── history/page.tsx
-        │   │   ├── conversation/page.tsx   # ⚠ uses simulated STT + fake streaming
+        │   │   ├── conversation/page.tsx   # ⚠ still uses simulated STT + fake streaming (real wiring = rest of M3-pre/M4)
         │   │   └── summary/page.tsx
         │   └── doctor/
         │       ├── layout.tsx
-        │       ├── page.tsx             # ⚠ uses MOCK_PATIENTS
+        │       ├── page.tsx             # ⚠ still uses MOCK_PATIENTS (swap for useRealtimeQueue = M4)
         │       ├── briefing/[visitId]/page.tsx
         │       ├── consult/[visitId]/page.tsx
         │       ├── note/[visitId]/page.tsx
@@ -200,6 +213,8 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 - `set_visit_number()` — auto-increments `visit_number` per `patient_id` on insert.
 - `update_timestamp()` — bumps `updated_at` on `patients` and `visits`.
 
+⚠ **`apps/glyph/src/lib/supabase/types.ts` has a history of drifting from this SQL** (audit item F: invented columns hidden behind `as never` casts). The migration file is the source of truth. Regenerate via `supabase gen types` once a live DB exists (M4); until then any hand edit must be checked line-by-line against `001_initial_schema.sql`.
+
 ---
 
 ## 6. Commands
@@ -207,12 +222,11 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 ```bash
 # Root workspace
 npm install
-npm run dev             # → web workspace: next dev
-npm run build           # → web workspace: next build
-npm run lint            # → next lint
-npm run type-check      # → tsc --noEmit (web workspace)
-npm run test            # → vitest (web workspace)
-npm run test -- --run   # single run / CI mode
+npm run dev             # → glyph-web workspace: next dev
+npm run build           # → glyph-web workspace: next build
+npm run lint            # → glyph-web: next lint (packages have no lint script — known gap)
+npm run type-check      # → tsc --noEmit in ALL workspaces (--workspaces --if-present)
+npm run test            # → vitest run in ALL workspaces (app uses --passWithNoTests; packages have real tests)
 
 # Supabase (local)
 supabase start                                     # boots Postgres, Auth, Storage, Realtime, Studio
@@ -223,7 +237,7 @@ supabase migration list
 supabase functions serve                           # local Edge Function runner
 supabase functions deploy                          # deploy all (remote)
 supabase functions deploy <name>                   # deploy one
-supabase gen types typescript --local > web/src/lib/supabase/types.ts
+supabase gen types typescript --local > apps/glyph/src/lib/supabase/types.ts
 
 # Studio URL: http://localhost:54323
 # App URL:    http://localhost:3000
@@ -233,7 +247,7 @@ supabase gen types typescript --local > web/src/lib/supabase/types.ts
 
 ## 7. Environment Variables
 
-From `.env.example` (copy to `web/.env.local` — **Next.js loads from the workspace, not the repo root**).
+From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from the workspace, not the repo root**).
 
 | Variable | Required for | Notes |
 |---|---|---|
@@ -242,13 +256,13 @@ From `.env.example` (copy to `web/.env.local` — **Next.js loads from the works
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions (service writes) | Do NOT expose to client |
 | `GOOGLE_CLOUD_PROJECT_ID` | Vertex AI / MedGemma | — |
 | `GOOGLE_CLOUD_SPEECH_KEY` | Google STT | Not yet wired end-to-end |
-| `GOOGLE_AI_STUDIO_KEY` | Gemini API | ⚠ **See §8 bug #1** — `llm-router.ts` actually reads `GEMINI_API_KEY` |
+| `GOOGLE_AI_STUDIO_KEY` | Gemini API | ⚠ name mismatch (M4) — `llm-router.ts` actually reads `GEMINI_API_KEY` |
 | `ANTHROPIC_API_KEY` | Claude | Matches code |
 | `OPENAI_API_KEY` | OpenAI (unused by any current function, but router supports it) | Optional |
 | `PERPLEXITY_API_KEY` | Consult: recent studies | Optional |
 | `UPTODATE_API_KEY` | UpToDate Connect | Optional — falls back to Claude synthesis |
 | `UPTODATE_BASE_URL` | UpToDate endpoint | ⚠ Not currently read by code (hard-coded to `https://connect.uptodate.com/...`) |
-| `WHATSAPP_BUSINESS_TOKEN` | WhatsApp Business API | ⚠ **See §8 bug #2** — `send-followup` reads `WHATSAPP_ACCESS_TOKEN` |
+| `WHATSAPP_BUSINESS_TOKEN` | WhatsApp Business API | ⚠ name mismatch (M4) — `send-followup` reads `WHATSAPP_ACCESS_TOKEN` |
 | `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business API | Matches code |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
@@ -256,50 +270,51 @@ From `.env.example` (copy to `web/.env.local` — **Next.js loads from the works
 
 **Undocumented env vars read by code (must add to `.env.example` before these work):**
 - `GEMINI_API_KEY` — `llm-router.ts`
-- `VERTEX_AI_API_KEY` — `llm-router.ts` (but see §8 bug #5 — Vertex expects OAuth, not a raw key)
+- `VERTEX_AI_API_KEY` — `llm-router.ts` (broken by design — Vertex expects OAuth, not a raw key; M4 replaces this)
 - `GCP_PROJECT_ID`, `GCP_LOCATION` — `llm-router.ts` (`callVertexMedGemma`), defaults `"kham-health"` / `"us-central1"`
 - `WHATSAPP_ACCESS_TOKEN` — `send-followup`
 
 ---
 
-## 8. Current Status (honest read of the code as of 2026-04-12)
+## 8. Current Status (honest read as of 2026-06-10, branch `phase2/restructure`)
 
-### ✅ Implemented and structurally complete
-- Full Supabase schema + RLS + triggers (`001_initial_schema.sql`).
-- All 10 Edge Functions exist with auth, prompt text, LLM routing, cost logging, and DB writes.
-- Multi-provider LLM router with fallback + streaming (Gemini, Claude); non-streaming (MedGemma/Vertex, OpenAI, Perplexity).
-- PII de-identify/re-identify utility (covers BD phones, NID, emails, Bangla + English name patterns, addresses).
-- Next.js App Router skeleton for both `/intake` and `/doctor` flows, with PWA manifest + service worker.
-- shadcn-style `components/ui/*` primitives + Glyph-themed Tailwind config (green `glyph-*` palette + slate `clinical-*`).
-- Zustand stores (`auth`, `intake`, `consult`, `queue`) and hooks (`useVoiceInput`, `useAmbientRecording`, etc.) are scaffolded.
-- i18n utility with `bn` / `en` JSON dictionaries (40 lines each — very thin, many strings are still inline).
-- `/api/[...path]/route.ts` catch-all proxy to Supabase Edge Functions (supports streaming passthrough via SSE).
-- Prompt library is *real and substantial* — every file in `prompts/` is 138-358 lines (see §10).
-- Supabase client split into browser (`client.ts`) and SSR (`server.ts`).
+**Phase 1 (audit) and the early Phase 2 milestones are done. The app has still never run end-to-end against live services** — that is by design of the build order, not an accident; the remaining mocks fall in M3-pre part 2 and M4. `AUDIT.md` is the canonical deep status document; this section is the summary.
 
-### ⚠ Implemented but not connected / broken
-- **`intake/conversation/page.tsx`** — VoiceOrb is wired to *simulated* transcription and a faked streaming text response. No real STT, no real call to `intake-turn`.
-- **`doctor/page.tsx`** — dashboard renders a hard-coded `MOCK_PATIENTS` array. No `useRealtimeQueue` subscription yet.
-- **Client service layer (`web/src/lib/services/ai.ts`) sends snake_case keys** (`visit_id`, `is_attendant`, `image_url`, `message`) — **Edge Functions read camelCase** (`visitId`, `isAttendant`, `imageUrl`, `messageSource`). Every client→function call will fail validation until this is reconciled. **This is the #1 integration bug.**
-- `ai.ts::consultQuery` declares a streaming return, but `consult-query/index.ts` returns a non-streaming JSON response. Mismatch.
-- MedGemma/Vertex path authenticates with `Authorization: Bearer ${apiKey}` and a raw env var. Vertex AI requires a short-lived OAuth access token, not a static API key. **This path will not work without replacing the auth flow.**
-- `UPTODATE_BASE_URL` in `.env.example` is unused — `consult-uptodate` hard-codes `https://connect.uptodate.com/services/search/v1/search`.
-- Env-var name mismatches (see §7): `GOOGLE_AI_STUDIO_KEY` vs `GEMINI_API_KEY`, `WHATSAPP_BUSINESS_TOKEN` vs `WHATSAPP_ACCESS_TOKEN`.
-- `web/public/sw.js` has uncommitted local modifications (git status at session start).
-- No tests exist yet. Vitest is installed but `web/` has no `*.test.ts(x)` files.
+### ✅ Done (verified, committed)
+- **M0** (`c350e7b`) — CI is *genuinely* green: ESLint initialized, `--passWithNoTests` on the app, `sw.js`/workbox build artifacts untracked. Before this, CI had been red since the first commit.
+- **M1** (`008b0fd`, `6b209dc`) — `web/` → `apps/glyph`; `@kham/identity` extracted from EIN with the 3 known frictions fixed: `server-only` imports dropped (guard at app boundary), sha512 wiring centralized in `src/crypto/ed.ts` (kills the import-order fragility), identity types pulled out of EIN's `lib/supabase/types.ts`. 7/7 trust-root tests pass (sign→verify, tamper-reject, expiry, did:web resolution, canonicalization stability, AES round-trip) and are the package's CI gate.
+- **M2** (`55fb9b8`) — `@kham/schemas-clinical`: PhysicianRegistration, VisitNote, Prescription, LabResult, DispensingEvent payload schemas + shared envelope/registry. 11/11 tests.
+- **M3-pre part 1** (`d21b06e`) — the audit's #1 blocker fixed: `ai.ts` now sends camelCase keys matching edge-function contracts, unwraps the `{success,data}` envelope; `consultQuery` is correctly non-streaming; `whatsapp.ts` targets the real `send-followup` function. **Live verification still deferred (no Supabase/keys yet).**
 
-### 🧱 Stubs / placeholders
-- `AmbientRecorder.tsx`, `useAmbientRecording.ts` — scaffolded, not wired.
-- `ConsentPrompt.tsx` — component exists; consent flow UI is not integrated into intake.
-- `useRealtimeQueue.ts` — exists but the doctor dashboard doesn't use it yet.
-- `consult-uptodate` falls back to Claude synthesis because no real UpToDate key is assumed present.
-- `services/{camera,speech,whatsapp,patients,visits}.ts` — thin layers; verify each one before relying on it.
+### ⚠ Known-broken (scheduled, do not "discover" these again)
+- **Schema drift in client services**: `visits.ts`/`types.ts` were written against an invented schema — `queue_position`, `image_url`, `extracted_data`, `report_type`, `started_at`, `completed_at` do not exist in `001_initial_schema.sql` (real: `visit_number`, `image_path`, `test_category`, `consultation_started_at`/`consultation_ended_at`). Hidden by `as never` casts; fails at runtime. Reconciliation is the current work item (pulled forward from M4).
+- Intake conversation page: simulated STT + fake streaming; doctor dashboard: `MOCK_PATIENTS`; briefing/consult/note pages: mock-backed. (M3-pre part 2 / M4.)
+- `speech.ts` targets a `speech-stream` edge function that **does not exist** (M4 builds it).
+- Vertex/MedGemma auth uses a static key; Vertex requires OAuth — all MedGemma routes 401 and fall through (M4).
+- Env-var name mismatches (`GOOGLE_AI_STUDIO_KEY` vs `GEMINI_API_KEY`, `WHATSAPP_BUSINESS_TOKEN` vs `WHATSAPP_ACCESS_TOKEN`) — M4.
+- **PDPO: de-identification is ABSENT from 8 of 9 external-facing functions** (only `consult-query`'s `patientContext` is covered). The fix is the tiered egress policy in §8.5, not "more regex". Nothing real has shipped because nothing has run — but treat every new external call as if the gate already existed.
 
-### 🐛 Known bugs to fix (ordered by blast radius)
-1. **Client/server parameter casing mismatch** — nothing end-to-end works until this is fixed. Decide: standardize on camelCase in edge functions OR change `services/ai.ts` to camelCase. The code leans camelCase on the server, so fix the client.
-2. Env-var name mismatches (`GEMINI_API_KEY`, `WHATSAPP_ACCESS_TOKEN`) — either rename in code or rename in `.env.example`.
-3. Vertex AI auth — MedGemma calls need a real Google Cloud access token flow, not a raw env-var key.
-4. `consultQuery` streaming mismatch — either make the edge function stream, or change the client to non-streaming.
+---
+
+## 8.5. Phase 2 Plan of Record (binding — from the founder's brief)
+
+The architecture decision: **the Verifiable Credential is canonical; Postgres rows are projections.** If you ever find rows becoming the source of truth and VCs becoming an export, STOP — that is the failure mode this phase exists to prevent.
+
+| Milestone | Work | Status |
+|---|---|---|
+| M0 | Real green CI | ✅ |
+| M1 | Workspaces + `@kham/identity` + trust-root gate | ✅ |
+| M2 | `@kham/schemas-clinical` | ✅ |
+| **M3-pre** | `ai.ts` casing ✅ → schema/types reconciliation (in progress) → patient-registration + `createVisit` → one intake→note path live | ◑ current |
+| M3 | `issueCredential` seam: build VC → sign → canonical row in `credentials` → projection upsert. New tables `credentials`/`did_documents`/`credential_status_log` are INSERT-only (UPDATE/DELETE-blocking triggers, no `updated_at`). Amendments = new credential with `replaces` pointer, never overwrite. DID docs at `.well-known/did/...` | pending |
+| M4 | Kill mocks, wire scribe live, build `speech-stream`, Vertex OAuth, env-var fixes, regenerate types from live DB, **tiered egress policy** | pending |
+| M5 | Two-node loop: doctor issues Rx credential → pharmacy view verifies via local `verifyCredential`. **Stop after M5 and report.** | pending |
+
+**Egress hard constraint (M4, summarized):** every external-API call must declare a tier — **A** (structured fields only → de-identify then send), **B** (free-text transcripts / document images → consent-gated + over-redacted, or disabled), **C** (protected populations → never leaves the country, feature-flagged off). Enforced at a single chokepoint around `llm-router` that **fails closed** (un-tiered call rejected), with an append-only `egress_log`. Regex de-id is the Tier-A floor, **not** the control.
+
+**Other binding rules:** one identity engine (never copy crypto — extend `@kham/identity`); don't build population-module surfaces (Continuity/Factory/Maa/Lens/Hospital/Bridge) — schemas stay compatible, surfaces stay unbuilt; W3C honesty — credentials are single-network verifiable today (JCS + base64 proof), not generic-W3C-interoperable until URDNA2015/Data Integrity; after M5, produce `NORTHSTAR-CORRECTIONS.md` rather than editing the vision doc directly.
+
+**Working docs:** `inlinePrompt.md` (untracked) is the founder↔session channel — its contents change between sessions; read it at session start. `AUDIT.md` (tracked) is the Phase 1 ground truth.
 
 ---
 
@@ -362,7 +377,8 @@ Observed patterns in the code. Follow these for new work.
 - Prompts: `kebab-case.md`, grouped by workflow stage.
 
 **Imports**
-- Always use the `@/*` path alias for anything under `web/src/`. No relative `../../..` across modules.
+- In `apps/glyph`: always use the `@/*` path alias for anything under `apps/glyph/src/`. No relative `../../..` across modules.
+- In `packages/*`: relative imports only (no `@/*` alias). App code imports packages by name (`@kham/identity`, `@kham/schemas-clinical`).
 
 **Component structure**
 - Client Components: start with `"use client";`. Default to RSC where possible, but most interactive clinical screens are client-side for voice/realtime/camera.
@@ -372,7 +388,7 @@ Observed patterns in the code. Follow these for new work.
 - Semantic colors use Tailwind classes `glyph-*` (green primary), `clinical-*` (neutrals), `red_flag` (critical alerts).
 
 **API / data flow**
-- Client never calls LLM providers directly. Client → `web/src/lib/services/ai.ts` → (fetch) → Supabase Edge Function → provider.
+- Client never calls LLM providers directly. Client → `apps/glyph/src/lib/services/ai.ts` → (fetch) → Supabase Edge Function → provider.
 - Edge Functions always: (a) validate `Authorization` header via `supabase.auth.getUser()`, (b) use an anon-key client for reads respecting RLS, (c) use a service-role client for writes that bypass RLS, (d) log usage via `cost-logger.ts`, (e) deidentify before sending PII to external LLMs.
 - Streaming responses use SSE (`text/event-stream`). The edge function `tee()`s the stream so one branch goes to the client while the other captures the full text to persist to the DB (see `intake-turn`, `generate-briefing`, `generate-note`).
 - The Next.js `/api/[...path]/route.ts` catch-all proxies every `POST` to Supabase functions and passes SSE through as-is.
@@ -405,26 +421,25 @@ Observed patterns in the code. Follow these for new work.
 - **Do not build native-app features.** Glyph is a PWA. Service worker + manifest only.
 - **Do not assume patients come alone.** Every screen that captures input must account for the attendant scenario.
 - **Do not use Western clinical defaults** — drug names, disease prevalence, workflow assumptions, insurance gatekeeping, etc. Bangladesh-specific references live in `prompts/reference/`.
-- **Do not add new dependencies without checking** what's already installed (see `web/package.json`). We're intentionally tight — Zustand for state, shadcn primitives for UI, lucide for icons, sonner for toasts, date-fns for dates. No new UI libs, no redux, no tanstack-query unless there's a strong reason.
+- **Do not add new dependencies without checking** what's already installed (see `apps/glyph/package.json`). We're intentionally tight — Zustand for state, shadcn primitives for UI, lucide for icons, sonner for toasts, date-fns for dates. No new UI libs, no redux, no tanstack-query unless there's a strong reason.
 - **Do not skip cost logging** in new Edge Functions. Every LLM call must end with a `logUsage()`.
 - **Do not bypass RLS with the service-role client for reads** — use the anon client scoped to the user's `Authorization` header. Service role is for trusted writes only.
 - **Do not amend existing prompts for style.** They're versioned and may require clinical review (`prompts/README.md` § "Iteration Process"). Style-only tweaks are fine; anything affecting clinical output is not.
-- **Do not invent models.** The latest Claude model family as of now is 4.6/4.5 (`claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`). The code currently uses `claude-sonnet-4-20250514` — when upgrading, use a real current model ID, not a guess.
+- **Do not invent models.** As of 2026-06, the most recent Claude models are Fable 5 (`claude-fable-5`) and the 4.x family (`claude-opus-4-8`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`). The code currently uses `claude-sonnet-4-20250514` — when upgrading, use a real current model ID, not a guess.
+- **Do not write to `prescriptions.image_url`, `visits.queue_position`, or other columns that "feel right".** The schema source of truth is `supabase/migrations/001_initial_schema.sql`. If TypeScript needs an `as never`/`as any` cast to accept a Supabase insert/update, that is a signal the column doesn't exist — stop and check the migration.
 
 ---
 
 ## 13. Open Questions / Next Moves
 
-Things a future session should probably pick up before shipping anything:
+The plan of record is §8.5 — follow the milestone order, don't freelance. Immediate queue:
 
-1. Decide the client/server parameter casing convention and fix the `services/ai.ts` ↔ edge function mismatch in one pass.
-2. Wire `intake/conversation/page.tsx` to real STT (`useVoiceInput`) + real `intake-turn` streaming.
-3. Replace `MOCK_PATIENTS` in the doctor dashboard with `useRealtimeQueue` backed by Supabase Realtime on `visits`.
-4. Decide the Vertex AI auth strategy — move to Google OAuth access tokens, or swap MedGemma for an API-key-based endpoint (Gemini / a different deployment).
-5. Reconcile the `prompts/README.md` model matrix with the actual Edge Function routing table in §4.
-6. Commit or revert the uncommitted `web/public/sw.js` change.
-7. Add a first `vitest` test — probably for `deidentify.ts` since it's pure and high-leverage.
+1. **Finish M3-pre**: reconcile `types.ts` + visit/patient services to the real migration, then build patient-registration + `createVisit` (`registerAndStartVisit`), then get one intake→note path running against live Supabase.
+2. **Live Supabase**: nothing has ever been verified against a real DB. `seed.sql` uses placeholder `auth.users` UUIDs, so local login yields `doctor: null` until seeding is fixed — fix when standing up the local stack.
+3. **M3** issuance seam (only after M3-pre's live path exists).
+4. **M4** — see §8.5; the egress tier policy is the heart of it. Smaller M4 items: `prompts/README.md` model matrix reconciliation, `UPTODATE_BASE_URL` unused, `consult-uptodate` URL hard-coded.
+5. After M5: stop, report, write `NORTHSTAR-CORRECTIONS.md`.
 
 ---
 
-*Last updated: 2026-04-12. Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
+*Last updated: 2026-06-10 (post-restructure; M0–M2 + M3-pre part 1 landed). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
