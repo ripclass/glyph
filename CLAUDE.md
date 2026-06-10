@@ -241,6 +241,9 @@ supabase gen types typescript --local > apps/glyph/src/lib/supabase/types.ts
 
 # Studio URL: http://localhost:54323
 # App URL:    http://localhost:3000
+
+# Live-DB smoke test (schema/trigger/registration semantics; keys from `supabase start` output)
+node scripts/smoke-db.mjs http://127.0.0.1:54321 <sb_secret_key>
 ```
 
 ---
@@ -305,7 +308,7 @@ The architecture decision: **the Verifiable Credential is canonical; Postgres ro
 | M0 | Real green CI | ✅ |
 | M1 | Workspaces + `@kham/identity` + trust-root gate | ✅ |
 | M2 | `@kham/schemas-clinical` | ✅ |
-| **M3-pre** | `ai.ts` casing ✅ → schema/types reconciliation (in progress) → patient-registration + `createVisit` → one intake→note path live | ◑ current |
+| **M3-pre** | `ai.ts` casing ✅ → schema/types reconciliation ✅ (root cause: `Database` was an `interface` → schema degraded to `never`; also `@supabase/ssr` 0.5→0.12) → patient-registration + `createVisit` ✅ (live-DB verified: `node scripts/smoke-db.mjs <url> <secret-key>`, 14/14 checks incl. both triggers) → one intake→note path live (**blocked: needs LLM keys in `apps/glyph/.env.local` + `supabase functions serve`**) | ◑ current |
 | M3 | `issueCredential` seam: build VC → sign → canonical row in `credentials` → projection upsert. New tables `credentials`/`did_documents`/`credential_status_log` are INSERT-only (UPDATE/DELETE-blocking triggers, no `updated_at`). Amendments = new credential with `replaces` pointer, never overwrite. DID docs at `.well-known/did/...` | pending |
 | M4 | Kill mocks, wire scribe live, build `speech-stream`, Vertex OAuth, env-var fixes, regenerate types from live DB, **tiered egress policy** | pending |
 | M5 | Two-node loop: doctor issues Rx credential → pharmacy view verifies via local `verifyCredential`. **Stop after M5 and report.** | pending |
@@ -435,7 +438,7 @@ Observed patterns in the code. Follow these for new work.
 The plan of record is §8.5 — follow the milestone order, don't freelance. Immediate queue:
 
 1. **Finish M3-pre**: reconcile `types.ts` + visit/patient services to the real migration, then build patient-registration + `createVisit` (`registerAndStartVisit`), then get one intake→note path running against live Supabase.
-2. **Live Supabase**: nothing has ever been verified against a real DB. `seed.sql` uses placeholder `auth.users` UUIDs, so local login yields `doctor: null` until seeding is fixed — fix when standing up the local stack.
+2. **Live Supabase**: the local stack now boots and seeds cleanly (config.toml migrated to CLI v2 2026-06-10; seed.sql's `p`/`l`/`x` UUID prefixes weren't valid hex — it had never applied). The data layer is smoke-verified (`scripts/smoke-db.mjs`). Still missing for a dev login: a doctor signup flow (seed.sql intentionally ships no doctors — `doctors.id` must be a real `auth.users` id; create via `auth.admin.createUser` as the smoke script does). The intake→note live run additionally needs LLM API keys.
 3. **M3** issuance seam (only after M3-pre's live path exists).
 4. **M4** — see §8.5; the egress tier policy is the heart of it. Smaller M4 items: `prompts/README.md` model matrix reconciliation, `UPTODATE_BASE_URL` unused, `consult-uptodate` URL hard-coded.
 5. After M5: stop, report, write `NORTHSTAR-CORRECTIONS.md`.
