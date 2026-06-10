@@ -8,7 +8,7 @@ const withPWA = require("next-pwa")({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@kham/identity"],
+  transpilePackages: ["@kham/identity", "@kham/schemas-clinical"],
   images: {
     remotePatterns: [
       {
