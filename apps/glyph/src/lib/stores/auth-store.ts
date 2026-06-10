@@ -97,11 +97,15 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
         return;
       }
 
-      /** Fetch the doctor profile linked to this auth user */
+      /**
+       * Fetch the doctor profile for this auth user.
+       * In the schema, doctors.id IS the auth.users id (PK references
+       * auth.users(id)) — there is no separate auth_user_id column.
+       */
       const { data: doctor, error } = await supabase
         .from('doctors')
         .select('*')
-        .eq('auth_user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       if (error || !doctor) {

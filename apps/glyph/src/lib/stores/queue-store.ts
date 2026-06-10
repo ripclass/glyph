@@ -63,6 +63,8 @@ export function selectStatusCounts(
   const counts: Record<string, number> = { all: state.visits.length };
 
   for (const visit of state.visits) {
+    /** status is nullable in the schema (DB default 'intake'); skip nulls */
+    if (visit.status === null) continue;
     counts[visit.status] = (counts[visit.status] ?? 0) + 1;
   }
 
@@ -104,11 +106,12 @@ export const useQueueStore = create<QueueState & QueueActions>((set) => ({
 
   addVisit: (visit) =>
     set((state) => {
-      /** Insert in queue_position order */
+      /** Insert in arrival order (created_at ascending, nulls last) */
       const updated = [...state.visits, visit].sort((a, b) => {
-        const posA = a.queue_position ?? Number.MAX_SAFE_INTEGER;
-        const posB = b.queue_position ?? Number.MAX_SAFE_INTEGER;
-        return posA - posB;
+        if (a.created_at === b.created_at) return 0;
+        if (a.created_at === null) return 1;
+        if (b.created_at === null) return -1;
+        return a.created_at < b.created_at ? -1 : 1;
       });
       return { visits: updated };
     }),

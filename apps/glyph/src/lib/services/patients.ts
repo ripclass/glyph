@@ -115,7 +115,7 @@ export async function createPatient(data: PatientInsert): Promise<Patient> {
   const supabase = createClient();
   const { data: patient, error } = await supabase
     .from('patients')
-    .insert(data as never)
+    .insert(data)
     .select()
     .single();
 
@@ -143,10 +143,11 @@ export async function updatePatient(
   id: string,
   data: PatientUpdate
 ): Promise<Patient> {
+  /** `updated_at` is maintained by the `update_timestamp()` DB trigger */
   const supabase = createClient();
   const { data: patient, error } = await supabase
     .from('patients')
-    .update({ ...data, updated_at: new Date().toISOString() } as never)
+    .update(data)
     .eq('id', id)
     .select()
     .single();

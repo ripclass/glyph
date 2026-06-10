@@ -1,7 +1,11 @@
 /**
  * @fileoverview Visit lifecycle service for the Glyph clinical PWA.
  * Manages the full encounter lifecycle from creation through follow-up,
- * including queue management and briefing card retrieval.
+ * including queue retrieval and briefing card access.
+ *
+ * Column names mirror `supabase/migrations/001_initial_schema.sql` exactly.
+ * There is no queue_position column — today's queue is arrival order
+ * (`created_at`); `visit_number` is a per-patient counter set by a DB trigger.
  *
  * Uses the browser-side Supabase client.
  *
@@ -9,14 +13,15 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import type { Visit, VisitStatus, VisitUpdate } from '@/lib/supabase/types';
+import type { Json, Visit, VisitStatus, VisitUpdate } from '@/lib/supabase/types';
 
 /** Visit record enriched with related patient, prescription, and lab data */
 export interface VisitWithRelations extends Visit {
   patients: {
     id: string;
     name: string;
-    phone: string;
+    name_bn: string | null;
+    phone: string | null;
     age: number | null;
     gender: string | null;
     blood_group: string | null;
@@ -24,30 +29,41 @@ export interface VisitWithRelations extends Visit {
   prescriptions: Array<{
     id: string;
     source: string;
-    image_url: string | null;
-    extracted_data: Record<string, unknown> | null;
-    medications: Record<string, unknown>[] | null;
-    created_at: string;
+    image_path: string | null;
+    medications: Json | null;
+    extraction_confidence: number | null;
+    created_at: string | null;
   }>;
   lab_reports: Array<{
     id: string;
     source: string;
-    image_url: string | null;
-    extracted_data: Record<string, unknown> | null;
-    report_type: string | null;
-    created_at: string;
+    image_path: string | null;
+    test_category: string | null;
+    results: Json | null;
+    created_at: string | null;
   }>;
   consent_records: Array<{
     id: string;
     consent_type: string;
     granted: boolean;
     granted_by: string;
-    granted_at: string;
+    granted_at: string | null;
   }>;
 }
 
+/** Nested relation selection shared by getVisit and getTodayQueue */
+const VISIT_RELATIONS_SELECT = `
+  *,
+  patients (id, name, name_bn, phone, age, gender, blood_group),
+  prescriptions (id, source, image_path, medications, extraction_confidence, created_at),
+  lab_reports (id, source, image_path, test_category, results, created_at),
+  consent_records (id, consent_type, granted, granted_by, granted_at)
+`;
+
 /**
- * Creates a new visit record and assigns a queue position.
+ * Creates a new visit record in `intake` status.
+ * `visit_number` is assigned by the `set_visit_number()` DB trigger;
+ * `visit_date` defaults to CURRENT_DATE server-side.
  *
  * @param patientId - The patient UUID
  * @param doctorId - The attending doctor UUID
@@ -67,18 +83,6 @@ export async function createVisit(
 ): Promise<Visit> {
   const supabase = createClient();
 
-  /** Determine next queue position for today */
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const { count } = await supabase
-    .from('visits')
-    .select('*', { count: 'exact', head: true })
-    .eq('clinic_id', clinicId)
-    .gte('created_at', todayStart.toISOString());
-
-  const queuePosition = (count ?? 0) + 1;
-
   const { data, error } = await supabase
     .from('visits')
     .insert({
@@ -86,8 +90,7 @@ export async function createVisit(
       doctor_id: doctorId,
       clinic_id: clinicId,
       status: 'intake' as VisitStatus,
-      queue_position: queuePosition,
-    } as never)
+    })
     .select()
     .single();
 
@@ -116,13 +119,7 @@ export async function getVisit(id: string): Promise<VisitWithRelations> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('visits')
-    .select(`
-      *,
-      patients (id, name, phone, age, gender, blood_group),
-      prescriptions (id, source, image_url, extracted_data, medications, created_at),
-      lab_reports (id, source, image_url, extracted_data, report_type, created_at),
-      consent_records (id, consent_type, granted, granted_by, granted_at)
-    `)
+    .select(VISIT_RELATIONS_SELECT)
     .eq('id', id)
     .single();
 
@@ -135,8 +132,9 @@ export async function getVisit(id: string): Promise<VisitWithRelations> {
 
 /**
  * Updates a visit's status in the lifecycle.
- * Automatically sets `started_at` when entering consultation
- * and `completed_at` when completing.
+ * Sets `consultation_started_at` when entering consultation and
+ * `consultation_ended_at` when completing. (`updated_at` is maintained
+ * by the `update_timestamp()` DB trigger.)
  *
  * @param id - Visit UUID
  * @param status - New visit status
@@ -154,21 +152,18 @@ export async function updateVisitStatus(
 ): Promise<Visit> {
   const supabase = createClient();
 
-  const updateData: VisitUpdate = {
-    status,
-    updated_at: new Date().toISOString(),
-  };
+  const updateData: VisitUpdate = { status };
 
-  /** Track lifecycle timestamps */
+  /** Track consultation lifecycle timestamps */
   if (status === 'in_consultation') {
-    updateData.started_at = new Date().toISOString();
+    updateData.consultation_started_at = new Date().toISOString();
   } else if (status === 'completed') {
-    updateData.completed_at = new Date().toISOString();
+    updateData.consultation_ended_at = new Date().toISOString();
   }
 
   const { data, error } = await supabase
     .from('visits')
-    .update(updateData as never)
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();
@@ -181,8 +176,9 @@ export async function updateVisitStatus(
 }
 
 /**
- * Fetches today's patient queue for a clinic, ordered by queue position.
- * Includes basic patient info for the queue display.
+ * Fetches today's patient queue for a clinic in arrival order (created_at).
+ * Filters on `visit_date` (DATE column, server default CURRENT_DATE), which
+ * is covered by the `idx_visits_clinic_date` index.
  *
  * @param clinicId - The clinic UUID
  * @returns Array of today's visits with patient names
@@ -198,25 +194,12 @@ export async function getTodayQueue(
 ): Promise<VisitWithRelations[]> {
   const supabase = createClient();
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
-
   const { data, error } = await supabase
     .from('visits')
-    .select(`
-      *,
-      patients (id, name, phone, age, gender, blood_group),
-      prescriptions (id, source, image_url, extracted_data, medications, created_at),
-      lab_reports (id, source, image_url, extracted_data, report_type, created_at),
-      consent_records (id, consent_type, granted, granted_by, granted_at)
-    `)
+    .select(VISIT_RELATIONS_SELECT)
     .eq('clinic_id', clinicId)
-    .gte('created_at', todayStart.toISOString())
-    .lte('created_at', todayEnd.toISOString())
-    .order('queue_position', { ascending: true });
+    .eq('visit_date', localDateISO())
+    .order('created_at', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to fetch today's queue: ${error.message}`);
@@ -244,4 +227,17 @@ export async function getTodayQueue(
  */
 export async function getVisitWithBriefing(id: string): Promise<VisitWithRelations> {
   return getVisit(id);
+}
+
+/**
+ * Today's date as YYYY-MM-DD in the device's local timezone (Asia/Dhaka in
+ * production). Matches Postgres CURRENT_DATE as long as the DB runs in the
+ * same timezone — revisit if the DB is hosted in UTC.
+ */
+function localDateISO(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }

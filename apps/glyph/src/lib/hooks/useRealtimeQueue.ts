@@ -1,7 +1,7 @@
 /**
  * @fileoverview React hook for real-time patient queue updates via Supabase Realtime.
  * Subscribes to changes on the `visits` table for a specific clinic
- * and keeps the queue sorted by queue position.
+ * and keeps the queue sorted in arrival order (created_at).
  *
  * @module lib/hooks/useRealtimeQueue
  */
@@ -16,7 +16,7 @@ import type { Visit } from '@/lib/supabase/types';
 
 /** Return type of the `useRealtimeQueue` hook */
 export interface UseRealtimeQueueReturn {
-  /** Today's patient queue, sorted by queue position */
+  /** Today's patient queue, sorted in arrival order */
   queue: Visit[];
   /** Whether the Realtime subscription is active */
   isConnected: boolean;
@@ -89,7 +89,7 @@ export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
         (payload) => {
           setQueue((prev) => {
             const updated = [...prev, payload.new];
-            return sortByQueuePosition(updated);
+            return sortByArrival(updated);
           });
         }
       )
@@ -106,7 +106,7 @@ export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
             const updated = prev.map((v) =>
               v.id === payload.new.id ? payload.new : v
             );
-            return sortByQueuePosition(updated);
+            return sortByArrival(updated);
           });
         }
       )
@@ -142,15 +142,17 @@ export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
 }
 
 /**
- * Sorts visits by queue_position ascending, with nulls at the end.
+ * Sorts visits in arrival order (created_at ascending), with nulls at the end.
+ * There is no queue_position column in the schema — arrival order IS the queue.
  *
  * @param visits - Array of visit records to sort
  * @returns Sorted array
  */
-function sortByQueuePosition(visits: Visit[]): Visit[] {
+function sortByArrival(visits: Visit[]): Visit[] {
   return [...visits].sort((a, b) => {
-    const posA = a.queue_position ?? Number.MAX_SAFE_INTEGER;
-    const posB = b.queue_position ?? Number.MAX_SAFE_INTEGER;
-    return posA - posB;
+    if (a.created_at === b.created_at) return 0;
+    if (a.created_at === null) return 1;
+    if (b.created_at === null) return -1;
+    return a.created_at < b.created_at ? -1 : 1;
   });
 }

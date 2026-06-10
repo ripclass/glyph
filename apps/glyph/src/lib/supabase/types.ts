@@ -1,12 +1,32 @@
 /**
  * @fileoverview Supabase database type definitions for the Glyph clinical AI platform.
- * These types mirror the PostgreSQL schema and are used throughout the application
- * for type-safe database operations.
+ *
+ * HAND-RECONCILED against `supabase/migrations/001_initial_schema.sql` on
+ * 2026-06-10 (audit item F: the previous version of this file had drifted —
+ * invented columns like `visits.queue_position`, `prescriptions.image_url`,
+ * `lab_reports.report_type` that do not exist in the database).
+ *
+ * The migration SQL is the source of truth. Once a live DB exists (M4),
+ * regenerate with:
+ *   supabase gen types typescript --local > apps/glyph/src/lib/supabase/types.ts
+ * and re-apply the convenience aliases at the bottom if the generator drops them.
+ *
+ * Nullability follows the SQL exactly: columns without NOT NULL are
+ * `T | null` even when they have a DEFAULT.
  *
  * @module lib/supabase/types
  */
 
-/** Visit lifecycle statuses */
+/** JSON value as stored in Postgres JSONB columns (matches supabase gen types) */
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+/** Visit lifecycle statuses (CHECK constraint on visits.status) */
 export type VisitStatus =
   | 'intake'
   | 'intake_complete'
@@ -15,13 +35,13 @@ export type VisitStatus =
   | 'completed'
   | 'followup_sent';
 
-/** Prescription provenance */
+/** Prescription provenance (CHECK constraint on prescriptions.source) */
 export type PrescriptionSource = 'photo_historical' | 'photo_current' | 'generated';
 
-/** Lab report provenance */
+/** Lab report provenance (CHECK constraint on lab_reports.source) */
 export type LabReportSource = 'photo_historical' | 'photo_current' | 'digital';
 
-/** Consent categories tracked for regulatory compliance */
+/** Consent categories tracked for PDPO compliance (CHECK constraint) */
 export type ConsentType =
   | 'recording'
   | 'data_storage'
@@ -30,14 +50,20 @@ export type ConsentType =
   | 'whatsapp_followup'
   | 'data_sharing';
 
-/** Who provided consent on behalf of the patient */
+/** Who provided consent on behalf of the patient (CHECK constraint) */
 export type ConsentGrantedBy = 'patient' | 'attendant' | 'guardian';
 
 /**
  * Full Supabase database schema definition.
  * Used with `createClient<Database>()` to enable end-to-end type safety.
+ *
+ * MUST be a `type` alias, not an `interface`: supabase-js constrains the
+ * generic to `Record<string, GenericSchema>`, and interfaces have no
+ * implicit index signature — an interface here silently degrades every
+ * table to `never`, which is what previously forced `as never` casts all
+ * over the service layer.
  */
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       /** Clinic/practice locations */
@@ -46,210 +72,298 @@ export interface Database {
           id: string;
           name: string;
           address: string | null;
+          district: string | null;
           phone: string | null;
-          created_at: string;
-          updated_at: string;
+          created_at: string | null;
         };
         Insert: {
           id?: string;
           name: string;
           address?: string | null;
+          district?: string | null;
           phone?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
           name?: string;
           address?: string | null;
+          district?: string | null;
           phone?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
         };
         Relationships: [];
       };
 
-      /** Registered doctors/clinicians */
+      /**
+       * Registered doctors. `id` IS the auth.users id (PK references
+       * auth.users(id), no separate auth_user_id column) — it has no default,
+       * so Insert requires it.
+       */
       doctors: {
         Row: {
           id: string;
-          clinic_id: string;
+          clinic_id: string | null;
           name: string;
-          phone: string;
-          specialization: string | null;
+          name_bn: string | null;
+          speciality: string | null;
           bmdc_reg_no: string | null;
-          auth_user_id: string | null;
-          created_at: string;
-          updated_at: string;
+          phone: string;
+          email: string | null;
+          preferred_language: string | null;
+          preferred_note_format: string | null;
+          settings: Json | null;
+          created_at: string | null;
         };
         Insert: {
-          id?: string;
-          clinic_id: string;
+          id: string;
+          clinic_id?: string | null;
           name: string;
-          phone: string;
-          specialization?: string | null;
+          name_bn?: string | null;
+          speciality?: string | null;
           bmdc_reg_no?: string | null;
-          auth_user_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          phone: string;
+          email?: string | null;
+          preferred_language?: string | null;
+          preferred_note_format?: string | null;
+          settings?: Json | null;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
-          clinic_id?: string;
+          clinic_id?: string | null;
           name?: string;
-          phone?: string;
-          specialization?: string | null;
+          name_bn?: string | null;
+          speciality?: string | null;
           bmdc_reg_no?: string | null;
-          auth_user_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          phone?: string;
+          email?: string | null;
+          preferred_language?: string | null;
+          preferred_note_format?: string | null;
+          settings?: Json | null;
+          created_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "doctors_clinic_id_fkey";
-            columns: ["clinic_id"];
+            foreignKeyName: 'doctors_clinic_id_fkey';
+            columns: ['clinic_id'];
             isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
           },
         ];
       };
 
-      /** Patient demographics and contact info */
+      /** Patient demographics and soft-denormalized clinical context */
       patients: {
         Row: {
           id: string;
           clinic_id: string;
           name: string;
-          phone: string;
+          name_bn: string | null;
+          phone: string | null;
           age: number | null;
+          date_of_birth: string | null;
           gender: string | null;
-          address: string | null;
           blood_group: string | null;
-          emergency_contact: string | null;
-          created_at: string;
-          updated_at: string;
+          address: string | null;
+          primary_language: string | null;
+          emergency_contact_name: string | null;
+          emergency_contact_phone: string | null;
+          known_allergies: Json | null;
+          chronic_conditions: Json | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
           clinic_id: string;
           name: string;
-          phone: string;
+          name_bn?: string | null;
+          phone?: string | null;
           age?: number | null;
+          date_of_birth?: string | null;
           gender?: string | null;
-          address?: string | null;
           blood_group?: string | null;
-          emergency_contact?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          address?: string | null;
+          primary_language?: string | null;
+          emergency_contact_name?: string | null;
+          emergency_contact_phone?: string | null;
+          known_allergies?: Json | null;
+          chronic_conditions?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
           clinic_id?: string;
           name?: string;
-          phone?: string;
+          name_bn?: string | null;
+          phone?: string | null;
           age?: number | null;
+          date_of_birth?: string | null;
           gender?: string | null;
-          address?: string | null;
           blood_group?: string | null;
-          emergency_contact?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          address?: string | null;
+          primary_language?: string | null;
+          emergency_contact_name?: string | null;
+          emergency_contact_phone?: string | null;
+          known_allergies?: Json | null;
+          chronic_conditions?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "patients_clinic_id_fkey";
-            columns: ["clinic_id"];
+            foreignKeyName: 'patients_clinic_id_fkey';
+            columns: ['clinic_id'];
             isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
           },
         ];
       };
 
-      /** Clinical visit records tracking the full encounter lifecycle */
+      /**
+       * Clinical visit records — the central table tracking the full
+       * encounter lifecycle. `visit_number` is set by the `set_visit_number()`
+       * trigger (per-patient counter); `updated_at` by `update_timestamp()`.
+       * There is NO queue_position column — queue order is arrival order
+       * (`created_at`).
+       */
       visits: {
         Row: {
           id: string;
           patient_id: string;
           doctor_id: string;
           clinic_id: string;
-          status: VisitStatus;
-          chief_complaint: string | null;
-          intake_summary: Record<string, unknown> | null;
-          briefing_card: Record<string, unknown> | null;
-          consultation_transcript: string | null;
-          clinical_note: Record<string, unknown> | null;
-          is_attendant: boolean;
+          visit_date: string | null;
+          visit_number: number | null;
+          status: VisitStatus | null;
+          attendant_present: boolean | null;
+          attendant_name: string | null;
           attendant_relation: string | null;
-          queue_position: number | null;
-          scheduled_at: string | null;
-          started_at: string | null;
-          completed_at: string | null;
-          created_at: string;
-          updated_at: string;
+          attendant_language: string | null;
+          attendant_reliability_notes: string | null;
+          intake_transcript: Json | null;
+          intake_summary: Json | null;
+          intake_duration_seconds: number | null;
+          intake_completed_at: string | null;
+          briefing_card: Json | null;
+          briefing_generated_at: string | null;
+          consultation_started_at: string | null;
+          consultation_ended_at: string | null;
+          consultation_transcript: Json | null;
+          consultation_queries: Json | null;
+          generated_note: Json | null;
+          doctor_edits: Json | null;
+          approved_note: Json | null;
+          note_format: string | null;
+          approved_at: string | null;
+          evidence_links: Json | null;
+          followup_scheduled_at: string | null;
+          followup_sent_at: string | null;
+          followup_response: string | null;
+          followup_response_at: string | null;
+          api_costs: Json | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
           patient_id: string;
           doctor_id: string;
           clinic_id: string;
-          status?: VisitStatus;
-          chief_complaint?: string | null;
-          intake_summary?: Record<string, unknown> | null;
-          briefing_card?: Record<string, unknown> | null;
-          consultation_transcript?: string | null;
-          clinical_note?: Record<string, unknown> | null;
-          is_attendant?: boolean;
+          visit_date?: string | null;
+          visit_number?: number | null;
+          status?: VisitStatus | null;
+          attendant_present?: boolean | null;
+          attendant_name?: string | null;
           attendant_relation?: string | null;
-          queue_position?: number | null;
-          scheduled_at?: string | null;
-          started_at?: string | null;
-          completed_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          attendant_language?: string | null;
+          attendant_reliability_notes?: string | null;
+          intake_transcript?: Json | null;
+          intake_summary?: Json | null;
+          intake_duration_seconds?: number | null;
+          intake_completed_at?: string | null;
+          briefing_card?: Json | null;
+          briefing_generated_at?: string | null;
+          consultation_started_at?: string | null;
+          consultation_ended_at?: string | null;
+          consultation_transcript?: Json | null;
+          consultation_queries?: Json | null;
+          generated_note?: Json | null;
+          doctor_edits?: Json | null;
+          approved_note?: Json | null;
+          note_format?: string | null;
+          approved_at?: string | null;
+          evidence_links?: Json | null;
+          followup_scheduled_at?: string | null;
+          followup_sent_at?: string | null;
+          followup_response?: string | null;
+          followup_response_at?: string | null;
+          api_costs?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
           patient_id?: string;
           doctor_id?: string;
           clinic_id?: string;
-          status?: VisitStatus;
-          chief_complaint?: string | null;
-          intake_summary?: Record<string, unknown> | null;
-          briefing_card?: Record<string, unknown> | null;
-          consultation_transcript?: string | null;
-          clinical_note?: Record<string, unknown> | null;
-          is_attendant?: boolean;
+          visit_date?: string | null;
+          visit_number?: number | null;
+          status?: VisitStatus | null;
+          attendant_present?: boolean | null;
+          attendant_name?: string | null;
           attendant_relation?: string | null;
-          queue_position?: number | null;
-          scheduled_at?: string | null;
-          started_at?: string | null;
-          completed_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          attendant_language?: string | null;
+          attendant_reliability_notes?: string | null;
+          intake_transcript?: Json | null;
+          intake_summary?: Json | null;
+          intake_duration_seconds?: number | null;
+          intake_completed_at?: string | null;
+          briefing_card?: Json | null;
+          briefing_generated_at?: string | null;
+          consultation_started_at?: string | null;
+          consultation_ended_at?: string | null;
+          consultation_transcript?: Json | null;
+          consultation_queries?: Json | null;
+          generated_note?: Json | null;
+          doctor_edits?: Json | null;
+          approved_note?: Json | null;
+          note_format?: string | null;
+          approved_at?: string | null;
+          evidence_links?: Json | null;
+          followup_scheduled_at?: string | null;
+          followup_sent_at?: string | null;
+          followup_response?: string | null;
+          followup_response_at?: string | null;
+          api_costs?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "visits_patient_id_fkey";
-            columns: ["patient_id"];
+            foreignKeyName: 'visits_patient_id_fkey';
+            columns: ['patient_id'];
             isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "visits_doctor_id_fkey";
-            columns: ["doctor_id"];
+            foreignKeyName: 'visits_doctor_id_fkey';
+            columns: ['doctor_id'];
             isOneToOne: false;
-            referencedRelation: "doctors";
-            referencedColumns: ["id"];
+            referencedRelation: 'doctors';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "visits_clinic_id_fkey";
-            columns: ["clinic_id"];
+            foreignKeyName: 'visits_clinic_id_fkey';
+            columns: ['clinic_id'];
             isOneToOne: false;
-            referencedRelation: "clinics";
-            referencedColumns: ["id"];
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -258,57 +372,72 @@ export interface Database {
       prescriptions: {
         Row: {
           id: string;
-          visit_id: string;
           patient_id: string;
+          visit_id: string | null;
           source: PrescriptionSource;
-          image_url: string | null;
-          extracted_data: Record<string, unknown> | null;
-          medications: Record<string, unknown>[] | null;
-          prescriber_name: string | null;
-          prescribed_date: string | null;
-          created_at: string;
-          updated_at: string;
+          image_path: string | null;
+          prescribing_doctor_name: string | null;
+          prescription_date: string | null;
+          diagnosis: string | null;
+          diagnosis_icd10: string | null;
+          medications: Json | null;
+          investigations_ordered: Json | null;
+          advice: string | null;
+          raw_extraction: string | null;
+          extraction_confidence: number | null;
+          verified_by_doctor: boolean | null;
+          created_at: string | null;
         };
         Insert: {
           id?: string;
-          visit_id: string;
           patient_id: string;
+          visit_id?: string | null;
           source: PrescriptionSource;
-          image_url?: string | null;
-          extracted_data?: Record<string, unknown> | null;
-          medications?: Record<string, unknown>[] | null;
-          prescriber_name?: string | null;
-          prescribed_date?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          image_path?: string | null;
+          prescribing_doctor_name?: string | null;
+          prescription_date?: string | null;
+          diagnosis?: string | null;
+          diagnosis_icd10?: string | null;
+          medications?: Json | null;
+          investigations_ordered?: Json | null;
+          advice?: string | null;
+          raw_extraction?: string | null;
+          extraction_confidence?: number | null;
+          verified_by_doctor?: boolean | null;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
-          visit_id?: string;
           patient_id?: string;
+          visit_id?: string | null;
           source?: PrescriptionSource;
-          image_url?: string | null;
-          extracted_data?: Record<string, unknown> | null;
-          medications?: Record<string, unknown>[] | null;
-          prescriber_name?: string | null;
-          prescribed_date?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          image_path?: string | null;
+          prescribing_doctor_name?: string | null;
+          prescription_date?: string | null;
+          diagnosis?: string | null;
+          diagnosis_icd10?: string | null;
+          medications?: Json | null;
+          investigations_ordered?: Json | null;
+          advice?: string | null;
+          raw_extraction?: string | null;
+          extraction_confidence?: number | null;
+          verified_by_doctor?: boolean | null;
+          created_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "prescriptions_visit_id_fkey";
-            columns: ["visit_id"];
+            foreignKeyName: 'prescriptions_patient_id_fkey';
+            columns: ['patient_id'];
             isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "prescriptions_patient_id_fkey";
-            columns: ["patient_id"];
+            foreignKeyName: 'prescriptions_visit_id_fkey';
+            columns: ['visit_id'];
             isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            referencedRelation: 'visits';
+            referencedColumns: ['id'];
           },
         ];
       };
@@ -317,175 +446,185 @@ export interface Database {
       lab_reports: {
         Row: {
           id: string;
-          visit_id: string;
           patient_id: string;
+          visit_id: string | null;
           source: LabReportSource;
-          image_url: string | null;
-          extracted_data: Record<string, unknown> | null;
-          report_type: string | null;
-          report_date: string | null;
+          image_path: string | null;
           lab_name: string | null;
-          created_at: string;
-          updated_at: string;
+          report_date: string | null;
+          test_category: string | null;
+          results: Json | null;
+          raw_extraction: string | null;
+          extraction_confidence: number | null;
+          verified_by_doctor: boolean | null;
+          created_at: string | null;
         };
         Insert: {
           id?: string;
-          visit_id: string;
           patient_id: string;
+          visit_id?: string | null;
           source: LabReportSource;
-          image_url?: string | null;
-          extracted_data?: Record<string, unknown> | null;
-          report_type?: string | null;
-          report_date?: string | null;
+          image_path?: string | null;
           lab_name?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          report_date?: string | null;
+          test_category?: string | null;
+          results?: Json | null;
+          raw_extraction?: string | null;
+          extraction_confidence?: number | null;
+          verified_by_doctor?: boolean | null;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
-          visit_id?: string;
           patient_id?: string;
+          visit_id?: string | null;
           source?: LabReportSource;
-          image_url?: string | null;
-          extracted_data?: Record<string, unknown> | null;
-          report_type?: string | null;
-          report_date?: string | null;
+          image_path?: string | null;
           lab_name?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          report_date?: string | null;
+          test_category?: string | null;
+          results?: Json | null;
+          raw_extraction?: string | null;
+          extraction_confidence?: number | null;
+          verified_by_doctor?: boolean | null;
+          created_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "lab_reports_visit_id_fkey";
-            columns: ["visit_id"];
+            foreignKeyName: 'lab_reports_patient_id_fkey';
+            columns: ['patient_id'];
             isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "lab_reports_patient_id_fkey";
-            columns: ["patient_id"];
+            foreignKeyName: 'lab_reports_visit_id_fkey';
+            columns: ['visit_id'];
             isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            referencedRelation: 'visits';
+            referencedColumns: ['id'];
           },
         ];
       };
 
-      /** Patient consent records for PDPO regulatory compliance */
+      /**
+       * Patient consent records for PDPO compliance.
+       * Note: withdrawal is `withdrawn_at` (not "revoked_at") and there is
+       * no created_at column — `granted_at` is the record timestamp.
+       */
       consent_records: {
         Row: {
           id: string;
-          visit_id: string;
           patient_id: string;
+          visit_id: string | null;
           consent_type: ConsentType;
           granted: boolean;
           granted_by: ConsentGrantedBy;
-          granted_at: string;
-          revoked_at: string | null;
+          granted_at: string | null;
+          withdrawn_at: string | null;
+          device_info: string | null;
           ip_address: string | null;
-          created_at: string;
         };
         Insert: {
           id?: string;
-          visit_id: string;
           patient_id: string;
+          visit_id?: string | null;
           consent_type: ConsentType;
           granted: boolean;
           granted_by: ConsentGrantedBy;
-          granted_at?: string;
-          revoked_at?: string | null;
+          granted_at?: string | null;
+          withdrawn_at?: string | null;
+          device_info?: string | null;
           ip_address?: string | null;
-          created_at?: string;
         };
         Update: {
           id?: string;
-          visit_id?: string;
           patient_id?: string;
+          visit_id?: string | null;
           consent_type?: ConsentType;
           granted?: boolean;
           granted_by?: ConsentGrantedBy;
-          granted_at?: string;
-          revoked_at?: string | null;
+          granted_at?: string | null;
+          withdrawn_at?: string | null;
+          device_info?: string | null;
           ip_address?: string | null;
-          created_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "consent_records_visit_id_fkey";
-            columns: ["visit_id"];
+            foreignKeyName: 'consent_records_patient_id_fkey';
+            columns: ['patient_id'];
             isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
           },
           {
-            foreignKeyName: "consent_records_patient_id_fkey";
-            columns: ["patient_id"];
+            foreignKeyName: 'consent_records_visit_id_fkey';
+            columns: ['visit_id'];
             isOneToOne: false;
-            referencedRelation: "patients";
-            referencedColumns: ["id"];
+            referencedRelation: 'visits';
+            referencedColumns: ['id'];
           },
         ];
       };
 
-      /** Tracks AI API usage and costs per visit for billing and monitoring */
+      /** AI API usage + cost log, populated by edge functions' cost-logger */
       api_usage_log: {
         Row: {
           id: string;
-          visit_id: string;
-          function_name: string;
-          model: string;
-          input_tokens: number;
-          output_tokens: number;
-          cost_usd: number;
-          latency_ms: number;
-          created_at: string;
+          visit_id: string | null;
+          edge_function: string;
+          model_used: string;
+          was_fallback: boolean | null;
+          input_tokens: number | null;
+          output_tokens: number | null;
+          latency_ms: number | null;
+          estimated_cost_usd: number | null;
+          error: string | null;
+          created_at: string | null;
         };
         Insert: {
           id?: string;
-          visit_id: string;
-          function_name: string;
-          model: string;
-          input_tokens: number;
-          output_tokens: number;
-          cost_usd: number;
-          latency_ms: number;
-          created_at?: string;
+          visit_id?: string | null;
+          edge_function: string;
+          model_used: string;
+          was_fallback?: boolean | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          latency_ms?: number | null;
+          estimated_cost_usd?: number | null;
+          error?: string | null;
+          created_at?: string | null;
         };
         Update: {
           id?: string;
-          visit_id?: string;
-          function_name?: string;
-          model?: string;
-          input_tokens?: number;
-          output_tokens?: number;
-          cost_usd?: number;
-          latency_ms?: number;
-          created_at?: string;
+          visit_id?: string | null;
+          edge_function?: string;
+          model_used?: string;
+          was_fallback?: boolean | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          latency_ms?: number | null;
+          estimated_cost_usd?: number | null;
+          error?: string | null;
+          created_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "api_usage_log_visit_id_fkey";
-            columns: ["visit_id"];
+            foreignKeyName: 'api_usage_log_visit_id_fkey';
+            columns: ['visit_id'];
             isOneToOne: false;
-            referencedRelation: "visits";
-            referencedColumns: ["id"];
+            referencedRelation: 'visits';
+            referencedColumns: ['id'];
           },
         ];
       };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: {
-      visit_status: VisitStatus;
-      prescription_source: PrescriptionSource;
-      lab_report_source: LabReportSource;
-      consent_type: ConsentType;
-      consent_granted_by: ConsentGrantedBy;
-    };
+    Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
-}
+};
 
 /** Convenience aliases for Row types */
 export type Clinic = Database['public']['Tables']['clinics']['Row'];
@@ -497,7 +636,7 @@ export type LabReport = Database['public']['Tables']['lab_reports']['Row'];
 export type ConsentRecord = Database['public']['Tables']['consent_records']['Row'];
 export type ApiUsageLog = Database['public']['Tables']['api_usage_log']['Row'];
 
-/** Convenience aliases for Insert types */
+/** Convenience aliases for Insert/Update types */
 export type PatientInsert = Database['public']['Tables']['patients']['Insert'];
 export type PatientUpdate = Database['public']['Tables']['patients']['Update'];
 export type VisitInsert = Database['public']['Tables']['visits']['Insert'];
