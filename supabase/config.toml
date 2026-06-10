@@ -1,5 +1,5 @@
-[project]
-id = "glyph"
+# Supabase CLI v2 config format (the original [project]/id form was CLI v1)
+project_id = "glyph"
 
 [api]
 enabled = true
@@ -21,8 +21,10 @@ enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000"]
 
-[auth.external.phone]
-enabled = true
+# Phone/OTP auth (CLI v2: [auth.sms]; [auth.external.*] is OAuth-only)
+[auth.sms]
+enable_signup = true
+enable_confirmations = false
 
 [storage]
 enabled = true
