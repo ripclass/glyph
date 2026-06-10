@@ -32,6 +32,8 @@ export interface CapturedDocument {
 interface IntakeState {
   /** The current visit ID for this intake session */
   visitId: string | null;
+  /** The registered patient this session belongs to */
+  patientId: string | null;
   /** Whether the person doing intake is an attendant (not the patient) */
   isAttendant: boolean;
   /** Relationship of attendant to patient (e.g. "spouse", "parent") */
@@ -46,8 +48,11 @@ interface IntakeState {
 
 /** Intake store actions */
 interface IntakeActions {
-  /** Initialize a new intake session for a visit */
-  startIntake: (visitId: string) => void;
+  /**
+   * Initialize a new intake session after registration.
+   * Both IDs come from `registerAndStartVisit()` in services/registration.
+   */
+  startIntake: (visitId: string, patientId: string) => void;
   /** Set whether the speaker is an attendant */
   setAttendant: (isAttendant: boolean, relation?: string) => void;
   /** Add a captured document to the session */
@@ -77,6 +82,7 @@ const STEP_ORDER: IntakeStep[] = ['welcome', 'history', 'conversation', 'summary
 /** Initial state values */
 const initialState: IntakeState = {
   visitId: null,
+  patientId: null,
   isAttendant: false,
   attendantRelation: null,
   capturedDocuments: [],
@@ -105,10 +111,11 @@ const initialState: IntakeState = {
 export const useIntakeStore = create<IntakeState & IntakeActions>((set) => ({
   ...initialState,
 
-  startIntake: (visitId) =>
+  startIntake: (visitId, patientId) =>
     set({
       ...initialState,
       visitId,
+      patientId,
       step: 'welcome',
     }),
 

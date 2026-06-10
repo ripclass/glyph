@@ -51,6 +51,16 @@ export interface VisitWithRelations extends Visit {
   }>;
 }
 
+/** Attendant details recorded on the visit at registration time */
+export interface AttendantInfo {
+  /** Whether an attendant (family member) is speaking for the patient */
+  present: boolean;
+  /** Attendant's name, if given */
+  name?: string | null;
+  /** Relationship to the patient (e.g. "spouse", "ছেলে") */
+  relation?: string | null;
+}
+
 /** Nested relation selection shared by getVisit and getTodayQueue */
 const VISIT_RELATIONS_SELECT = `
   *,
@@ -68,18 +78,23 @@ const VISIT_RELATIONS_SELECT = `
  * @param patientId - The patient UUID
  * @param doctorId - The attending doctor UUID
  * @param clinicId - The clinic UUID
+ * @param attendant - Optional attendant details captured at registration
  * @returns The newly created visit record
  * @throws {Error} If creation fails
  *
  * @example
  * ```ts
- * const visit = await createVisit('patient-id', 'doctor-id', 'clinic-id');
+ * const visit = await createVisit('patient-id', 'doctor-id', 'clinic-id', {
+ *   present: true,
+ *   relation: 'spouse',
+ * });
  * ```
  */
 export async function createVisit(
   patientId: string,
   doctorId: string,
-  clinicId: string
+  clinicId: string,
+  attendant?: AttendantInfo
 ): Promise<Visit> {
   const supabase = createClient();
 
@@ -90,6 +105,9 @@ export async function createVisit(
       doctor_id: doctorId,
       clinic_id: clinicId,
       status: 'intake' as VisitStatus,
+      attendant_present: attendant?.present ?? false,
+      attendant_name: attendant?.name ?? null,
+      attendant_relation: attendant?.relation ?? null,
     })
     .select()
     .single();
