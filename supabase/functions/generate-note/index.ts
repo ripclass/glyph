@@ -206,6 +206,12 @@ Generate the complete clinical note. Map each recommendation to its evidence sou
       stream: true,
       visitId,
       edgeFunction: "generate-note",
+      // Tier A: structured record portions — name literals scrubbed, the
+      // response stream re-identified before the tee.
+      egress: {
+        tier: "A",
+        knownIdentifiers: [patient.name, patient.name_bn],
+      },
     });
 
     // ── Tee stream: client + capture ────────────────────────

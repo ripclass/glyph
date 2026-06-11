@@ -5,6 +5,15 @@
 
 import type { LLMResponse, ModelConfig } from "./types.ts";
 import { logUsage, type UsageParams } from "./cost-logger.ts";
+import {
+  EgressDeniedError,
+  openEgress,
+  recordEgressEvidence,
+  reidentifyStream,
+  type EgressDeclaration,
+  type EgressTier,
+} from "./egress.ts";
+import { reidentify } from "./deidentify.ts";
 
 // ── Env-key mapping ─────────────────────────────────────────────
 
@@ -628,15 +637,25 @@ const STREAM_PROVIDERS: Partial<Record<ModelConfig["provider"], ProviderStreamFn
 /**
  * Pick the transport for a provider: native API when its key is set,
  * otherwise OpenRouter (if eligible and OPENROUTER_API_KEY is set).
+ * `processor` is the egress-evidence label for who actually receives data.
  */
 function resolveProvider(
   provider: ModelConfig["provider"],
-): { fn: ProviderFn; apiKey: string } {
+  model: string,
+): { fn: ProviderFn; apiKey: string; processor: string } {
   if (hasNativeKey(provider)) {
-    return { fn: PROVIDERS[provider], apiKey: getApiKey(provider) };
+    return {
+      fn: PROVIDERS[provider],
+      apiKey: getApiKey(provider),
+      processor: `${provider}:${model}`,
+    };
   }
   if (openRouterEligible(provider) && hasOpenRouterKey()) {
-    return { fn: callOpenRouter, apiKey: Deno.env.get(OPENROUTER_KEY_ENV)! };
+    return {
+      fn: callOpenRouter,
+      apiKey: Deno.env.get(OPENROUTER_KEY_ENV)!,
+      processor: `openrouter:${OPENROUTER_MODEL_MAP[model] ?? model}`,
+    };
   }
   throw new Error(
     `Missing env var ${ENV_KEYS[provider]} for provider "${provider}" (and no ${OPENROUTER_KEY_ENV} fallback set)`,
@@ -645,18 +664,36 @@ function resolveProvider(
 
 function resolveStreamProvider(
   provider: ModelConfig["provider"],
-): { fn: ProviderStreamFn; apiKey: string } | undefined {
+  model: string,
+): { fn: ProviderStreamFn; apiKey: string; processor: string } | undefined {
   if (hasNativeKey(provider)) {
     const fn = STREAM_PROVIDERS[provider];
-    return fn ? { fn, apiKey: getApiKey(provider) } : undefined;
+    return fn
+      ? { fn, apiKey: getApiKey(provider), processor: `${provider}:${model}` }
+      : undefined;
   }
   if (openRouterEligible(provider) && hasOpenRouterKey()) {
-    return { fn: callOpenRouterStream, apiKey: Deno.env.get(OPENROUTER_KEY_ENV)! };
+    return {
+      fn: callOpenRouterStream,
+      apiKey: Deno.env.get(OPENROUTER_KEY_ENV)!,
+      processor: `openrouter:${OPENROUTER_MODEL_MAP[model] ?? model}`,
+    };
   }
   return undefined;
 }
 
 // ── Public API ──────────────────────────────────────────────────
+
+/** Per-call egress declaration — REQUIRED. Un-tiered calls are rejected. */
+export interface CallEgress {
+  tier: EgressTier;
+  /** Exact PII literals from structured fields, scrubbed before egress */
+  knownIdentifiers?: Array<string | null | undefined>;
+  /** Tier B: consent_records.id covering this processing */
+  consentId?: string;
+  /** Tier B: payload includes images/voice that scrubbing cannot cover */
+  containsUnredactable?: boolean;
+}
 
 export interface CallLLMOptions {
   primary: ModelConfig;
@@ -668,6 +705,8 @@ export interface CallLLMOptions {
   /** For cost logging — set by callers */
   visitId?: string;
   edgeFunction?: string;
+  /** THE egress gate declaration (M4 hard constraint) */
+  egress: CallEgress;
 }
 
 /**
@@ -688,36 +727,64 @@ export async function callLLM(
 ): Promise<LLMResponse | ReadableStream> {
   const { primary, fallback, prompt, systemPrompt, images, stream } = options;
 
+  // ── THE EGRESS GATE (fail closed): un-tiered calls never leave ──
+  if (!options.egress?.tier) {
+    throw new EgressDeniedError(
+      "un-tiered callLLM — declare options.egress.tier (A/B/C)",
+    );
+  }
+  const baseDecl = (processor: string): EgressDeclaration => ({
+    tier: options.egress.tier,
+    edgeFunction: options.edgeFunction ?? "unknown",
+    processor,
+    visitId: options.visitId,
+    knownIdentifiers: options.egress.knownIdentifiers,
+    consentId: options.egress.consentId,
+    containsUnredactable: options.egress.containsUnredactable,
+  });
+
   // ── Streaming path ────────────────────────────────────────
   if (stream) {
-    const resolved = resolveStreamProvider(primary.provider);
+    const resolved = resolveStreamProvider(primary.provider, primary.model);
     if (resolved) {
+      // Gate OUTSIDE the try: a denial must deny, never fall back to a
+      // different foreign processor.
+      const gate = await openEgress(baseDecl(resolved.processor), [
+        prompt,
+        systemPrompt ?? "",
+      ]);
+      const [gPrompt, gSystem] = gate.fields;
       try {
         const result = await resolved.fn(
           resolved.apiKey,
           primary.model,
-          prompt,
-          systemPrompt,
+          gPrompt,
+          gSystem || undefined,
           images,
           primary.temperature,
           primary.maxTokens,
         );
-        return result.stream;
+        return result.stream.pipeThrough(reidentifyStream(gate.mappings));
       } catch (err) {
         console.error(`[llm-router] Stream primary (${primary.model}) failed:`, err);
         if (fallback) {
-          const fbResolved = resolveStreamProvider(fallback.provider);
+          const fbResolved = resolveStreamProvider(fallback.provider, fallback.model);
           if (fbResolved) {
+            // Same scrubbed payload; new evidence row for the new processor.
+            await recordEgressEvidence(baseDecl(fbResolved.processor), {
+              deidentified: gate.mappings.size > 0,
+              identifiersScrubbed: gate.mappings.size,
+            });
             const fbResult = await fbResolved.fn(
               fbResolved.apiKey,
               fallback.model,
-              prompt,
-              systemPrompt,
+              gPrompt,
+              gSystem || undefined,
               images,
               fallback.temperature,
               fallback.maxTokens,
             );
-            return fbResult.stream;
+            return fbResult.stream.pipeThrough(reidentifyStream(gate.mappings));
           }
         }
         throw err;
@@ -740,17 +807,21 @@ export async function callLLM(
     throw new Error(`Unknown provider: ${primary.provider}`);
   }
 
+  let gate: Awaited<ReturnType<typeof openEgress>> | null = null;
+
   try {
-    const { fn, apiKey } = resolveProvider(primary.provider);
+    const { fn, apiKey, processor } = resolveProvider(primary.provider, primary.model);
+    gate = await openEgress(baseDecl(processor), [prompt, systemPrompt ?? ""]);
     const result = await fn(
       apiKey,
       primary.model,
-      prompt,
-      systemPrompt,
+      gate.fields[0],
+      gate.fields[1] || undefined,
       images,
       primary.temperature,
       primary.maxTokens,
     );
+    result.text = reidentify(result.text, gate.mappings);
 
     // Fire-and-forget usage logging
     if (options.visitId && options.edgeFunction) {
@@ -767,22 +838,39 @@ export async function callLLM(
 
     return result;
   } catch (primaryErr) {
+    // A gate denial is final — never retried against another processor.
+    if (primaryErr instanceof EgressDeniedError) throw primaryErr;
     console.error(`[llm-router] Primary (${primary.model}) failed:`, primaryErr);
 
     if (!fallback) throw primaryErr;
     if (!PROVIDERS[fallback.provider]) throw primaryErr;
 
     try {
-      const { fn: fbFn, apiKey: fbKey } = resolveProvider(fallback.provider);
+      const { fn: fbFn, apiKey: fbKey, processor: fbProcessor } = resolveProvider(
+        fallback.provider,
+        fallback.model,
+      );
+      // If the primary failed before gating (e.g. missing key), gate now;
+      // otherwise reuse the scrubbed payload and add an evidence row for
+      // the new processor.
+      if (gate) {
+        await recordEgressEvidence(baseDecl(fbProcessor), {
+          deidentified: gate.mappings.size > 0,
+          identifiersScrubbed: gate.mappings.size,
+        });
+      } else {
+        gate = await openEgress(baseDecl(fbProcessor), [prompt, systemPrompt ?? ""]);
+      }
       const fbResult = await fbFn(
         fbKey,
         fallback.model,
-        prompt,
-        systemPrompt,
+        gate.fields[0],
+        gate.fields[1] || undefined,
         images,
         fallback.temperature,
         fallback.maxTokens,
       );
+      fbResult.text = reidentify(fbResult.text, gate.mappings);
 
       // Log fallback usage
       if (options.visitId && options.edgeFunction) {

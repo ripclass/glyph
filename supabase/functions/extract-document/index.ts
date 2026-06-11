@@ -11,6 +11,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
+import { EgressDeniedError } from "../_shared/egress.ts";
 import type { ExtractionResult, EdgeFunctionResponse } from "../_shared/types.ts";
 
 const PRESCRIPTION_PROMPT = `You are a medical document extraction system specializing in Bangladeshi prescriptions.
@@ -130,6 +131,22 @@ serve(async (req: Request) => {
       new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ""),
     );
 
+    // ── Tier B consent: a document IMAGE crosses the border ─────
+    // Printed + handwritten names on the page cannot be scrubbed by any
+    // text pipeline — consent is the control, and the evidence log records
+    // contains_unredactable honestly.
+    const { data: aiConsent } = visitId
+      ? await serviceClient
+          .from("consent_records")
+          .select("id")
+          .eq("visit_id", visitId)
+          .eq("consent_type", "ai_processing")
+          .eq("granted", true)
+          .is("withdrawn_at", null)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+
     // ── Call MedGemma with image ────────────────────────────
     const prompt = type === "prescription" ? PRESCRIPTION_PROMPT : LAB_REPORT_PROMPT;
     const systemPrompt = "Extract all medical data from this image accurately. Output ONLY valid JSON.";
@@ -142,6 +159,11 @@ serve(async (req: Request) => {
       images: [base64],
       visitId: visitId ?? undefined,
       edgeFunction: "extract-document",
+      egress: {
+        tier: "B",
+        consentId: aiConsent?.id,
+        containsUnredactable: true,
+      },
     });
 
     const responseText = (llmResult as { text: string }).text;
@@ -226,6 +248,9 @@ serve(async (req: Request) => {
       data: result,
     });
   } catch (err) {
+    if (err instanceof EgressDeniedError) {
+      return jsonResponse({ success: false, error: err.message, code: "EGRESS_DENIED" }, 403);
+    }
     console.error("[extract-document] Error:", err);
     return jsonResponse(
       { success: false, error: err instanceof Error ? err.message : "Internal error", code: "INTERNAL_ERROR" },

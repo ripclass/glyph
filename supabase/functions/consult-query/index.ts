@@ -152,6 +152,9 @@ async function handleGuideline(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "guideline");
@@ -169,6 +172,9 @@ async function handleDrugInteraction(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "drug_interaction");
@@ -186,6 +192,9 @@ async function handleDifferential(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "differential");
@@ -205,6 +214,9 @@ async function handleRecentStudies(
     systemPrompt: "You are a medical research assistant. Cite specific studies with authors, journals, and years. Focus on the most recent and highest-quality evidence.",
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   const text = (llmResult as { text: string }).text;
@@ -233,6 +245,9 @@ async function handleLabInterpretation(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "lab_interpretation");
@@ -250,6 +265,9 @@ async function handleGenericClinical(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "generic_clinical");

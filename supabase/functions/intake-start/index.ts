@@ -117,6 +117,7 @@ serve(async (req: Request) => {
 You speak ${isBangla ? "Bangla (বাংলা)" : "English"}.
 Your job is to greet the ${isAttendant ? "attendant" : "patient"} and ask the first intake question: "What brings you to the doctor today?" or its Bangla equivalent.
 Keep it short (2-3 sentences), warm, and professional.
+PRIVACY PROTOCOL: names may appear as placeholder tokens like [PII_1] or [NAME_BN_2]. Greet the person USING the token verbatim exactly where their name belongs (e.g. "আসসালামু আলাইকুম [PII_1],") — the token is replaced with the real name after processing. Never mention that it is a placeholder.
 ${isAttendant ? `The attendant's name is ${attendantName} and they are the patient's ${attendantRelation ?? "companion"}.` : ""}
 Patient name: ${patient?.name_bn ?? patient?.name ?? "Unknown"}, Age: ${patient?.age ?? "Unknown"}, Gender: ${patient?.gender ?? "Unknown"}.`;
 
@@ -131,6 +132,12 @@ Patient name: ${patient?.name_bn ?? patient?.name ?? "Unknown"}, Age: ${patient?
       systemPrompt,
       visitId,
       edgeFunction: "intake-start",
+      // Tier A: PII here lives in structured fields — scrubbed as literals
+      // before egress, restored in the response (the greeting keeps the name).
+      egress: {
+        tier: "A",
+        knownIdentifiers: [patient?.name, patient?.name_bn, attendantName],
+      },
     });
 
     // ── Initialize transcript ───────────────────────────────

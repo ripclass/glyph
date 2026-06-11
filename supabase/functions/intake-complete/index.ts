@@ -11,6 +11,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
+import { EgressDeniedError } from "../_shared/egress.ts";
 import type { IntakeSummary, EdgeFunctionResponse } from "../_shared/types.ts";
 
 const SUMMARY_SYSTEM_PROMPT = `You are a medical data extraction system. Given a patient intake conversation transcript, extract a structured JSON summary.
@@ -93,6 +94,18 @@ ${attendantNote}
 
 Extract the structured intake summary as JSON.`;
 
+    // ── Tier B consent: the full verbatim transcript leaves ─────
+    const serviceClientForConsent = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: aiConsent } = await serviceClientForConsent
+      .from("consent_records")
+      .select("id")
+      .eq("visit_id", visitId)
+      .eq("consent_type", "ai_processing")
+      .eq("granted", true)
+      .is("withdrawn_at", null)
+      .limit(1)
+      .maybeSingle();
+
     // ── Call LLM ────────────────────────────────────────────
     const llmResult = await callLLM({
       primary: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 2000 },
@@ -101,6 +114,12 @@ Extract the structured intake summary as JSON.`;
       systemPrompt: SUMMARY_SYSTEM_PROMPT,
       visitId,
       edgeFunction: "intake-complete",
+      // Tier B: the entire intake conversation, verbatim — consent-gated.
+      egress: {
+        tier: "B",
+        consentId: aiConsent?.id,
+        knownIdentifiers: [visit.attendant_name],
+      },
     });
 
     const responseText = (llmResult as { text: string }).text;
@@ -163,6 +182,9 @@ Extract the structured intake summary as JSON.`;
       },
     });
   } catch (err) {
+    if (err instanceof EgressDeniedError) {
+      return jsonResponse({ success: false, error: err.message, code: "EGRESS_DENIED" }, 403);
+    }
     console.error("[intake-complete] Error:", err);
     return jsonResponse(
       { success: false, error: err instanceof Error ? err.message : "Internal error", code: "INTERNAL_ERROR" },

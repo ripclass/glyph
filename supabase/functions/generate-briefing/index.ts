@@ -176,6 +176,12 @@ Generate the briefing card JSON. Pay special attention to:
       stream: true,
       visitId,
       edgeFunction: "generate-briefing",
+      // Tier A: structured record — name literals scrubbed before egress,
+      // restored in the stream before the tee (client + capture both clean).
+      egress: {
+        tier: "A",
+        knownIdentifiers: [patient.name, patient.name_bn],
+      },
     });
 
     // ── Tee stream: one for client, one to capture and store ──

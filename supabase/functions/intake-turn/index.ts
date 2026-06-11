@@ -12,6 +12,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
+import { EgressDeniedError } from "../_shared/egress.ts";
 import { logUsage } from "../_shared/cost-logger.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
@@ -122,6 +123,17 @@ Respond with your next question or acknowledgment. Remember to speak in the same
 
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // ── Tier B consent: verbatim conversation crosses the border ──
+    const { data: aiConsent } = await serviceClient
+      .from("consent_records")
+      .select("id")
+      .eq("visit_id", visitId)
+      .eq("consent_type", "ai_processing")
+      .eq("granted", true)
+      .is("withdrawn_at", null)
+      .limit(1)
+      .maybeSingle();
+
     // ── Call LLM (streaming) ────────────────────────────────
     const stream = await callLLM({
       primary: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.5, maxTokens: 500 },
@@ -131,6 +143,18 @@ Respond with your next question or acknowledgment. Remember to speak in the same
       stream: true,
       visitId,
       edgeFunction: "intake-turn",
+      // Tier B: free-text dialect speech — regex cannot guarantee scrubbing.
+      // Consent-gated (denied without a live ai_processing consent) with
+      // best-effort known-identifier scrubbing on top.
+      egress: {
+        tier: "B",
+        consentId: aiConsent?.id,
+        knownIdentifiers: [
+          patient?.name,
+          patient?.name_bn,
+          visit.attendant_name,
+        ],
+      },
     });
 
     // ── Tee the stream: one branch for the client, one to capture full text ──
@@ -187,6 +211,9 @@ Respond with your next question or acknowledgment. Remember to speak in the same
       },
     });
   } catch (err) {
+    if (err instanceof EgressDeniedError) {
+      return jsonResponse({ success: false, error: err.message, code: "EGRESS_DENIED" }, 403);
+    }
     console.error("[intake-turn] Error:", err);
     return jsonResponse(
       { success: false, error: err instanceof Error ? err.message : "Internal error", code: "INTERNAL_ERROR" },
