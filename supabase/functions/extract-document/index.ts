@@ -152,8 +152,9 @@ serve(async (req: Request) => {
     const systemPrompt = "Extract all medical data from this image accurately. Output ONLY valid JSON.";
 
     const llmResult = await callLLM({
-      primary: { provider: "medgemma", model: "medgemma-4b", temperature: 0.1, maxTokens: 3000 },
-      fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
+      // MedGemma demoted until Vertex OAuth exists (it always fell through).
+      primary: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
+      fallback: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
       prompt,
       systemPrompt,
       images: [base64],

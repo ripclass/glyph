@@ -823,10 +823,10 @@ export async function callLLM(
     );
     result.text = reidentify(result.text, gate.mappings);
 
-    // Fire-and-forget usage logging
-    if (options.visitId && options.edgeFunction) {
+    // Fire-and-forget usage logging (visit-less calls log with null)
+    if (options.edgeFunction) {
       logUsage({
-        visitId: options.visitId,
+        visitId: options.visitId ?? null,
         edgeFunction: options.edgeFunction,
         model: primary.model,
         wasFallback: false,
@@ -873,9 +873,9 @@ export async function callLLM(
       fbResult.text = reidentify(fbResult.text, gate.mappings);
 
       // Log fallback usage
-      if (options.visitId && options.edgeFunction) {
+      if (options.edgeFunction) {
         logUsage({
-          visitId: options.visitId,
+          visitId: options.visitId ?? null,
           edgeFunction: options.edgeFunction,
           model: fallback.model,
           wasFallback: true,

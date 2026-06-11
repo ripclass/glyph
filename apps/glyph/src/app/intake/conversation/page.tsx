@@ -7,6 +7,7 @@ import { VoiceOrb } from "@/components/intake/VoiceOrb";
 import { SaaraMessage } from "@/components/intake/SaaraMessage";
 import { PatientMessage } from "@/components/intake/PatientMessage";
 import { AttendantBanner } from "@/components/intake/AttendantBanner";
+import { ConsentPrompt } from "@/components/intake/ConsentPrompt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIntakeStore } from "@/lib/stores/intake-store";
@@ -43,21 +44,33 @@ export default function IntakeConversationPage() {
 
   const [typed, setTyped] = useState("");
 
+  /**
+   * PDPO consent gate — the conversation (and every AI call behind it) only
+   * begins after explicit consent naming the external processors. The
+   * server-side egress gate enforces the same rule independently.
+   */
+  const [consented, setConsented] = useState(false);
+  useEffect(() => {
+    if (visitId && typeof window !== "undefined") {
+      setConsented(sessionStorage.getItem(`glyph-consent-${visitId}`) === "yes");
+    }
+  }, [visitId]);
+
   // No session → back to registration
   useEffect(() => {
     if (!visitId) router.replace("/intake");
   }, [visitId, router]);
 
-  // Greeting on mount
+  // Greeting starts only after consent
   const initRef = useRef(false);
   useEffect(() => {
-    if (visitId && !initRef.current) {
+    if (visitId && consented && !initRef.current) {
       initRef.current = true;
       initialize().catch((err) =>
         toast.error(err instanceof Error ? err.message : "শুরু করা যায়নি")
       );
     }
-  }, [visitId, initialize]);
+  }, [visitId, consented, initialize]);
 
   // Voice final transcript → send as a turn
   useEffect(() => {
@@ -106,6 +119,17 @@ export default function IntakeConversationPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      <ConsentPrompt
+        open={!consented}
+        onConsent={() => {
+          sessionStorage.setItem(`glyph-consent-${visitId}`, "yes");
+          setConsented(true);
+        }}
+        onDismiss={() => {
+          toast.error("সম্মতি ছাড়া AI ইন্টারভিউ সম্ভব নয় — ডাক্তার সরাসরি কথা বলবেন");
+          router.replace("/intake");
+        }}
+      />
       {isAttendant && <AttendantBanner relation={attendantRelation ?? undefined} />}
 
       {/* ---------- Conversation ---------- */}

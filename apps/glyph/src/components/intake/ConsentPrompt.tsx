@@ -132,8 +132,8 @@ export function ConsentPrompt({
             onChange={() => toggleConsent("aiProcessing")}
             titleBn="AI প্রক্রিয়াকরণ"
             titleEn="AI Processing"
-            descriptionBn="আপনার তথ্য কৃত্রিম বুদ্ধিমত্তা দিয়ে বিশ্লেষণ"
-            descriptionEn="Analysis of your data using artificial intelligence"
+            descriptionBn="আপনার কথা ও তথ্য বাংলাদেশের বাইরের AI সেবা (Google Gemini ও Anthropic Claude, OpenRouter-এর মাধ্যমে) দিয়ে বিশ্লেষণ করা হবে — নাম-পরিচয় যথাসম্ভব মুছে পাঠানো হয়"
+            descriptionEn="Your words are analyzed by AI processors outside Bangladesh — Google Gemini & Anthropic Claude via OpenRouter — with identifiers scrubbed where possible"
           />
 
           <ConsentCheckbox

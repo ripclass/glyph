@@ -145,11 +145,8 @@ Be specific, cite guideline names where possible (e.g., ADA 2025, JNC-8, GOLD 20
         };
       }
 
-      // NOTE: this server-to-server call has no visitId, and the router only
-      // logs when one is present — these synthesis calls are currently
-      // unlogged. (The old explicit log here used the literal "no-visit",
-      // which violates api_usage_log.visit_id's UUID type, so it never landed
-      // either.) Fix in M4 by letting the router log with a null visit id.
+      // Usage is logged by the router with a null visit id (server-to-server
+      // call with no visit context).
     }
 
     return jsonResponse<EdgeFunctionResponse>({

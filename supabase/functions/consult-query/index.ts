@@ -239,8 +239,9 @@ async function handleLabInterpretation(
   visitId: string,
 ): Promise<ConsultQueryResponse> {
   const llmResult = await callLLM({
-    primary: { provider: "medgemma", model: "medgemma-27b", temperature: 0.1, maxTokens: 3000 },
-    fallback: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
+    // MedGemma demoted until Vertex OAuth exists (it always fell through).
+    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
+    fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "lab_interpretation"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,

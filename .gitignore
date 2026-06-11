@@ -61,3 +61,8 @@ next-env.d.ts
 
 .vercel
 supabase/functions/.env
+
+# founder working docs (deliberately untracked) + browser-test debris
+glyph-vision-*.md
+inlinePrompt.md
+.playwright-mcp/

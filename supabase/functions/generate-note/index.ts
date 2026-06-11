@@ -199,8 +199,9 @@ Generate the complete clinical note. Map each recommendation to its evidence sou
 
     // ── Call LLM (streaming) ────────────────────────────────
     const stream = await callLLM({
-      primary: { provider: "medgemma", model: "medgemma-27b", temperature: 0.2, maxTokens: 5000 },
-      fallback: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.2, maxTokens: 5000 },
+      // MedGemma demoted until Vertex OAuth exists - native streaming now works.
+      primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.2, maxTokens: 5000 },
+      fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.2, maxTokens: 5000 },
       prompt,
       systemPrompt,
       stream: true,
@@ -259,7 +260,7 @@ Generate the complete clinical note. Map each recommendation to its evidence sou
         await logUsage({
           visitId,
           edgeFunction: "generate-note",
-          model: "medgemma-27b",
+          model: "claude-sonnet-4-20250514",
           wasFallback: false,
           inputTokens: Math.ceil(prompt.length / 4),
           outputTokens: Math.ceil(cleanedText.length / 4),

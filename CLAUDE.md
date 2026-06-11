@@ -132,11 +132,11 @@ Glyph/
         │   │   ├── layout.tsx
         │   │   ├── page.tsx             # role selection (patient vs attendant)
         │   │   ├── history/page.tsx
-        │   │   ├── conversation/page.tsx   # ⚠ still uses simulated STT + fake streaming (real wiring = rest of M3-pre/M4)
+        │   │   ├── conversation/page.tsx   # LIVE: Web Speech (bn-BD) + typed fallback + ConsentPrompt gate
         │   │   └── summary/page.tsx
         │   └── doctor/
         │       ├── layout.tsx
-        │       ├── page.tsx             # ⚠ still uses MOCK_PATIENTS (swap for useRealtimeQueue = M4)
+        │       ├── page.tsx             # LIVE: useRealtimeQueue dashboard
         │       ├── briefing/[visitId]/page.tsx
         │       ├── consult/[visitId]/page.tsx
         │       ├── note/[visitId]/page.tsx
@@ -170,15 +170,15 @@ Glyph/
 | Intake greeting | `gemini-2.0-flash` | `gemini-1.5-flash` | `intake-start` | No | Creates consent rows, initializes transcript |
 | Intake turn (convo) | `gemini-2.0-flash` | `gemini-1.5-flash` | `intake-turn` | **Yes (SSE)** | Streams tee'd to client + transcript capture |
 | Intake summarization | `gemini-2.0-flash` | `claude-3-haiku-20240307` | `intake-complete` | No | Fires `generate-briefing` afterward |
-| Prescription / lab OCR | `medgemma-4b` (vision) | `gemini-2.0-flash` | `extract-document` | No | Image fetched from Supabase Storage `documents` bucket |
-| Briefing card | `medgemma-27b` | `claude-sonnet-4-20250514` | `generate-briefing` | **Yes (SSE)** | Outputs strict `BriefingCard` JSON, red-flag rules in system prompt |
+| Prescription / lab OCR | `gemini-2.0-flash` (vision) | `claude-sonnet-4-20250514` | `extract-document` | No | MedGemma demoted until Vertex OAuth exists; Tier B (image) egress |
+| Briefing card | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-briefing` | **Yes (SSE)** | MedGemma demoted until Vertex OAuth; strict `BriefingCard` JSON, red-flag rules in system prompt |
 | Consult: guideline | UpToDate Connect API → `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` → `consult-uptodate` | No | Falls through to LLM synthesis if UpToDate unavailable |
 | Consult: drug interaction | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | Deidentifies context first |
 | Consult: differential Dx | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | — |
 | Consult: recent studies | `perplexity sonar-pro` | `claude-sonnet-4-20250514` | `consult-query` | No | — |
-| Consult: lab interpretation | `medgemma-27b` | `claude-sonnet-4-20250514` | `consult-query` | No | — |
+| Consult: lab interpretation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `consult-query` | No | MedGemma demoted until Vertex OAuth |
 | Consult: generic clinical | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | Default route |
-| Clinical note generation | `medgemma-27b` | `claude-sonnet-4-20250514` | `generate-note` | **Yes (SSE)** | BD format default, SOAP optional |
+| Clinical note generation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-note` | **Yes (SSE)** | MedGemma demoted until Vertex OAuth; BD format default, SOAP optional |
 | Patient WhatsApp summary | `gemini-2.0-flash` | `gemini-1.5-flash` | `generate-patient-summary` | No | Entirely in Bangla, no emoji |
 | WhatsApp delivery | WhatsApp Business Cloud API v19 | — | `send-followup` | No | Requires `whatsapp_followup` consent row |
 
@@ -312,8 +312,8 @@ The architecture decision: **the Verifiable Credential is canonical; Postgres ro
 | M2 | `@kham/schemas-clinical` | ✅ |
 | **M3-pre** | `ai.ts` casing ✅ → schema/types reconciliation ✅ (root cause: `Database` was an `interface` → schema degraded to `never`; also `@supabase/ssr` 0.5→0.12) → patient-registration + `createVisit` ✅ (`scripts/smoke-db.mjs`, 14/14) → **one register→intake-turn(streaming)→note path LIVE on production** (`scripts/smoke-path.mjs`, 19/19 — Bangla multi-turn intake, BD-format note with Napa/1+0+1 dosing, via OpenRouter) | ✅ 2026-06-12 |
 | M3 | **DONE.** Migration 002 (INSERT-only `credentials`, versioned `did_documents`, append-only status log, projection-freeze triggers; `scripts/smoke-credentials.mjs` 18/18) + the seam in `apps/glyph/src/lib/identity/` (`issueCredential` validates via schemas-clinical registry → signs via @kham/identity → canonical row → `rebuildProjections`). Routes: `/.well-known/did/[...slug]` (public did:web resolution), `/api/verify` (local resolveIssuer fast-path + store-status overlay), `/api/visits/approve-note` (first consumer: Rx + VisitNote credentials on approval, one-shot, 409 on re-approve). E2E `scripts/smoke-issuance.mjs` 14/14 incl. tampered-Rx rejection. Env: `DID_WEB_HOST` (khamhealth.com prod) + `CREDENTIAL_ENCRYPTION_KEY` (server-only; **founder must back it up — losing it orphans every stored private key**) | ✅ 2026-06-12 |
-| M4 | Kill mocks, wire scribe live, build `speech-stream`, Vertex OAuth, env-var fixes, regenerate types from live DB, **tiered egress policy** | pending |
-| M5 | Two-node loop: doctor issues Rx credential → pharmacy view verifies via local `verifyCredential`. **Stop after M5 and report.** | pending |
+| M4 | **DONE** (except document-upload wiring — top follow-up). Egress gate ✅; all screens live (login/AuthGuard, registration, Web-Speech intake conversation + ConsentPrompt naming processors, summary, realtime dashboard, briefing+retry, consult, note→approve-note credentials, patient timeline); MedGemma demoted from primaries until Vertex OAuth; WhatsApp env renamed; null-visit usage logging | ✅ 2026-06-13 |
+| M5 | **DONE.** `/pharmacy`: patient lookup by (family-shared) phone → DID → signed PrescriptionCredentials verified via the local fast-path (`✓ dispensable` / `✗ revoked` after a status transition — revocation propagates to the counter). Browser-verified both directions | ✅ 2026-06-13 |
 
 **Egress hard constraint (M4, summarized):** every external-API call must declare a tier — **A** (structured fields only → de-identify then send), **B** (free-text transcripts / document images → consent-gated + over-redacted, or disabled), **C** (protected populations → never leaves the country, feature-flagged off). Enforced at a single chokepoint around `llm-router` that **fails closed** (un-tiered call rejected), with an append-only `egress_log`. Regex de-id is the Tier-A floor, **not** the control.
 
