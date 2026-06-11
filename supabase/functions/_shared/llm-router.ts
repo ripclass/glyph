@@ -16,6 +16,28 @@ const ENV_KEYS: Record<ModelConfig["provider"], string> = {
   perplexity: "PERPLEXITY_API_KEY",
 };
 
+/**
+ * OpenRouter: a single OpenAI-compatible gateway that can serve the Gemini,
+ * Claude, Perplexity, and OpenAI models in our routing table. Used as the
+ * transport ONLY when the provider's native key is absent — native keys
+ * always win, so moving to direct keys later requires no code change.
+ * MedGemma is Vertex-only and deliberately has no OpenRouter path.
+ */
+const OPENROUTER_KEY_ENV = "OPENROUTER_API_KEY";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+function hasNativeKey(provider: ModelConfig["provider"]): boolean {
+  return Boolean(Deno.env.get(ENV_KEYS[provider]));
+}
+
+function hasOpenRouterKey(): boolean {
+  return Boolean(Deno.env.get(OPENROUTER_KEY_ENV));
+}
+
+function openRouterEligible(provider: ModelConfig["provider"]): boolean {
+  return provider !== "medgemma";
+}
+
 function getApiKey(provider: ModelConfig["provider"]): string {
   const key = Deno.env.get(ENV_KEYS[provider]);
   if (!key) {
@@ -393,6 +415,179 @@ async function callPerplexity(
   };
 }
 
+// ── OpenRouter transport ────────────────────────────────────────
+
+/**
+ * Native model id → OpenRouter model id.
+ * MedGemma models are intentionally absent (Vertex-only): an unmapped model
+ * throws, which hands control to callLLM's existing fallback chain.
+ */
+const OPENROUTER_MODEL_MAP: Record<string, string> = {
+  "gemini-2.0-flash": "google/gemini-2.0-flash-001",
+  "gemini-1.5-flash": "google/gemini-flash-1.5",
+  // The native "gemini-2.0-pro" id in consult fallbacks is stale (never GA'd);
+  // nearest real successor on OpenRouter.
+  "gemini-2.0-pro": "google/gemini-2.5-pro",
+  "claude-sonnet-4-20250514": "anthropic/claude-sonnet-4",
+  "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
+  "sonar-pro": "perplexity/sonar-pro",
+};
+
+function openRouterModel(model: string): string {
+  const mapped = OPENROUTER_MODEL_MAP[model];
+  if (!mapped) {
+    throw new Error(`No OpenRouter mapping for model "${model}"`);
+  }
+  return mapped;
+}
+
+function openRouterHeaders(apiKey: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    // OpenRouter attribution headers (optional but recommended)
+    "HTTP-Referer": "https://glyph-olive.vercel.app",
+    "X-Title": "Glyph",
+  };
+}
+
+function buildOpenRouterBody(
+  model: string,
+  prompt: string,
+  systemPrompt?: string,
+  images?: string[],
+  temperature = 0.3,
+  maxTokens = 4096,
+  stream = false,
+): Record<string, unknown> {
+  const contentParts: Record<string, unknown>[] = [];
+  if (images?.length) {
+    for (const img of images) {
+      contentParts.push({
+        type: "image_url",
+        image_url: { url: `data:image/jpeg;base64,${img}` },
+      });
+    }
+  }
+  contentParts.push({ type: "text", text: prompt });
+
+  const messages: Record<string, unknown>[] = [];
+  if (systemPrompt) {
+    messages.push({ role: "system", content: systemPrompt });
+  }
+  messages.push({ role: "user", content: contentParts });
+
+  const body: Record<string, unknown> = {
+    model: openRouterModel(model),
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+  };
+  if (stream) body.stream = true;
+  return body;
+}
+
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  systemPrompt?: string,
+  images?: string[],
+  temperature = 0.3,
+  maxTokens = 4096,
+): Promise<LLMResponse> {
+  const start = performance.now();
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: openRouterHeaders(apiKey),
+    body: JSON.stringify(
+      buildOpenRouterBody(model, prompt, systemPrompt, images, temperature, maxTokens),
+    ),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenRouter ${model} error ${res.status}: ${errText}`);
+  }
+
+  const json = await res.json();
+  return {
+    // Keep the NATIVE model id in the response so cost logging and the
+    // pricing table stay keyed consistently regardless of transport.
+    text: json.choices?.[0]?.message?.content ?? "",
+    model,
+    inputTokens: json.usage?.prompt_tokens ?? 0,
+    outputTokens: json.usage?.completion_tokens ?? 0,
+    latencyMs: Math.round(performance.now() - start),
+  };
+}
+
+/**
+ * Streaming via OpenRouter, NORMALIZED to Gemini-shaped SSE.
+ *
+ * Every existing stream consumer (intake-turn's transcript capture, the
+ * client hooks) parses `data: {candidates:[{content:{parts:[{text}]}}]}`.
+ * OpenRouter emits OpenAI-shaped chunks (`choices[0].delta.content`), so we
+ * transcode here — the contract downstream of the router stays unchanged.
+ */
+async function callOpenRouterStream(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  systemPrompt?: string,
+  images?: string[],
+  temperature = 0.3,
+  maxTokens = 4096,
+): Promise<{ stream: ReadableStream; model: string }> {
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: openRouterHeaders(apiKey),
+    body: JSON.stringify(
+      buildOpenRouterBody(model, prompt, systemPrompt, images, temperature, maxTokens, true),
+    ),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenRouter stream ${model} error ${res.status}: ${errText}`);
+  }
+
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  const toGeminiSSE = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      buffer += decoder.decode(chunk, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? ""; // keep the trailing partial line
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue; // skip comments/keepalives
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") continue;
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            const geminiEvent = {
+              candidates: [{ content: { parts: [{ text: delta }] } }],
+            };
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(geminiEvent)}\n\n`),
+            );
+          }
+        } catch {
+          // Partial or non-JSON payload — ignore
+        }
+      }
+    },
+  });
+
+  return { stream: res.body!.pipeThrough(toGeminiSSE), model };
+}
+
 // ── Dispatcher ──────────────────────────────────────────────────
 
 type ProviderFn = (
@@ -428,6 +623,37 @@ const STREAM_PROVIDERS: Partial<Record<ModelConfig["provider"], ProviderStreamFn
   claude: callClaudeStream,
 };
 
+/**
+ * Pick the transport for a provider: native API when its key is set,
+ * otherwise OpenRouter (if eligible and OPENROUTER_API_KEY is set).
+ */
+function resolveProvider(
+  provider: ModelConfig["provider"],
+): { fn: ProviderFn; apiKey: string } {
+  if (hasNativeKey(provider)) {
+    return { fn: PROVIDERS[provider], apiKey: getApiKey(provider) };
+  }
+  if (openRouterEligible(provider) && hasOpenRouterKey()) {
+    return { fn: callOpenRouter, apiKey: Deno.env.get(OPENROUTER_KEY_ENV)! };
+  }
+  throw new Error(
+    `Missing env var ${ENV_KEYS[provider]} for provider "${provider}" (and no ${OPENROUTER_KEY_ENV} fallback set)`,
+  );
+}
+
+function resolveStreamProvider(
+  provider: ModelConfig["provider"],
+): { fn: ProviderStreamFn; apiKey: string } | undefined {
+  if (hasNativeKey(provider)) {
+    const fn = STREAM_PROVIDERS[provider];
+    return fn ? { fn, apiKey: getApiKey(provider) } : undefined;
+  }
+  if (openRouterEligible(provider) && hasOpenRouterKey()) {
+    return { fn: callOpenRouterStream, apiKey: Deno.env.get(OPENROUTER_KEY_ENV)! };
+  }
+  return undefined;
+}
+
 // ── Public API ──────────────────────────────────────────────────
 
 export interface CallLLMOptions {
@@ -462,12 +688,11 @@ export async function callLLM(
 
   // ── Streaming path ────────────────────────────────────────
   if (stream) {
-    const streamFn = STREAM_PROVIDERS[primary.provider];
-    if (streamFn) {
+    const resolved = resolveStreamProvider(primary.provider);
+    if (resolved) {
       try {
-        const apiKey = getApiKey(primary.provider);
-        const result = await streamFn(
-          apiKey,
+        const result = await resolved.fn(
+          resolved.apiKey,
           primary.model,
           prompt,
           systemPrompt,
@@ -479,11 +704,10 @@ export async function callLLM(
       } catch (err) {
         console.error(`[llm-router] Stream primary (${primary.model}) failed:`, err);
         if (fallback) {
-          const fbStreamFn = STREAM_PROVIDERS[fallback.provider];
-          if (fbStreamFn) {
-            const fbKey = getApiKey(fallback.provider);
-            const fbResult = await fbStreamFn(
-              fbKey,
+          const fbResolved = resolveStreamProvider(fallback.provider);
+          if (fbResolved) {
+            const fbResult = await fbResolved.fn(
+              fbResolved.apiKey,
               fallback.model,
               prompt,
               systemPrompt,
@@ -510,14 +734,13 @@ export async function callLLM(
   }
 
   // ── Non-streaming path ────────────────────────────────────
-  const providerFn = PROVIDERS[primary.provider];
-  if (!providerFn) {
+  if (!PROVIDERS[primary.provider]) {
     throw new Error(`Unknown provider: ${primary.provider}`);
   }
 
   try {
-    const apiKey = getApiKey(primary.provider);
-    const result = await providerFn(
+    const { fn, apiKey } = resolveProvider(primary.provider);
+    const result = await fn(
       apiKey,
       primary.model,
       prompt,
@@ -545,12 +768,10 @@ export async function callLLM(
     console.error(`[llm-router] Primary (${primary.model}) failed:`, primaryErr);
 
     if (!fallback) throw primaryErr;
-
-    const fbFn = PROVIDERS[fallback.provider];
-    if (!fbFn) throw primaryErr;
+    if (!PROVIDERS[fallback.provider]) throw primaryErr;
 
     try {
-      const fbKey = getApiKey(fallback.provider);
+      const { fn: fbFn, apiKey: fbKey } = resolveProvider(fallback.provider);
       const fbResult = await fbFn(
         fbKey,
         fallback.model,

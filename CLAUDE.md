@@ -184,6 +184,8 @@ Glyph/
 
 **Routing inside `consult-query`** is regex-driven (`detectQueryType`) — see `supabase/functions/consult-query/index.ts`. Every external call is preceded by `deidentify()` and the response is passed through `reidentify()` before returning.
 
+**Transport (2026-06-11):** `llm-router.ts` resolves transport per provider — native API when the native key (`GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/…) is set, otherwise **OpenRouter** (`OPENROUTER_API_KEY`, one key for Gemini/Claude/Perplexity/OpenAI; model ids mapped in `OPENROUTER_MODEL_MAP`). Native keys always win, so moving to direct keys later is config-only. MedGemma has no OpenRouter path (Vertex-only) — its routes now fail over to their fallback model via OpenRouter. OpenRouter streaming is **normalized to Gemini-shaped SSE** in the router, so all stream consumers (function tee-parsers + client hooks) are transport-agnostic. ⚠ Latent pre-existing bug, untouched: a NATIVE Claude streaming fallback emits Claude-shaped SSE that Gemini-format parsers won't read — fix when M4 touches streaming. PDPO note: OpenRouter Inc. is an additional foreign processor in the chain — must be named in the M4 egress tiers/`egress_log`.
+
 **Cost + usage logging:** `callLLM()` in `llm-router.ts` fires `logUsage()` to `api_usage_log` after every successful call. When the primary fails and fallback runs, the row is flagged `was_fallback = true`.
 
 ---
