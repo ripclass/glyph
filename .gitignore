@@ -60,3 +60,4 @@ next-env.d.ts
 *.swo
 
 .vercel
+supabase/functions/.env
