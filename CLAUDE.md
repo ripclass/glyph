@@ -68,9 +68,23 @@ Glyph/
 ├── .github/workflows/ci.yml       # npm ci → lint → type-check → test → build (genuinely green since M0)
 ├── README.md
 ├── AUDIT.md                        # Phase 1 audit (2026-05-30) — ground truth on every claimed-vs-measured gap. READ THIS.
+├── NORTHSTAR-CORRECTIONS.md        # Phase 2 closeout: corrections the vision doc needs (founder applies)
 ├── glyph-vision-v3.1.md            # ⚠ UNTRACKED working doc — northstar; known to overstate (see AUDIT.md). Do not treat as ground truth.
 ├── inlinePrompt.md                 # ⚠ UNTRACKED working doc — founder ↔ session channel; contents change between sessions
+├── .db-password.glyph-prod.local   # ⚠ git-ignored: prod DB password (for `supabase db push -p`)
+├── .credential-encryption-key.prod.local  # ⚠ git-ignored: prod CREDENTIAL_ENCRYPTION_KEY backup — founder must keep a copy
 ├── package.json                    # workspace root: workspaces ["apps/*","packages/*"]; dev/build/lint proxy to glyph-web; test/type-check run --workspaces --if-present
+├── scripts/                        # Node smoke/ops scripts (run with repo-root node_modules)
+│   ├── smoke-db.mjs                # schema/trigger/registration semantics (local or prod)
+│   ├── smoke-ai.mjs                # first-AI-call harness (intake-start E2E)
+│   ├── smoke-path.mjs              # THE full clinical path: register→intake(SSE)→summary→note
+│   ├── smoke-credentials.mjs       # migration 002 immutability suite (NEVER run on prod — append-only rows)
+│   ├── smoke-issuance.mjs          # credential issuance E2E incl. tamper rejection
+│   ├── smoke-egress.mjs            # Tier A/B gate: scrub round-trip, consent withdrawal, log tamper
+│   ├── smoke-documents.mjs         # document pipeline: storage RLS, Tier B consent, real extraction
+│   ├── dev-doctor.mjs              # recreate doctor@glyph.dev/glyph-dev-2026 after local db reset (refuses prod)
+│   ├── create-doctor.mjs           # REAL doctor onboarding (works on prod; safety rails, no self-signup yet)
+│   └── fixtures/rx-napa.jpg        # synthetic BD prescription (Napa/Seclo, 1+0+1) for extraction smoke
 ├── docs/                           # Long-form design docs (see §12)
 │   ├── architecture.md
 │   ├── api-routing.md
@@ -90,16 +104,20 @@ Glyph/
 │   ├── patient/{whatsapp-summary,followup-message}.md
 │   └── reference/{bangla-medical-glossary,bd-drug-names,bd-prescription-format,bd-diagnostic-centers}.md
 ├── supabase/
-│   ├── config.toml                 # Local dev: api 54321, db 54322, studio 54323
-│   ├── seed.sql
+│   ├── config.toml                 # Local dev: api 54321, db 54322, studio 54323 (CLI v2, Postgres 17)
+│   ├── seed.sql                    # dev-only data; intentionally NO doctors (need real auth.users ids)
 │   ├── migrations/
-│   │   └── 001_initial_schema.sql  # All 8 tables, RLS, triggers
+│   │   ├── 001_initial_schema.sql  # All 8 tables, RLS, triggers
+│   │   ├── 002_identity_layer.sql  # INSERT-only credentials, versioned did_documents, status log, projection freeze
+│   │   ├── 003_egress_log.sql      # append-only egress evidence (the M4 gate's audit trail)
+│   │   └── 004_document_storage.sql # private `documents` bucket + clinic-scoped storage RLS
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
 │       │   ├── cost-logger.ts
 │       │   ├── deidentify.ts       # PII strip + re-identify (names/phones/NID/addr)
-│       │   ├── llm-router.ts       # Multi-provider + streaming + fallback
+│       │   ├── egress.ts           # THE Tier A/B/C chokepoint — fail closed, evidence before egress
+│       │   ├── llm-router.ts       # Multi-provider + streaming + fallback + transport (native/OpenRouter)
 │       │   └── types.ts
 │       ├── intake-start/
 │       ├── intake-turn/
@@ -127,15 +145,20 @@ Glyph/
         ├── app/
         │   ├── layout.tsx          # <html lang="bn">, sonner Toaster
         │   ├── page.tsx            # Landing: Doctor Login / রোগী ইনটেক শুরু করুন
+        │   ├── login/page.tsx      # email+password pilot auth (accounts via scripts/create-doctor.mjs)
+        │   ├── pharmacy/page.tsx   # M5 verify loop: phone → DID → ✓ dispensable / ✗ revoked
+        │   ├── .well-known/did/[...slug]/route.ts  # public did:web resolution
         │   ├── api/[...path]/route.ts   # Catch-all proxy → Supabase Edge Functions
+        │   ├── api/verify/route.ts      # credential verification (local fast-path + status overlay)
+        │   ├── api/visits/approve-note/route.ts  # note approval → Rx + VisitNote credentials (one-shot)
         │   ├── intake/
         │   │   ├── layout.tsx
-        │   │   ├── page.tsx             # role selection (patient vs attendant)
-        │   │   ├── history/page.tsx
+        │   │   ├── page.tsx             # role selection + patient registration (registerAndStartVisit)
+        │   │   ├── history/page.tsx     # LIVE: document capture → consent → private storage → extract-document
         │   │   ├── conversation/page.tsx   # LIVE: Web Speech (bn-BD) + typed fallback + ConsentPrompt gate
-        │   │   └── summary/page.tsx
+        │   │   └── summary/page.tsx     # intake-complete + extracted Rx/lab cards
         │   └── doctor/
-        │       ├── layout.tsx
+        │       ├── layout.tsx           # AuthGuard + chrome (Patients/Schedule/Settings are disabled "soon" stubs)
         │       ├── page.tsx             # LIVE: useRealtimeQueue dashboard
         │       ├── briefing/[visitId]/page.tsx
         │       ├── consult/[visitId]/page.tsx
@@ -153,9 +176,11 @@ Glyph/
         ├── lib/
         │   ├── hooks/               # useVoiceInput, useAmbientRecording, useIntakeConversation,
         │   │                        # useConsultChat, usePatientHistory, useRealtimeQueue
-        │   ├── services/            # ai, camera, speech, patients, visits, whatsapp
+        │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), projections
+        │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
+        │   │                        # consents, documents-logic(+test)
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
-        │   ├── supabase/            # client.ts, server.ts, types.ts (Database type)
+        │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
         │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
         │   └── utils/               # cn, cost-tracker, format-date-bd, format-prescription
         └── styles/globals.css
@@ -215,7 +240,7 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 - `set_visit_number()` — auto-increments `visit_number` per `patient_id` on insert.
 - `update_timestamp()` — bumps `updated_at` on `patients` and `visits`.
 
-⚠ **`apps/glyph/src/lib/supabase/types.ts` has a history of drifting from this SQL** (audit item F: invented columns hidden behind `as never` casts). The migration file is the source of truth. Regenerate via `supabase gen types` once a live DB exists (M4); until then any hand edit must be checked line-by-line against `001_initial_schema.sql`.
+⚠ **`apps/glyph/src/lib/supabase/types.ts` has a history of drifting from the SQL** (audit item F: invented columns hidden behind `as never` casts). The migration files are the source of truth. The type is now generated (`supabase gen types typescript --local` + a small compatibility tail) — regenerate after every new migration; never hand-invent columns. An `as never`/`as any` cast on a Supabase call is the drift alarm.
 
 ---
 
@@ -244,8 +269,26 @@ supabase gen types typescript --local > apps/glyph/src/lib/supabase/types.ts
 # Studio URL: http://localhost:54323
 # App URL:    http://localhost:3000
 
-# Live-DB smoke test (schema/trigger/registration semantics; keys from `supabase start` output)
-node scripts/smoke-db.mjs http://127.0.0.1:54321 <sb_secret_key>
+# Local doctor login (recreate after every `db reset` — auth users are wiped)
+node scripts/dev-doctor.mjs http://127.0.0.1:54321 <sb_secret_key>   # → doctor@glyph.dev / glyph-dev-2026
+
+# Real doctor onboarding (works on prod; no self-signup exists by design)
+node scripts/create-doctor.mjs <SUPABASE_URL> <SERVICE_KEY> --email .. --password .. \
+  --name "Dr. .." --phone 01XXXXXXXXX --clinic "Clinic Name" [--name-bn ..] [--bmdc ..]
+
+# Smoke suites (keys from `supabase start` output locally; for prod:
+# `supabase projects api-keys --project-ref pywgimmcbzwnwcvnvmay -o json`)
+node scripts/smoke-db.mjs <SUPABASE_URL> <sb_secret_key>
+node scripts/smoke-path.mjs <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY>          # THE regression gate
+node scripts/smoke-egress.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
+node scripts/smoke-documents.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
+# smoke-credentials.mjs: LOCAL ONLY (append-only rows would be permanent on prod)
+
+# Prod deploys (in this order when schema is involved)
+supabase db push -p (Get-Content .db-password.glyph-prod.local)   # migrations → prod
+supabase functions deploy                                          # all edge functions
+vercel deploy --prod --yes                                         # frontend (server-side build;
+                                                                   # local `vercel build` is broken on Windows)
 ```
 
 ---
@@ -281,23 +324,25 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 
 ---
 
-## 8. Current Status (honest read as of 2026-06-10, branch `phase2/restructure`)
+## 8. Current Status (honest read as of 2026-06-11, branch `main`)
 
-**Phase 1 (audit) and the early Phase 2 milestones are done. The app has still never run end-to-end against live services** — that is by design of the build order, not an accident; the remaining mocks fall in M3-pre part 2 and M4. `AUDIT.md` is the canonical deep status document; this section is the summary.
+**Phase 2 is COMPLETE, MERGED, and LIVE IN PRODUCTION.** PR #1 merged `phase2/restructure` → `main` (merge commit `4ce0645`, full milestone history). `main` is the canonical branch; production (khamhealth.com) serves the same tree; the prod DB has migrations 001–004 applied. `AUDIT.md` remains the Phase 1 ground truth; §8.5 has the milestone detail.
 
-### ✅ Done (verified, committed)
-- **M0** (`c350e7b`) — CI is *genuinely* green: ESLint initialized, `--passWithNoTests` on the app, `sw.js`/workbox build artifacts untracked. Before this, CI had been red since the first commit.
-- **M1** (`008b0fd`, `6b209dc`) — `web/` → `apps/glyph`; `@kham/identity` extracted from EIN with the 3 known frictions fixed: `server-only` imports dropped (guard at app boundary), sha512 wiring centralized in `src/crypto/ed.ts` (kills the import-order fragility), identity types pulled out of EIN's `lib/supabase/types.ts`. 7/7 trust-root tests pass (sign→verify, tamper-reject, expiry, did:web resolution, canonicalization stability, AES round-trip) and are the package's CI gate.
-- **M2** (`55fb9b8`) — `@kham/schemas-clinical`: PhysicianRegistration, VisitNote, Prescription, LabResult, DispensingEvent payload schemas + shared envelope/registry. 11/11 tests.
-- **M3-pre part 1** (`d21b06e`) — the audit's #1 blocker fixed: `ai.ts` now sends camelCase keys matching edge-function contracts, unwraps the `{success,data}` envelope; `consultQuery` is correctly non-streaming; `whatsapp.ts` targets the real `send-followup` function. **Live verification still deferred (no Supabase/keys yet).**
+### ✅ Live in production (every line verified by smoke tests against prod itself)
+- **Full clinical loop**: register → Bangla AI intake (Web Speech bn-BD + typed fallback, streamed through the egress gate) → structured summary → realtime queue → briefing with red flags → consult → BD-format note → approve → signed VisitNote + Prescription credentials. (`smoke-path.mjs` 19/19 on prod.)
+- **Document pipeline ("plastic bag")**: capture photos of old prescriptions/lab reports → consent at first capture → private `documents` bucket → `extract-document` (Tier B) → `prescriptions`/`lab_reports` rows → extracted cards on summary → briefing cites meds as "From Rx photo". (`smoke-documents.mjs` 16/16 on prod.)
+- **Egress gate (M4)**: Tier A/B/C chokepoint, fail-closed twice over, append-only `egress_log`. Consent withdrawal blocks the next call and is never silently re-granted. (`smoke-egress.mjs` 8/8.)
+- **Credential network (M3+M5)**: issuance seam, did:web at khamhealth.com, `/api/verify`, `/pharmacy` verify loop with revocation propagation.
+- **Infra**: Supabase `pywgimmcbzwnwcvnvmay` (ap-southeast-1, Pro), Vercel production via CLI deploy (`main` is the git production branch; branch pushes = previews), OpenRouter as LLM transport (one key), CI green on pushes/PRs to `main`.
 
-### ⚠ Known-broken (scheduled, do not "discover" these again)
-- **Schema drift in client services**: `visits.ts`/`types.ts` were written against an invented schema — `queue_position`, `image_url`, `extracted_data`, `report_type`, `started_at`, `completed_at` do not exist in `001_initial_schema.sql` (real: `visit_number`, `image_path`, `test_category`, `consultation_started_at`/`consultation_ended_at`). Hidden by `as never` casts; fails at runtime. Reconciliation is the current work item (pulled forward from M4).
-- Intake conversation page: simulated STT + fake streaming; doctor dashboard: `MOCK_PATIENTS`; briefing/consult/note pages: mock-backed. (M3-pre part 2 / M4.)
-- `speech.ts` targets a `speech-stream` edge function that **does not exist** (M4 builds it).
-- Vertex/MedGemma auth uses a static key; Vertex requires OAuth — all MedGemma routes 401 and fall through (M4).
-- Env-var name mismatches (`GOOGLE_AI_STUDIO_KEY` vs `GEMINI_API_KEY`, `WHATSAPP_BUSINESS_TOKEN` vs `WHATSAPP_ACCESS_TOKEN`) — M4.
-- **PDPO: de-identification is ABSENT from 8 of 9 external-facing functions** (only `consult-query`'s `patientContext` is covered). The fix is the tiered egress policy in §8.5, not "more regex". Nothing real has shipped because nothing has run — but treat every new external call as if the gate already existed.
+### ⚠ Known gaps (deliberate, not regressions)
+- **Prod doctor accounts**: none exist out of the box — create via `scripts/create-doctor.mjs` (no self-signup until BMDC verification exists).
+- `speech.ts` targets a `speech-stream` edge function that does not exist — v1 STT is the browser Web Speech API (transits Google outside the egress gate; covered by ai_processing consent, noted in NORTHSTAR-CORRECTIONS).
+- MedGemma demoted from all primaries until a Vertex OAuth flow exists; its fall-through paths (if re-promoted) deliver plain text instead of SSE and double-log usage.
+- Native-Claude-stream SSE shape mismatch — latent, only if a native `ANTHROPIC_API_KEY` is ever set (OpenRouter normalizes today).
+- Doctor nav: Patients/Schedule/Settings are disabled "coming soon" stubs (no routes yet).
+- `prompts/README.md` model matrix still aspirational vs. the actual routing table (§4).
+- Many components keep inline Bangla strings with `TODO: i18n` markers (pre-existing pattern; new code should use `t()` but the M4/M5 screens did not — reconcile eventually).
 
 ---
 
@@ -314,6 +359,7 @@ The architecture decision: **the Verifiable Credential is canonical; Postgres ro
 | M3 | **DONE.** Migration 002 (INSERT-only `credentials`, versioned `did_documents`, append-only status log, projection-freeze triggers; `scripts/smoke-credentials.mjs` 18/18) + the seam in `apps/glyph/src/lib/identity/` (`issueCredential` validates via schemas-clinical registry → signs via @kham/identity → canonical row → `rebuildProjections`). Routes: `/.well-known/did/[...slug]` (public did:web resolution), `/api/verify` (local resolveIssuer fast-path + store-status overlay), `/api/visits/approve-note` (first consumer: Rx + VisitNote credentials on approval, one-shot, 409 on re-approve). E2E `scripts/smoke-issuance.mjs` 14/14 incl. tampered-Rx rejection. Env: `DID_WEB_HOST` (khamhealth.com prod) + `CREDENTIAL_ENCRYPTION_KEY` (server-only; **founder must back it up — losing it orphans every stored private key**) | ✅ 2026-06-12 |
 | M4 | **DONE** (except document-upload wiring — top follow-up). Egress gate ✅; all screens live (login/AuthGuard, registration, Web-Speech intake conversation + ConsentPrompt naming processors, summary, realtime dashboard, briefing+retry, consult, note→approve-note credentials, patient timeline); MedGemma demoted from primaries until Vertex OAuth; WhatsApp env renamed; null-visit usage logging | ✅ 2026-06-13 |
 | M5 | **DONE.** `/pharmacy`: patient lookup by (family-shared) phone → DID → signed PrescriptionCredentials verified via the local fast-path (`✓ dispensable` / `✗ revoked` after a status transition — revocation propagates to the counter). Browser-verified both directions | ✅ 2026-06-13 |
+| Post-P2 | **Document pipeline DONE + deployed** (2026-06-11): migration 004 private bucket + storage RLS, consent-at-capture, upload→extract→cards→briefing. Also: CORS preflight 500 fixed, "Saara" UI label removed (§12), intake-start consent insert idempotent + never resurrects withdrawn consent, doctor onboarding script. **PR #1 merged — `main` is canonical.** | ✅ 2026-06-11 |
 
 **Egress hard constraint (M4, summarized):** every external-API call must declare a tier — **A** (structured fields only → de-identify then send), **B** (free-text transcripts / document images → consent-gated + over-redacted, or disabled), **C** (protected populations → never leaves the country, feature-flagged off). Enforced at a single chokepoint around `llm-router` that **fails closed** (un-tiered call rejected), with an append-only `egress_log`. Regex de-id is the Tier-A floor, **not** the control.
 
@@ -437,14 +483,15 @@ Observed patterns in the code. Follow these for new work.
 
 ## 13. Open Questions / Next Moves
 
-The plan of record is §8.5 — follow the milestone order, don't freelance. Immediate queue:
+Phase 2 (§8.5) is complete and merged; new work needs founder authorization (check `inlinePrompt.md` at session start). The follow-up queue, roughly by value:
 
-1. **Finish M3-pre**: reconcile `types.ts` + visit/patient services to the real migration, then build patient-registration + `createVisit` (`registerAndStartVisit`), then get one intake→note path running against live Supabase.
-2. **Live Supabase**: the local stack now boots and seeds cleanly (config.toml migrated to CLI v2 2026-06-10; seed.sql's `p`/`l`/`x` UUID prefixes weren't valid hex — it had never applied). The data layer is smoke-verified (`scripts/smoke-db.mjs`). Still missing for a dev login: a doctor signup flow (seed.sql intentionally ships no doctors — `doctors.id` must be a real `auth.users` id; create via `auth.admin.createUser` as the smoke script does). The intake→note live run additionally needs LLM API keys.
-3. **M3** issuance seam (only after M3-pre's live path exists).
-4. **M4** — see §8.5; the egress tier policy is the heart of it. Smaller M4 items: `prompts/README.md` model matrix reconciliation, `UPTODATE_BASE_URL` unused, `consult-uptodate` URL hard-coded.
-5. After M5: stop, report, write `NORTHSTAR-CORRECTIONS.md`.
+1. **Founder actions**: back up `CREDENTIAL_ENCRYPTION_KEY` to a password manager (losing it orphans every stored private key); create the first real prod doctor via `scripts/create-doctor.mjs`; apply `NORTHSTAR-CORRECTIONS.md` to the vision doc.
+2. **Pilot readiness**: doctor-facing Patients/Schedule/Settings screens (nav stubs exist); WhatsApp follow-up live verification (needs `WHATSAPP_ACCESS_TOKEN` + `whatsapp_followup` consent UI — that consent type is never collected today).
+3. **W3C interop**: URDNA2015 / Data Integrity proofs so credentials verify outside this library.
+4. **STT upgrade**: `speech-stream` Cloud STT relay (Render was deferred for exactly this workload) when bn-BD dialect accuracy demands it.
+5. **Cleanups**: prompts/README model matrix reconciliation; `UPTODATE_BASE_URL` unused / `consult-uptodate` URL hard-coded; MedGemma fall-through SSE+double-log paths (dormant while demoted); native-Claude-stream SSE shape (dormant without a native key); i18n the inline Bangla strings.
+6. **Verification culture** (keep it): every feature lands with unit tests + a `scripts/smoke-*.mjs` + a browser pass; `smoke-path.mjs` against prod is the regression gate after any functions/schema deploy.
 
 ---
 
-*Last updated: 2026-06-10 (post-restructure; M0–M2 + M3-pre part 1 landed). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
+*Last updated: 2026-06-11 (Phase 2 merged to `main`, live on khamhealth.com; document pipeline shipped). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
