@@ -46,9 +46,10 @@ export function SaaraMessage({ message, isStreaming = false }: SaaraMessageProps
           "border border-glyph-100"
         )}
       >
-        {/* Sender label */}
+        {/* Sender label — NEVER "Saara": the soul behind Glyph is internal
+            design language only and must not appear in rendered copy (§12) */}
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-glyph-600">
-          Saara
+          Glyph
         </p>
 
         {/* Message body */}
