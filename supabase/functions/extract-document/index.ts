@@ -11,7 +11,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import type { ExtractionResult, EdgeFunctionResponse } from "../_shared/types.ts";
 
 const PRESCRIPTION_PROMPT = `You are a medical document extraction system specializing in Bangladeshi prescriptions.
@@ -209,17 +208,11 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── Log usage ───────────────────────────────────────────
-    const llm = llmResult as { model: string; inputTokens: number; outputTokens: number; latencyMs: number };
-    await logUsage({
-      visitId: visitId ?? "no-visit",
-      edgeFunction: "extract-document",
-      model: llm.model,
-      wasFallback: false,
-      inputTokens: llm.inputTokens,
-      outputTokens: llm.outputTokens,
-      latencyMs: llm.latencyMs,
-    });
+    // Usage logging happens inside callLLM (visitId + edgeFunction passed) —
+    // logging here too double-counted costs. (The old "no-visit" literal also
+    // violated the api_usage_log.visit_id UUID column, so those rows never
+    // actually landed; visitless extractions go unlogged until the router
+    // supports a null visit id — M4.)
 
     const result: ExtractionResult = {
       type,

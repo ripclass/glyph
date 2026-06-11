@@ -11,7 +11,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import type { IntakeSummary, EdgeFunctionResponse } from "../_shared/types.ts";
 
 const SUMMARY_SYSTEM_PROMPT = `You are a medical data extraction system. Given a patient intake conversation transcript, extract a structured JSON summary.
@@ -139,17 +138,8 @@ Extract the structured intake summary as JSON.`;
       })
       .eq("id", visitId);
 
-    // ── Log usage ───────────────────────────────────────────
-    const llm = llmResult as { model: string; inputTokens: number; outputTokens: number; latencyMs: number };
-    await logUsage({
-      visitId,
-      edgeFunction: "intake-complete",
-      model: llm.model,
-      wasFallback: false,
-      inputTokens: llm.inputTokens,
-      outputTokens: llm.outputTokens,
-      latencyMs: llm.latencyMs,
-    });
+    // Usage logging happens inside callLLM (visitId + edgeFunction passed) —
+    // logging here too double-counts costs.
 
     // ── Trigger briefing generation (fire-and-forget) ───────
     const briefingUrl = `${supabaseUrl}/functions/v1/generate-briefing`;

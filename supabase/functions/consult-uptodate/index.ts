@@ -12,7 +12,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
 interface UpToDateResult {
@@ -134,17 +133,11 @@ Be specific, cite guideline names where possible (e.g., ADA 2025, JNC-8, GOLD 20
         };
       }
 
-      // Log LLM usage
-      const llm = llmResult as { model: string; inputTokens: number; outputTokens: number; latencyMs: number };
-      await logUsage({
-        visitId: "no-visit",
-        edgeFunction: "consult-uptodate",
-        model: llm.model,
-        wasFallback: false,
-        inputTokens: llm.inputTokens,
-        outputTokens: llm.outputTokens,
-        latencyMs: llm.latencyMs,
-      });
+      // NOTE: this server-to-server call has no visitId, and the router only
+      // logs when one is present — these synthesis calls are currently
+      // unlogged. (The old explicit log here used the literal "no-visit",
+      // which violates api_usage_log.visit_id's UUID type, so it never landed
+      // either.) Fix in M4 by letting the router log with a null visit id.
     }
 
     return jsonResponse<EdgeFunctionResponse>({

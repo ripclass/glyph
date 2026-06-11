@@ -20,7 +20,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import { deidentify, reidentify } from "../_shared/deidentify.ts";
 import type { ConsultQueryResponse, Source, EdgeFunctionResponse } from "../_shared/types.ts";
 
@@ -429,16 +428,10 @@ serve(async (req: Request) => {
       .update({ consultation_queries: queries })
       .eq("id", visitId);
 
-    // ── Log usage ───────────────────────────────────────────
-    await logUsage({
-      visitId,
-      edgeFunction: "consult-query",
-      model: result.modelUsed,
-      wasFallback: false,
-      inputTokens: Math.ceil((query.length + contextStr.length) / 4),
-      outputTokens: Math.ceil(result.answer.length / 4),
-      latencyMs: result.latencyMs,
-    });
+    // Usage logging happens inside callLLM per provider call (visitId +
+    // edgeFunction passed at each route's call site) with REAL token counts —
+    // the estimated aggregate that used to be logged here both double-counted
+    // and was less accurate than the per-call rows.
 
     return jsonResponse<EdgeFunctionResponse>({
       success: true,

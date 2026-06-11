@@ -11,7 +11,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
 serve(async (req: Request) => {
@@ -149,18 +148,8 @@ Patient name: ${patient?.name_bn ?? patient?.name ?? "Unknown"}, Age: ${patient?
       .update({ intake_transcript: transcript, status: "intake" })
       .eq("id", visitId);
 
-    // ── Log usage ───────────────────────────────────────────
-    if ("inputTokens" in llmResult) {
-      await logUsage({
-        visitId,
-        edgeFunction: "intake-start",
-        model: llmResult.model,
-        wasFallback: false,
-        inputTokens: llmResult.inputTokens,
-        outputTokens: llmResult.outputTokens,
-        latencyMs: llmResult.latencyMs,
-      });
-    }
+    // Usage logging happens inside callLLM (visitId + edgeFunction passed
+    // above) — logging here too double-counts costs.
 
     return jsonResponse<EdgeFunctionResponse>({
       success: true,
