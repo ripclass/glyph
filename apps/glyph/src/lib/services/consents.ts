@@ -28,6 +28,61 @@ const INTAKE_CONSENT_TYPES = [
 /** Who granted the consent — attendants speak for patients routinely (§9) */
 export type ConsentGrantor = 'patient' | 'attendant' | 'guardian';
 
+/** All consent types the schema knows (001_initial_schema.sql CHECK) */
+export type ConsentType =
+  | 'recording'
+  | 'data_storage'
+  | 'ai_processing'
+  | 'image_capture'
+  | 'whatsapp_followup'
+  | 'data_sharing';
+
+/**
+ * Records a single consent for a visit, idempotently: if an active
+ * (granted, not withdrawn) row of this type already exists, nothing is
+ * written. Used for opt-in consents collected outside the intake bundle —
+ * e.g. `whatsapp_followup` at the summary step.
+ *
+ * @throws {Error} If reading or writing fails — treat as "no consent".
+ */
+export async function recordConsent(input: {
+  patientId: string;
+  visitId: string;
+  consentType: ConsentType;
+  grantedBy: ConsentGrantor;
+}): Promise<void> {
+  const supabase = createClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from('consent_records')
+    .select('id')
+    .eq('visit_id', input.visitId)
+    .eq('consent_type', input.consentType)
+    .eq('granted', true)
+    .is('withdrawn_at', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (readError) {
+    throw new Error(`Failed to read existing consent: ${readError.message}`);
+  }
+  if (existing) return;
+
+  const { error: insertError } = await supabase.from('consent_records').insert({
+    patient_id: input.patientId,
+    visit_id: input.visitId,
+    consent_type: input.consentType,
+    granted: true,
+    granted_by: input.grantedBy,
+    device_info:
+      typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 255) : null,
+  });
+
+  if (insertError) {
+    throw new Error(`Failed to record consent: ${insertError.message}`);
+  }
+}
+
 export interface RecordConsentsInput {
   patientId: string;
   visitId: string;
