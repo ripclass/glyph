@@ -13,31 +13,31 @@ INSERT INTO clinics (id, name, address, district, phone) VALUES
 
 -- Patients
 INSERT INTO patients (id, clinic_id, name, name_bn, phone, age, gender, blood_group, address, known_allergies, chronic_conditions) VALUES
-  ('p0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001',
+  ('a0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001',
    'Abdul Karim', 'আব্দুল করিম', '+8801811111001', 62, 'male', 'B+',
    'Mirpur-10, Dhaka',
    '["Penicillin"]'::jsonb,
    '["Type 2 Diabetes", "Hypertension", "CKD Stage 3"]'::jsonb),
 
-  ('p0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001',
+  ('a0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001',
    'Fatema Begum', 'ফাতেমা বেগম', '+8801811111002', 45, 'female', 'O+',
    'Pallabi, Dhaka',
    '[]'::jsonb,
    '["Hypothyroidism"]'::jsonb),
 
-  ('p0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001',
+  ('a0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001',
    'Mohammad Hasan', 'মোহাম্মদ হাসান', '+8801811111003', 28, 'male', 'A+',
    'Kazipara, Dhaka',
    '["Sulfa drugs"]'::jsonb,
    '[]'::jsonb),
 
-  ('p0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000001',
+  ('a0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000001',
    'Rashida Akter', 'রশিদা আক্তার', '+8801811111004', 55, 'female', 'AB+',
    'Shewrapara, Dhaka',
    '[]'::jsonb,
    '["Rheumatoid Arthritis", "Hypertension"]'::jsonb),
 
-  ('p0000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000001',
+  ('a0000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000001',
    'Nurul Islam', 'নুরুল ইসলাম', '+8801811111005', 70, 'male', 'B-',
    'Agargaon, Dhaka',
    '["NSAIDs"]'::jsonb,
@@ -45,7 +45,7 @@ INSERT INTO patients (id, clinic_id, name, name_bn, phone, age, gender, blood_gr
 
 -- Sample lab reports for Abdul Karim (chronic disease patient)
 INSERT INTO lab_reports (id, patient_id, source, lab_name, report_date, test_category, results) VALUES
-  ('l0000000-0000-0000-0000-000000000001', 'p0000000-0000-0000-0000-000000000001',
+  ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
    'photo_historical', 'Popular Diagnostics', '2026-01-15', 'RFT',
    '[
      {"name": "Serum Creatinine", "value": "1.8", "unit": "mg/dL", "range": "0.7-1.3", "isAbnormal": true, "severity": "moderate"},
@@ -53,14 +53,14 @@ INSERT INTO lab_reports (id, patient_id, source, lab_name, report_date, test_cat
      {"name": "eGFR", "value": "42", "unit": "mL/min", "range": ">60", "isAbnormal": true, "severity": "moderate"}
    ]'::jsonb),
 
-  ('l0000000-0000-0000-0000-000000000002', 'p0000000-0000-0000-0000-000000000001',
+  ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001',
    'photo_historical', 'Popular Diagnostics', '2026-01-15', 'HbA1c',
    '[
      {"name": "HbA1c", "value": "8.2", "unit": "%", "range": "<7.0", "isAbnormal": true, "severity": "moderate"},
      {"name": "Fasting Blood Sugar", "value": "162", "unit": "mg/dL", "range": "70-100", "isAbnormal": true, "severity": "moderate"}
    ]'::jsonb),
 
-  ('l0000000-0000-0000-0000-000000000003', 'p0000000-0000-0000-0000-000000000001',
+  ('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001',
    'photo_historical', 'Ibn Sina Diagnostics', '2025-10-20', 'HbA1c',
    '[
      {"name": "HbA1c", "value": "7.8", "unit": "%", "range": "<7.0", "isAbnormal": true, "severity": "mild"},
@@ -69,7 +69,7 @@ INSERT INTO lab_reports (id, patient_id, source, lab_name, report_date, test_cat
 
 -- Sample prescriptions for Abdul Karim
 INSERT INTO prescriptions (id, patient_id, source, prescribing_doctor_name, prescription_date, diagnosis, medications) VALUES
-  ('x0000000-0000-0000-0000-000000000001', 'p0000000-0000-0000-0000-000000000001',
+  ('d0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
    'photo_historical', 'Dr. A. Rahman', '2026-01-15',
    'T2DM with CKD Stage 3, Hypertension',
    '[

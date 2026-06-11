@@ -12,7 +12,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
+import { openEgress } from "../_shared/egress.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
 interface UpToDateResult {
@@ -57,8 +57,17 @@ serve(async (req: Request) => {
 
     if (uptodateApiKey) {
       try {
+        // UpToDate Connect is an external processor too — same gate.
+        const utdGate = await openEgress(
+          {
+            tier: "A",
+            edgeFunction: "consult-uptodate",
+            processor: "uptodate:connect-api",
+          },
+          [query],
+        );
         const searchParams = new URLSearchParams({
-          search: query,
+          search: utdGate.fields[0],
           ...(specialty ? { specialty } : {}),
         });
 
@@ -116,6 +125,8 @@ Be specific, cite guideline names where possible (e.g., ADA 2025, JNC-8, GOLD 20
         prompt: `Clinical query: ${query}`,
         systemPrompt,
         edgeFunction: "consult-uptodate",
+        // Tier A: doctor's clinical query only (no patient record attached).
+        egress: { tier: "A" },
       });
 
       const responseText = (llmResult as { text: string }).text;
@@ -134,17 +145,8 @@ Be specific, cite guideline names where possible (e.g., ADA 2025, JNC-8, GOLD 20
         };
       }
 
-      // Log LLM usage
-      const llm = llmResult as { model: string; inputTokens: number; outputTokens: number; latencyMs: number };
-      await logUsage({
-        visitId: "no-visit",
-        edgeFunction: "consult-uptodate",
-        model: llm.model,
-        wasFallback: false,
-        inputTokens: llm.inputTokens,
-        outputTokens: llm.outputTokens,
-        latencyMs: llm.latencyMs,
-      });
+      // Usage is logged by the router with a null visit id (server-to-server
+      // call with no visit context).
     }
 
     return jsonResponse<EdgeFunctionResponse>({

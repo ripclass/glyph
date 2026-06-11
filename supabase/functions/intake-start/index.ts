@@ -11,7 +11,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
 serve(async (req: Request) => {
@@ -78,17 +77,35 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── Create consent records ──────────────────────────────
+    // ── Create consent records (idempotent) ─────────────────
+    // The document-capture step may have recorded consents already (its
+    // ConsentPrompt fires before the first photo). Insert only types with
+    // NO row at all for this visit: duplicate active rows would break
+    // withdrawal (withdrawing one row while a twin stays active leaves
+    // the egress gate open), and a WITHDRAWN consent must never be
+    // silently resurrected by a system call — only an explicit UI grant
+    // (recordIntakeConsents) may create a fresh row after withdrawal.
     const consentTypes = ["recording", "data_storage", "ai_processing"] as const;
-    const consentRows = consentTypes.map((type) => ({
-      patient_id: visit.patient_id,
-      visit_id: visitId,
-      consent_type: type,
-      granted: true,
-      granted_by: isAttendant ? "attendant" : "patient",
-    }));
+    const { data: existingConsents } = await serviceClient
+      .from("consent_records")
+      .select("consent_type")
+      .eq("visit_id", visitId);
+    const activeTypes = new Set(
+      (existingConsents ?? []).map((row: { consent_type: string }) => row.consent_type),
+    );
+    const consentRows = consentTypes
+      .filter((type) => !activeTypes.has(type))
+      .map((type) => ({
+        patient_id: visit.patient_id,
+        visit_id: visitId,
+        consent_type: type,
+        granted: true,
+        granted_by: isAttendant ? "attendant" : "patient",
+      }));
 
-    await serviceClient.from("consent_records").insert(consentRows);
+    if (consentRows.length > 0) {
+      await serviceClient.from("consent_records").insert(consentRows);
+    }
 
     // ── Update attendant info if present ────────────────────
     if (isAttendant && attendantName) {
@@ -118,6 +135,7 @@ serve(async (req: Request) => {
 You speak ${isBangla ? "Bangla (বাংলা)" : "English"}.
 Your job is to greet the ${isAttendant ? "attendant" : "patient"} and ask the first intake question: "What brings you to the doctor today?" or its Bangla equivalent.
 Keep it short (2-3 sentences), warm, and professional.
+PRIVACY PROTOCOL: names may appear as placeholder tokens like [PII_1] or [NAME_BN_2]. Greet the person USING the token verbatim exactly where their name belongs (e.g. "আসসালামু আলাইকুম [PII_1],") — the token is replaced with the real name after processing. Never mention that it is a placeholder.
 ${isAttendant ? `The attendant's name is ${attendantName} and they are the patient's ${attendantRelation ?? "companion"}.` : ""}
 Patient name: ${patient?.name_bn ?? patient?.name ?? "Unknown"}, Age: ${patient?.age ?? "Unknown"}, Gender: ${patient?.gender ?? "Unknown"}.`;
 
@@ -132,6 +150,12 @@ Patient name: ${patient?.name_bn ?? patient?.name ?? "Unknown"}, Age: ${patient?
       systemPrompt,
       visitId,
       edgeFunction: "intake-start",
+      // Tier A: PII here lives in structured fields — scrubbed as literals
+      // before egress, restored in the response (the greeting keeps the name).
+      egress: {
+        tier: "A",
+        knownIdentifiers: [patient?.name, patient?.name_bn, attendantName],
+      },
     });
 
     // ── Initialize transcript ───────────────────────────────
@@ -149,18 +173,8 @@ Patient name: ${patient?.name_bn ?? patient?.name ?? "Unknown"}, Age: ${patient?
       .update({ intake_transcript: transcript, status: "intake" })
       .eq("id", visitId);
 
-    // ── Log usage ───────────────────────────────────────────
-    if ("inputTokens" in llmResult) {
-      await logUsage({
-        visitId,
-        edgeFunction: "intake-start",
-        model: llmResult.model,
-        wasFallback: false,
-        inputTokens: llmResult.inputTokens,
-        outputTokens: llmResult.outputTokens,
-        latencyMs: llmResult.latencyMs,
-      });
-    }
+    // Usage logging happens inside callLLM (visitId + edgeFunction passed
+    // above) — logging here too double-counts costs.
 
     return jsonResponse<EdgeFunctionResponse>({
       success: true,

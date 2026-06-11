@@ -12,7 +12,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
 const SUMMARY_SYSTEM_PROMPT = `আপনি একজন সহানুভূতিশীল চিকিৎসা সহকারী। ডাক্তারের ক্লিনিকাল নোট থেকে রোগীর জন্য সহজ বাংলায় সারসংক্ষেপ তৈরি করুন।
@@ -114,21 +113,18 @@ ${followUpDate ? `ফলো-আপ তারিখ: ${followUpDate}` : "ফল�
       systemPrompt: SUMMARY_SYSTEM_PROMPT,
       visitId,
       edgeFunction: "generate-patient-summary",
+      // Tier A: structured note + names — scrubbed out, restored in the
+      // returned summary so the patient still reads their own name.
+      egress: {
+        tier: "A",
+        knownIdentifiers: [patientName, doctorName],
+      },
     });
 
     const summaryText = (llmResult as { text: string }).text;
 
-    // ── Log usage ───────────────────────────────────────────
-    const llm = llmResult as { model: string; inputTokens: number; outputTokens: number; latencyMs: number };
-    await logUsage({
-      visitId,
-      edgeFunction: "generate-patient-summary",
-      model: llm.model,
-      wasFallback: false,
-      inputTokens: llm.inputTokens,
-      outputTokens: llm.outputTokens,
-      latencyMs: llm.latencyMs,
-    });
+    // Usage logging happens inside callLLM (visitId + edgeFunction passed
+    // above) — logging here too double-counts costs.
 
     return jsonResponse<EdgeFunctionResponse>({
       success: true,

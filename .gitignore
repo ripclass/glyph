@@ -7,8 +7,15 @@ node_modules/
 coverage/
 
 # next.js
-web/.next/
-web/out/
+apps/glyph/.next/
+apps/glyph/out/
+
+# next-pwa generated service worker + workbox (regenerated on every build)
+apps/glyph/public/sw.js
+apps/glyph/public/sw.js.map
+apps/glyph/public/workbox-*.js
+apps/glyph/public/workbox-*.js.map
+apps/glyph/public/fallback-*.js
 
 # production
 build/
@@ -31,6 +38,10 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# local secrets (DB passwords, etc.) — never commit
+*.local
+.db-password.*
+
 # vercel
 .vercel
 
@@ -47,3 +58,11 @@ next-env.d.ts
 .vscode/
 *.swp
 *.swo
+
+.vercel
+supabase/functions/.env
+
+# founder working docs (deliberately untracked) + browser-test debris
+glyph-vision-*.md
+inlinePrompt.md
+.playwright-mcp/

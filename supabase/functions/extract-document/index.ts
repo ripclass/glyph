@@ -11,7 +11,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
+import { EgressDeniedError } from "../_shared/egress.ts";
 import type { ExtractionResult, EdgeFunctionResponse } from "../_shared/types.ts";
 
 const PRESCRIPTION_PROMPT = `You are a medical document extraction system specializing in Bangladeshi prescriptions.
@@ -131,18 +131,40 @@ serve(async (req: Request) => {
       new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ""),
     );
 
+    // ── Tier B consent: a document IMAGE crosses the border ─────
+    // Printed + handwritten names on the page cannot be scrubbed by any
+    // text pipeline — consent is the control, and the evidence log records
+    // contains_unredactable honestly.
+    const { data: aiConsent } = visitId
+      ? await serviceClient
+          .from("consent_records")
+          .select("id")
+          .eq("visit_id", visitId)
+          .eq("consent_type", "ai_processing")
+          .eq("granted", true)
+          .is("withdrawn_at", null)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+
     // ── Call MedGemma with image ────────────────────────────
     const prompt = type === "prescription" ? PRESCRIPTION_PROMPT : LAB_REPORT_PROMPT;
     const systemPrompt = "Extract all medical data from this image accurately. Output ONLY valid JSON.";
 
     const llmResult = await callLLM({
-      primary: { provider: "medgemma", model: "medgemma-4b", temperature: 0.1, maxTokens: 3000 },
-      fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
+      // MedGemma demoted until Vertex OAuth exists (it always fell through).
+      primary: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
+      fallback: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
       prompt,
       systemPrompt,
       images: [base64],
       visitId: visitId ?? undefined,
       edgeFunction: "extract-document",
+      egress: {
+        tier: "B",
+        consentId: aiConsent?.id,
+        containsUnredactable: true,
+      },
     });
 
     const responseText = (llmResult as { text: string }).text;
@@ -209,17 +231,11 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── Log usage ───────────────────────────────────────────
-    const llm = llmResult as { model: string; inputTokens: number; outputTokens: number; latencyMs: number };
-    await logUsage({
-      visitId: visitId ?? "no-visit",
-      edgeFunction: "extract-document",
-      model: llm.model,
-      wasFallback: false,
-      inputTokens: llm.inputTokens,
-      outputTokens: llm.outputTokens,
-      latencyMs: llm.latencyMs,
-    });
+    // Usage logging happens inside callLLM (visitId + edgeFunction passed) —
+    // logging here too double-counted costs. (The old "no-visit" literal also
+    // violated the api_usage_log.visit_id UUID column, so those rows never
+    // actually landed; visitless extractions go unlogged until the router
+    // supports a null visit id — M4.)
 
     const result: ExtractionResult = {
       type,
@@ -233,6 +249,9 @@ serve(async (req: Request) => {
       data: result,
     });
   } catch (err) {
+    if (err instanceof EgressDeniedError) {
+      return jsonResponse({ success: false, error: err.message, code: "EGRESS_DENIED" }, 403);
+    }
     console.error("[extract-document] Error:", err);
     return jsonResponse(
       { success: false, error: err instanceof Error ? err.message : "Internal error", code: "INTERNAL_ERROR" },

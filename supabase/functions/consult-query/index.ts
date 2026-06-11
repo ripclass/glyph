@@ -20,7 +20,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { callLLM } from "../_shared/llm-router.ts";
-import { logUsage } from "../_shared/cost-logger.ts";
 import { deidentify, reidentify } from "../_shared/deidentify.ts";
 import type { ConsultQueryResponse, Source, EdgeFunctionResponse } from "../_shared/types.ts";
 
@@ -153,6 +152,9 @@ async function handleGuideline(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "guideline");
@@ -170,6 +172,9 @@ async function handleDrugInteraction(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "drug_interaction");
@@ -187,6 +192,9 @@ async function handleDifferential(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "differential");
@@ -206,6 +214,9 @@ async function handleRecentStudies(
     systemPrompt: "You are a medical research assistant. Cite specific studies with authors, journals, and years. Focus on the most recent and highest-quality evidence.",
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   const text = (llmResult as { text: string }).text;
@@ -228,12 +239,16 @@ async function handleLabInterpretation(
   visitId: string,
 ): Promise<ConsultQueryResponse> {
   const llmResult = await callLLM({
-    primary: { provider: "medgemma", model: "medgemma-27b", temperature: 0.1, maxTokens: 3000 },
-    fallback: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
+    // MedGemma demoted until Vertex OAuth exists (it always fell through).
+    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
+    fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "lab_interpretation"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "lab_interpretation");
@@ -251,6 +266,9 @@ async function handleGenericClinical(
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
     visitId,
     edgeFunction: "consult-query",
+    // Tier A: patientContext is pre-deidentified upstream; the chokepoint
+    // adds the precise-pattern floor over the full prompt incl. the query.
+    egress: { tier: "A" },
   });
 
   return parseConsultResponse(llmResult as { text: string; model: string; latencyMs: number }, "generic_clinical");
@@ -429,16 +447,10 @@ serve(async (req: Request) => {
       .update({ consultation_queries: queries })
       .eq("id", visitId);
 
-    // ── Log usage ───────────────────────────────────────────
-    await logUsage({
-      visitId,
-      edgeFunction: "consult-query",
-      model: result.modelUsed,
-      wasFallback: false,
-      inputTokens: Math.ceil((query.length + contextStr.length) / 4),
-      outputTokens: Math.ceil(result.answer.length / 4),
-      latencyMs: result.latencyMs,
-    });
+    // Usage logging happens inside callLLM per provider call (visitId +
+    // edgeFunction passed at each route's call site) with REAL token counts —
+    // the estimated aggregate that used to be logged here both double-counted
+    // and was less accurate than the per-call rows.
 
     return jsonResponse<EdgeFunctionResponse>({
       success: true,

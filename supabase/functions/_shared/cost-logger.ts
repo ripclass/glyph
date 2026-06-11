@@ -40,7 +40,8 @@ function estimateCost(
 }
 
 export interface UsageParams {
-  visitId: string;
+  /** Null for server-to-server calls with no visit context */
+  visitId: string | null;
   edgeFunction: string;
   model: string;
   wasFallback: boolean;

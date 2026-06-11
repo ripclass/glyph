@@ -11,6 +11,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { EgressDeniedError, openEgress } from "../_shared/egress.ts";
 import { logUsage } from "../_shared/cost-logger.ts";
 import type { EdgeFunctionResponse } from "../_shared/types.ts";
 
@@ -66,7 +67,7 @@ serve(async (req: Request) => {
     // ── Check WhatsApp consent ──────────────────────────────
     const { data: consent } = await supabase
       .from("consent_records")
-      .select("granted")
+      .select("id, granted")
       .eq("patient_id", visit.patient_id)
       .eq("visit_id", visitId)
       .eq("consent_type", "whatsapp_followup")
@@ -157,6 +158,21 @@ KhaM Health`;
     let whatsappMessageId: string | null = null;
 
     if (whatsappToken && whatsappPhoneId) {
+      // Tier B egress to Meta: the full Bangla clinical narrative crosses —
+      // deliberately UNscrubbed because the recipient IS the data subject;
+      // the whatsapp_followup consent is the control, the evidence row
+      // records contains_unredactable honestly. Denial throws before send.
+      await openEgress(
+        {
+          tier: "B",
+          edgeFunction: "send-followup",
+          processor: "whatsapp:meta",
+          visitId,
+          consentId: consent.id,
+          containsUnredactable: true,
+        },
+        [],
+      );
       try {
         // Normalize phone number: ensure it starts with country code
         const normalizedPhone = normalizePhoneForWhatsApp(phone);
@@ -233,6 +249,9 @@ KhaM Health`;
       },
     });
   } catch (err) {
+    if (err instanceof EgressDeniedError) {
+      return jsonResponse({ success: false, error: err.message, code: "EGRESS_DENIED" }, 403);
+    }
     console.error("[send-followup] Error:", err);
     return jsonResponse(
       { success: false, error: err instanceof Error ? err.message : "Internal error", code: "INTERNAL_ERROR" },

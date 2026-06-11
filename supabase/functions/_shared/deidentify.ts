@@ -102,3 +102,28 @@ export function reidentify(text: string, mappings: PiiMappings): string {
   }
   return restored;
 }
+
+/**
+ * PRECISE-pattern scrub only: email, phone, NID — the patterns that are
+ * reliable on any text, including Bangla prose.
+ *
+ * The name/address heuristics in `deidentify()` are deliberately excluded:
+ * BANGLA_NAME_RE matches ANY 2–5 word Bangla sequence, so running it over a
+ * Bangla prompt or transcript destroys the clinical content itself. Use
+ * known-identifier literal scrubbing (egress.ts) for names — exact values
+ * from structured fields are strictly more reliable than regex guessing.
+ *
+ * Appends into an existing mappings table so it composes with
+ * known-identifier scrubbing under one re-identification pass.
+ */
+export function deidentifyPrecise(
+  text: string,
+  mappings: PiiMappings,
+): string {
+  let cleaned = text;
+  cleaned = replaceAll(cleaned, EMAIL_RE, "EMAIL", mappings);
+  cleaned = replaceAll(cleaned, BD_PHONE_RE, "PHONE", mappings);
+  cleaned = replaceAll(cleaned, INTL_PHONE_RE, "PHONE", mappings);
+  cleaned = replaceAll(cleaned, NID_RE, "ID", mappings);
+  return cleaned;
+}
