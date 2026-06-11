@@ -1,66 +1,214 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { DocumentCapture } from "@/components/intake/DocumentCapture";
+import { ConsentPrompt } from "@/components/intake/ConsentPrompt";
+import { useIntakeStore } from "@/lib/stores/intake-store";
+import { uploadToStorage, deleteFromStorage } from "@/lib/services/camera";
+import { extractDocument } from "@/lib/services/ai";
+import { recordIntakeConsents } from "@/lib/services/consents";
+import {
+  buildDocumentPath,
+  dataUrlToBlob,
+  type CapturedDocumentType,
+} from "@/lib/services/documents-logic";
 
-/** A captured document entry. */
-interface CapturedDoc {
+/** A capture that hasn't reached storage yet (uploading or failed). */
+interface PendingDoc {
   id: string;
-  type: "prescription" | "lab_report";
+  type: CapturedDocumentType;
   dataUrl: string;
-  capturedAt: Date;
+  status: "uploading" | "error";
 }
 
 /**
- * Intake Step 2 -- Document capture page.
+ * Intake Step 2 — document capture, LIVE end to end.
  *
- * Lets the patient photograph prescriptions and lab reports using the
- * device camera. Shows a live viewfinder with capture controls, plus a
- * scrollable list of already-captured documents. Skip and Continue buttons
- * at the bottom allow moving to the conversation step.
+ * The "plastic bag" moment: the patient hands over old prescriptions and
+ * lab reports; we photograph them. Each "Use Photo" uploads to the private
+ * `documents` bucket and fires `extract-document` (Tier B egress — only
+ * after the PDPO consent recorded here). Extracted medications and lab
+ * values land in `prescriptions`/`lab_reports`, where the briefing reads
+ * them; the cards are shown back on the summary step.
  */
 export default function IntakeHistoryPage() {
   const router = useRouter();
-  const [docs, setDocs] = useState<CapturedDoc[]>([]);
-  const [captureMode, setCaptureMode] = useState<
-    "prescription" | "lab_report" | null
-  >(null);
 
-  const handleCapture = useCallback((dataUrl: string) => {
-    if (!captureMode) return;
-    setDocs((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: captureMode,
-        dataUrl,
-        capturedAt: new Date(),
-      },
-    ]);
-    setCaptureMode(null);
-  }, [captureMode]);
+  const visitId = useIntakeStore((s) => s.visitId);
+  const patientId = useIntakeStore((s) => s.patientId);
+  const isAttendant = useIntakeStore((s) => s.isAttendant);
+  const capturedDocuments = useIntakeStore((s) => s.capturedDocuments);
+  const addDocument = useIntakeStore((s) => s.addDocument);
+  const removeDocument = useIntakeStore((s) => s.removeDocument);
+  const updateDocumentExtraction = useIntakeStore((s) => s.updateDocumentExtraction);
+  const setDocumentProcessed = useIntakeStore((s) => s.setDocumentProcessed);
 
-  const handleRemoveDoc = useCallback((id: string) => {
-    setDocs((prev) => prev.filter((d) => d.id !== id));
+  const [pending, setPending] = useState<PendingDoc[]>([]);
+  /** Local thumbnails (data URLs never enter the store — paths only) */
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [captureMode, setCaptureMode] = useState<CapturedDocumentType | null>(null);
+
+  /**
+   * PDPO consent gate — photographing and storing documents is data
+   * collection, so consent is collected at the FIRST capture attempt,
+   * before any image exists. Shares the per-visit sessionStorage key with
+   * the conversation step, so the patient is asked once per visit.
+   */
+  const [consented, setConsented] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const pendingModeRef = useRef<CapturedDocumentType | null>(null);
+
+  useEffect(() => {
+    if (visitId && typeof window !== "undefined") {
+      setConsented(sessionStorage.getItem(`glyph-consent-${visitId}`) === "yes");
+    }
+  }, [visitId]);
+
+  // No session → back to registration
+  useEffect(() => {
+    if (!visitId) router.replace("/intake");
+  }, [visitId, router]);
+
+  const requestCapture = useCallback(
+    (type: CapturedDocumentType) => {
+      if (!consented) {
+        pendingModeRef.current = type;
+        setShowConsent(true);
+        return;
+      }
+      setCaptureMode(type);
+    },
+    [consented]
+  );
+
+  const handleConsentGranted = useCallback(async () => {
+    if (!visitId || !patientId) return;
+    try {
+      // Rows first, UI second — no consent rows, no camera (fail closed).
+      await recordIntakeConsents({
+        patientId,
+        visitId,
+        grantedBy: isAttendant ? "attendant" : "patient",
+      });
+    } catch {
+      // TODO: i18n key intake.consent.saveFailed
+      toast.error("সম্মতি সংরক্ষণ করা যায়নি — আবার চেষ্টা করুন");
+      setShowConsent(false);
+      return;
+    }
+    sessionStorage.setItem(`glyph-consent-${visitId}`, "yes");
+    setConsented(true);
+    setShowConsent(false);
+    setCaptureMode(pendingModeRef.current);
+  }, [visitId, patientId, isAttendant]);
+
+  /** Upload one capture, then fire extraction in the background. */
+  const uploadDoc = useCallback(
+    async (id: string, type: CapturedDocumentType, dataUrl: string) => {
+      if (!patientId || !visitId) return;
+      try {
+        const blob = dataUrlToBlob(dataUrl);
+        const path = await uploadToStorage(
+          blob,
+          buildDocumentPath(patientId, visitId, type, id)
+        );
+
+        setThumbs((t) => ({ ...t, [id]: dataUrl }));
+        setPending((p) => p.filter((d) => d.id !== id));
+        addDocument({
+          id,
+          type,
+          imagePath: path,
+          extractedData: null,
+          isProcessing: true,
+          capturedAt: new Date().toISOString(),
+        });
+
+        // Fire-and-forget: extraction keeps running while the intake
+        // conversation proceeds; the summary step shows the result.
+        extractDocument(path, type, patientId, visitId)
+          .then((result) => {
+            updateDocumentExtraction(id, {
+              ...result.data,
+              confidence: result.confidence,
+            });
+            setDocumentProcessed(id);
+          })
+          .catch(() => {
+            setDocumentProcessed(id);
+            // TODO: i18n key intake.history.extractFailed
+            toast.error("কাগজটি পড়া যায়নি — ডাক্তার ছবিটি নিজে দেখবেন");
+          });
+      } catch {
+        setPending((p) =>
+          p.map((d) => (d.id === id ? { ...d, status: "error" as const } : d))
+        );
+        // TODO: i18n key intake.history.uploadFailed
+        toast.error("ছবি আপলোড করা যায়নি — আবার চেষ্টা করুন");
+      }
+    },
+    [patientId, visitId, addDocument, updateDocumentExtraction, setDocumentProcessed]
+  );
+
+  const handleCapture = useCallback(
+    (dataUrl: string) => {
+      if (!captureMode) return;
+      const id = crypto.randomUUID();
+      setPending((p) => [...p, { id, type: captureMode, dataUrl, status: "uploading" }]);
+      setCaptureMode(null);
+      void uploadDoc(id, captureMode, dataUrl);
+    },
+    [captureMode, uploadDoc]
+  );
+
+  const handleRetry = useCallback(
+    (doc: PendingDoc) => {
+      setPending((p) =>
+        p.map((d) => (d.id === doc.id ? { ...d, status: "uploading" as const } : d))
+      );
+      void uploadDoc(doc.id, doc.type, doc.dataUrl);
+    },
+    [uploadDoc]
+  );
+
+  const handleRemovePending = useCallback((id: string) => {
+    setPending((p) => p.filter((d) => d.id !== id));
   }, []);
 
-  const handleContinue = useCallback(() => {
-    // TODO: persist docs in Zustand store / upload to backend
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("intake_docs", JSON.stringify(docs.length));
-    }
-    router.push("/intake/conversation");
-  }, [router, docs]);
+  const handleRemoveUploaded = useCallback(
+    async (id: string, imagePath: string) => {
+      try {
+        await deleteFromStorage(imagePath);
+        removeDocument(id);
+        setThumbs((t) => {
+          const next = { ...t };
+          delete next[id];
+          return next;
+        });
+      } catch {
+        // TODO: i18n key intake.history.removeFailed
+        toast.error("ছবিটি মুছে ফেলা যায়নি");
+      }
+    },
+    [removeDocument]
+  );
 
-  const handleSkip = useCallback(() => {
-    router.push("/intake/conversation");
-  }, [router]);
+  if (!visitId) return null;
+
+  const totalDocs = pending.length + capturedDocuments.length;
 
   return (
     <div className="flex flex-1 flex-col">
+      <ConsentPrompt
+        open={showConsent}
+        onConsent={() => void handleConsentGranted()}
+        onDismiss={() => setShowConsent(false)}
+      />
+
       {/* ---------- Header ---------- */}
       <div className="px-6 pt-6 pb-4 text-center">
         {/* TODO: i18n key intake.history.heading */}
@@ -85,7 +233,7 @@ export default function IntakeHistoryPage() {
             {/* Capture trigger buttons */}
             <button
               type="button"
-              onClick={() => setCaptureMode("prescription")}
+              onClick={() => requestCapture("prescription")}
               className={cn(
                 "flex items-center gap-4 rounded-xl border-2 border-dashed border-glyph-300 bg-glyph-50 px-5 py-5 transition",
                 "hover:border-glyph-400 hover:bg-glyph-100 active:scale-[0.98]"
@@ -120,7 +268,7 @@ export default function IntakeHistoryPage() {
 
             <button
               type="button"
-              onClick={() => setCaptureMode("lab_report")}
+              onClick={() => requestCapture("lab_report")}
               className={cn(
                 "flex items-center gap-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-5 py-5 transition",
                 "hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98]"
@@ -158,44 +306,39 @@ export default function IntakeHistoryPage() {
       </div>
 
       {/* ---------- Captured document thumbnails ---------- */}
-      {docs.length > 0 && (
+      {totalDocs > 0 && (
         <div className="border-t border-clinical-border bg-white px-4 py-3">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-clinical-muted">
             {/* TODO: i18n key intake.history.captured */}
-            Captured ({docs.length})
+            Captured ({totalDocs})
           </p>
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {docs.map((doc) => (
-              <div
+            {/* In-flight / failed uploads */}
+            {pending.map((doc) => (
+              <DocTile
                 key={doc.id}
-                className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-clinical-border"
-              >
-                <img
-                  src={doc.dataUrl}
-                  alt={doc.type === "prescription" ? "Prescription" : "Lab report"}
-                  className="h-full w-full object-cover"
-                />
-                {/* Type badge */}
-                <span
-                  className={cn(
-                    "absolute bottom-0 left-0 right-0 truncate px-1 py-0.5 text-center text-[10px] font-medium text-white",
-                    doc.type === "prescription"
-                      ? "bg-glyph-600/80"
-                      : "bg-blue-600/80"
-                  )}
-                >
-                  {doc.type === "prescription" ? "Rx" : "Lab"}
-                </span>
-                {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveDoc(doc.id)}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition group-hover:opacity-100"
-                  aria-label="Remove document"
-                >
-                  &times;
-                </button>
-              </div>
+                type={doc.type}
+                thumb={doc.dataUrl}
+                status={doc.status}
+                onRemove={() => handleRemovePending(doc.id)}
+                onRetry={doc.status === "error" ? () => handleRetry(doc) : undefined}
+              />
+            ))}
+            {/* Uploaded documents (extraction may still be running) */}
+            {capturedDocuments.map((doc) => (
+              <DocTile
+                key={doc.id}
+                type={doc.type}
+                thumb={thumbs[doc.id]}
+                status={
+                  doc.isProcessing
+                    ? "extracting"
+                    : doc.extractedData
+                      ? "done"
+                      : "unread"
+                }
+                onRemove={() => void handleRemoveUploaded(doc.id, doc.imagePath)}
+              />
             ))}
           </div>
         </div>
@@ -207,7 +350,7 @@ export default function IntakeHistoryPage() {
           variant="outline"
           size="lg"
           className="flex-1"
-          onClick={handleSkip}
+          onClick={() => router.push("/intake/conversation")}
         >
           {/* TODO: i18n key intake.history.skip */}
           Skip
@@ -216,12 +359,109 @@ export default function IntakeHistoryPage() {
           variant="default"
           size="lg"
           className="flex-1"
-          onClick={handleContinue}
+          onClick={() => router.push("/intake/conversation")}
         >
           {/* TODO: i18n key intake.history.continue */}
           Continue
         </Button>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Internal sub-component ---------- */
+
+interface DocTileProps {
+  type: CapturedDocumentType;
+  /** Local data URL; absent after a refresh (paths persist, bytes don't) */
+  thumb?: string;
+  status: "uploading" | "error" | "extracting" | "done" | "unread";
+  onRemove: () => void;
+  onRetry?: () => void;
+}
+
+/**
+ * Thumbnail tile with a status overlay for one captured document.
+ * @internal
+ */
+function DocTile({ type, thumb, status, onRemove, onRetry }: DocTileProps) {
+  return (
+    <div className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-clinical-border bg-clinical-bg">
+      {thumb ? (
+        <img
+          src={thumb}
+          alt={type === "prescription" ? "Prescription" : "Lab report"}
+          className={cn(
+            "h-full w-full object-cover",
+            (status === "uploading" || status === "error") && "opacity-50"
+          )}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-clinical-muted">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+        </div>
+      )}
+
+      {/* Status overlay */}
+      {status === "uploading" && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+        </div>
+      )}
+      {status === "extracting" && (
+        <div className="absolute bottom-5 left-1 right-1 rounded bg-black/60 px-1 py-0.5 text-center font-bangla text-[9px] text-white">
+          {/* TODO: i18n key intake.history.reading */}
+          পড়ছি…
+        </div>
+      )}
+      {status === "done" && (
+        <div className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-glyph-600 text-white">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+      )}
+      {status === "error" && onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="absolute inset-0 flex items-center justify-center bg-red-600/40 font-bangla text-[10px] font-semibold text-white"
+        >
+          {/* TODO: i18n key intake.history.retry */}
+          আবার
+        </button>
+      )}
+
+      {/* Type badge */}
+      <span
+        className={cn(
+          "absolute bottom-0 left-0 right-0 truncate px-1 py-0.5 text-center text-[10px] font-medium text-white",
+          type === "prescription" ? "bg-glyph-600/80" : "bg-blue-600/80"
+        )}
+      >
+        {type === "prescription" ? "Rx" : "Lab"}
+      </span>
+
+      {/* Remove button */}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition group-hover:opacity-100"
+        aria-label="Remove document"
+      >
+        &times;
+      </button>
     </div>
   );
 }

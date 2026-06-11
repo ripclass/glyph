@@ -4,8 +4,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useIntakeStore } from "@/lib/stores/intake-store";
+import { useIntakeStore, type CapturedDocument } from "@/lib/stores/intake-store";
 import { completeIntake, type IntakeSummary } from "@/lib/services/ai";
+import { ExtractedRxCard } from "@/components/intake/ExtractedRxCard";
+import { ExtractedLabCard } from "@/components/intake/ExtractedLabCard";
+import {
+  mapLabExtraction,
+  mapRxExtraction,
+  readConfidence,
+} from "@/lib/services/documents-logic";
 
 /**
  * Intake Step 4 — completion. Calls intake-complete (which persists the
@@ -15,6 +22,7 @@ import { completeIntake, type IntakeSummary } from "@/lib/services/ai";
 export default function IntakeSummaryPage() {
   const router = useRouter();
   const visitId = useIntakeStore((s) => s.visitId);
+  const capturedDocuments = useIntakeStore((s) => s.capturedDocuments);
   const setIntakeSummary = useIntakeStore((s) => s.setIntakeSummary);
   const reset = useIntakeStore((s) => s.reset);
 
@@ -94,6 +102,19 @@ export default function IntakeSummaryPage() {
           )}
         </div>
 
+        {/* Documents captured at the history step — extraction results */}
+        {capturedDocuments.length > 0 && (
+          <div className="mt-6 space-y-3">
+            {/* TODO: i18n key intake.summary.documents */}
+            <p className="font-bangla text-xs font-medium uppercase tracking-wide text-clinical-muted">
+              আপনার দেওয়া কাগজপত্র ({capturedDocuments.length})
+            </p>
+            {capturedDocuments.map((doc) => (
+              <DocumentResult key={doc.id} doc={doc} />
+            ))}
+          </div>
+        )}
+
         <Button
           className="mt-6 w-full"
           onClick={() => {
@@ -105,6 +126,44 @@ export default function IntakeSummaryPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * One captured document's extraction state: the Rx/lab card when extraction
+ * finished, a quiet placeholder while it runs, and an honest "the doctor
+ * will read the photo" note when it failed. @internal
+ */
+function DocumentResult({ doc }: { doc: CapturedDocument }) {
+  if (doc.isProcessing) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-clinical-border bg-white p-4 shadow-sm">
+        <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-glyph-200 border-t-glyph-600" />
+        {/* TODO: i18n key intake.summary.docProcessing */}
+        <p className="font-bangla text-sm text-clinical-muted">
+          {doc.type === "prescription" ? "প্রেসক্রিপশন" : "ল্যাব রিপোর্ট"} পড়া হচ্ছে…
+        </p>
+      </div>
+    );
+  }
+
+  if (!doc.extractedData) {
+    return (
+      <div className="rounded-2xl border border-clinical-border bg-white p-4 shadow-sm">
+        {/* TODO: i18n key intake.summary.docUnread */}
+        <p className="font-bangla text-sm text-clinical-muted">
+          {doc.type === "prescription" ? "প্রেসক্রিপশনটি" : "রিপোর্টটি"} স্বয়ংক্রিয়ভাবে
+          পড়া যায়নি — ডাক্তার ছবিটি নিজে দেখবেন
+        </p>
+      </div>
+    );
+  }
+
+  const confidence = readConfidence(doc.extractedData);
+  return doc.type === "prescription" ? (
+    <ExtractedRxCard data={mapRxExtraction(doc.extractedData)} confidence={confidence} />
+  ) : (
+    <ExtractedLabCard data={mapLabExtraction(doc.extractedData)} confidence={confidence} />
   );
 }
 

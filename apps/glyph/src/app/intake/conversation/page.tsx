@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useIntakeStore } from "@/lib/stores/intake-store";
 import { useIntakeConversation } from "@/lib/hooks/useIntakeConversation";
 import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
+import { recordIntakeConsents } from "@/lib/services/consents";
 
 /**
  * Intake Step 3 — voice-first clinical intake interview, LIVE.
@@ -27,6 +28,7 @@ export default function IntakeConversationPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const visitId = useIntakeStore((s) => s.visitId);
+  const patientId = useIntakeStore((s) => s.patientId);
   const isAttendant = useIntakeStore((s) => s.isAttendant);
   const attendantRelation = useIntakeStore((s) => s.attendantRelation);
 
@@ -122,6 +124,16 @@ export default function IntakeConversationPage() {
       <ConsentPrompt
         open={!consented}
         onConsent={() => {
+          // Record the consent rows at grant time (idempotent — the history
+          // step may already have written them). If this client write fails,
+          // intake-start still creates the missing rows server-side.
+          if (patientId) {
+            recordIntakeConsents({
+              patientId,
+              visitId,
+              grantedBy: isAttendant ? "attendant" : "patient",
+            }).catch(() => {});
+          }
           sessionStorage.setItem(`glyph-consent-${visitId}`, "yes");
           setConsented(true);
         }}

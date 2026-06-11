@@ -216,7 +216,9 @@ export async function completeIntake(visitId: string): Promise<IntakeSummary> {
 /**
  * Extracts structured data from a prescription or lab-report image.
  *
- * @param imageUrl - Public URL of the uploaded image in Supabase Storage.
+ * @param imageUrl - Storage path of the image in the private `documents`
+ *   bucket (from `uploadToStorage()` — the function downloads it via
+ *   service role; the bucket has no public URLs).
  * @param type - Document type to extract.
  * @param patientId - The patient the document belongs to (required by the function).
  * @param visitId - Optional visit to associate the extracted document with.

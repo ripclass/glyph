@@ -120,24 +120,30 @@ export async function capturePhoto(stream: MediaStream): Promise<Blob> {
 }
 
 /**
- * Uploads an image blob to Supabase Storage and returns its public URL.
+ * Uploads an image blob to the private `documents` bucket and returns the
+ * storage PATH (not a URL — the bucket is private by design: these are
+ * medical documents). The path is what `extract-document` downloads and
+ * what `prescriptions.image_path` / `lab_reports.image_path` store.
+ *
+ * Paths must follow `{patientId}/{visitId}/…` — the storage RLS policies
+ * (migration 004) authorize by the patient-id segment. Use
+ * `buildDocumentPath()` from documents-logic.
  *
  * @param blob - The image blob to upload
- * @param path - Storage path including bucket prefix (e.g. `"visits/abc123/rx-1.jpg"`)
- * @returns The public URL of the uploaded file
- * @throws {Error} If the upload fails
+ * @param path - Storage path from `buildDocumentPath()`
+ * @returns The storage path of the uploaded object
+ * @throws {Error} If the upload fails (including RLS denial)
  *
  * @example
  * ```ts
- * const url = await uploadToStorage(photoBlob, 'visits/visit-id/rx-001.jpg');
+ * const path = await uploadToStorage(photoBlob, buildDocumentPath(patientId, visitId, 'prescription', docId));
  * ```
  */
 export async function uploadToStorage(blob: Blob, path: string): Promise<string> {
   const supabase = createClient();
 
-  const bucketName = 'documents';
   const { error: uploadError } = await supabase.storage
-    .from(bucketName)
+    .from('documents')
     .upload(path, blob, {
       contentType: blob.type || 'image/jpeg',
       upsert: false,
@@ -147,11 +153,25 @@ export async function uploadToStorage(blob: Blob, path: string): Promise<string>
     throw new Error(`Failed to upload image: ${uploadError.message}`);
   }
 
-  const { data: urlData } = supabase.storage
-    .from(bucketName)
-    .getPublicUrl(path);
+  return path;
+}
 
-  return urlData.publicUrl;
+/**
+ * Deletes an uploaded document image (the "remove" affordance during
+ * intake — data minimization: a photo the patient retracts before the
+ * doctor sees it should not persist).
+ *
+ * @param path - Storage path returned by `uploadToStorage()`
+ * @throws {Error} If the deletion fails
+ */
+export async function deleteFromStorage(path: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase.storage.from('documents').remove([path]);
+
+  if (error) {
+    throw new Error(`Failed to delete image: ${error.message}`);
+  }
 }
 
 /**

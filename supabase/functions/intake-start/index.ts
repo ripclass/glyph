@@ -77,17 +77,35 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── Create consent records ──────────────────────────────
+    // ── Create consent records (idempotent) ─────────────────
+    // The document-capture step may have recorded consents already (its
+    // ConsentPrompt fires before the first photo). Insert only types with
+    // NO row at all for this visit: duplicate active rows would break
+    // withdrawal (withdrawing one row while a twin stays active leaves
+    // the egress gate open), and a WITHDRAWN consent must never be
+    // silently resurrected by a system call — only an explicit UI grant
+    // (recordIntakeConsents) may create a fresh row after withdrawal.
     const consentTypes = ["recording", "data_storage", "ai_processing"] as const;
-    const consentRows = consentTypes.map((type) => ({
-      patient_id: visit.patient_id,
-      visit_id: visitId,
-      consent_type: type,
-      granted: true,
-      granted_by: isAttendant ? "attendant" : "patient",
-    }));
+    const { data: existingConsents } = await serviceClient
+      .from("consent_records")
+      .select("consent_type")
+      .eq("visit_id", visitId);
+    const activeTypes = new Set(
+      (existingConsents ?? []).map((row: { consent_type: string }) => row.consent_type),
+    );
+    const consentRows = consentTypes
+      .filter((type) => !activeTypes.has(type))
+      .map((type) => ({
+        patient_id: visit.patient_id,
+        visit_id: visitId,
+        consent_type: type,
+        granted: true,
+        granted_by: isAttendant ? "attendant" : "patient",
+      }));
 
-    await serviceClient.from("consent_records").insert(consentRows);
+    if (consentRows.length > 0) {
+      await serviceClient.from("consent_records").insert(consentRows);
+    }
 
     // ── Update attendant info if present ────────────────────
     if (isAttendant && attendantName) {

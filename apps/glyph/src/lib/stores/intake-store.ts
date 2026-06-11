@@ -19,14 +19,14 @@ export interface CapturedDocument {
   id: string;
   /** Type of document */
   type: 'prescription' | 'lab_report';
-  /** Public URL of the uploaded image */
-  imageUrl: string;
+  /** Storage path in the private `documents` bucket (NOT a URL) */
+  imagePath: string;
   /** Extracted data from AI processing, if completed */
   extractedData: Record<string, unknown> | null;
   /** Whether extraction is in progress */
   isProcessing: boolean;
-  /** Timestamp of capture */
-  capturedAt: Date;
+  /** ISO timestamp of capture (string so sessionStorage persistence is lossless) */
+  capturedAt: string;
 }
 
 /** Intake store state */
@@ -58,6 +58,8 @@ interface IntakeActions {
   setAttendant: (isAttendant: boolean, relation?: string) => void;
   /** Add a captured document to the session */
   addDocument: (doc: CapturedDocument) => void;
+  /** Remove a captured document (after its storage object is deleted) */
+  removeDocument: (docId: string) => void;
   /** Update extraction results for a captured document */
   updateDocumentExtraction: (
     docId: string,
@@ -133,6 +135,11 @@ export const useIntakeStore = create<IntakeState & IntakeActions>()(
       capturedDocuments: [...state.capturedDocuments, doc],
     })),
 
+  removeDocument: (docId) =>
+    set((state) => ({
+      capturedDocuments: state.capturedDocuments.filter((d) => d.id !== docId),
+    })),
+
   updateDocumentExtraction: (docId, extractedData) =>
     set((state) => ({
       capturedDocuments: state.capturedDocuments.map((doc) =>
@@ -172,8 +179,9 @@ export const useIntakeStore = create<IntakeState & IntakeActions>()(
       name: 'glyph-intake-session',
       /**
        * sessionStorage so a tablet refresh mid-intake doesn't lose the visit
-       * (and closing the browser still clears it). Only session scalars are
-       * persisted — documents/summary are refetchable.
+       * (and closing the browser still clears it). Captured documents persist
+       * too — storage paths + extraction JSON, never image bytes — so a
+       * refresh doesn't orphan uploads. The summary stays refetchable.
        */
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
@@ -181,6 +189,7 @@ export const useIntakeStore = create<IntakeState & IntakeActions>()(
         patientId: state.patientId,
         isAttendant: state.isAttendant,
         attendantRelation: state.attendantRelation,
+        capturedDocuments: state.capturedDocuments,
         step: state.step,
       }),
     }
