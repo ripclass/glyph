@@ -304,13 +304,14 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions (service writes) | Do NOT expose to client |
 | `GOOGLE_CLOUD_PROJECT_ID` | Vertex AI / MedGemma | — |
 | `GOOGLE_CLOUD_SPEECH_KEY` | Google STT | Not yet wired end-to-end |
-| `GOOGLE_AI_STUDIO_KEY` | Gemini API | ⚠ name mismatch (M4) — `llm-router.ts` actually reads `GEMINI_API_KEY` |
-| `ANTHROPIC_API_KEY` | Claude | Matches code |
+| `GEMINI_API_KEY` | Gemini API (native; OpenRouter used when absent) | `GOOGLE_AI_STUDIO_KEY` is legacy GCP-side only |
+| `OPENROUTER_API_KEY` | LLM transport when native keys are absent | One key for Gemini/Claude/Perplexity/OpenAI |
+| `ANTHROPIC_API_KEY` | Claude (native) | Optional — OpenRouter covers it |
 | `OPENAI_API_KEY` | OpenAI (unused by any current function, but router supports it) | Optional |
 | `PERPLEXITY_API_KEY` | Consult: recent studies | Optional |
 | `UPTODATE_API_KEY` | UpToDate Connect | Optional — falls back to Claude synthesis |
-| `UPTODATE_BASE_URL` | UpToDate endpoint | ⚠ Not currently read by code (hard-coded to `https://connect.uptodate.com/...`) |
-| `WHATSAPP_BUSINESS_TOKEN` | WhatsApp Business API | ⚠ name mismatch (M4) — `send-followup` reads `WHATSAPP_ACCESS_TOKEN` |
+| `UPTODATE_BASE_URL` | UpToDate endpoint | Optional — defaults to `https://connect.uptodate.com` |
+| `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API (`send-followup`) | Renamed from `WHATSAPP_BUSINESS_TOKEN` in M4 |
 | `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business API | Matches code |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
@@ -340,8 +341,7 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 - `speech.ts` targets a `speech-stream` edge function that does not exist — v1 STT is the browser Web Speech API (transits Google outside the egress gate; covered by ai_processing consent, noted in NORTHSTAR-CORRECTIONS).
 - MedGemma demoted from all primaries until a Vertex OAuth flow exists; its fall-through paths (if re-promoted) deliver plain text instead of SSE and double-log usage.
 - Native-Claude-stream SSE shape mismatch — latent, only if a native `ANTHROPIC_API_KEY` is ever set (OpenRouter normalizes today).
-- Doctor nav: Patients/Schedule/Settings are disabled "coming soon" stubs (no routes yet).
-- `prompts/README.md` model matrix still aspirational vs. the actual routing table (§4).
+- Doctor nav: Schedule is a disabled "coming soon" stub (appointments aren't in the data model — needs a product decision). Patients and Settings are live screens.
 - Many components keep inline Bangla strings with `TODO: i18n` markers (pre-existing pattern; new code should use `t()` but the M4/M5 screens did not — reconcile eventually).
 
 ---
@@ -412,7 +412,7 @@ All prompt files in `prompts/` are **real, detailed, and versioned** per the str
 | `reference/bd-diagnostic-centers.md` | 283 | Major lab chains and their report formats. |
 | `prompts/README.md` | — | Prompt engineering guide; model/temperature matrix, versioning, safety invariants. |
 
-**Important:** `prompts/README.md` lists a model matrix that differs from what edge functions actually use. For example, `prompts/README.md` says briefing card uses `Gemini 2.0 Flash @ 0.2 / 4096`, but `generate-briefing/index.ts` uses `medgemma-27b @ 0.2 / 4000` with Claude Sonnet 4 fallback. **The running code is the source of truth**; treat the README table as aspirational until reconciled.
+**Note:** the `prompts/README.md` model matrix was reconciled to the actual edge-function parameters on 2026-06-11. **The running code stays the source of truth** — re-sync the table whenever a function's `callLLM` config changes.
 
 ---
 
@@ -489,7 +489,7 @@ Phase 2 (§8.5) is complete and merged; new work needs founder authorization (ch
 2. **Pilot readiness**: doctor-facing Patients/Schedule/Settings screens (nav stubs exist); WhatsApp follow-up live verification (needs `WHATSAPP_ACCESS_TOKEN` + `whatsapp_followup` consent UI — that consent type is never collected today).
 3. **W3C interop**: URDNA2015 / Data Integrity proofs so credentials verify outside this library.
 4. **STT upgrade**: `speech-stream` Cloud STT relay (Render was deferred for exactly this workload) when bn-BD dialect accuracy demands it.
-5. **Cleanups**: prompts/README model matrix reconciliation; `UPTODATE_BASE_URL` unused / `consult-uptodate` URL hard-coded; MedGemma fall-through SSE+double-log paths (dormant while demoted); native-Claude-stream SSE shape (dormant without a native key); i18n the inline Bangla strings.
+5. **Cleanups**: MedGemma fall-through SSE+double-log paths (dormant while demoted); native-Claude-stream SSE shape (dormant without a native key); i18n the inline Bangla strings; replace the generated placeholder PWA icons with the real brand mark when one exists.
 6. **Verification culture** (keep it): every feature lands with unit tests + a `scripts/smoke-*.mjs` + a browser pass; `smoke-path.mjs` against prod is the regression gate after any functions/schema deploy.
 
 ---

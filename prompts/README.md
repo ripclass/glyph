@@ -130,16 +130,24 @@ After merging, monitor the first 50 interactions for:
 
 ## Model Configuration
 
-| Prompt | Model | Temperature | Max Tokens | Notes |
+**The edge functions are the source of truth** — this table mirrors their
+`callLLM` parameters (verify against `supabase/functions/*/index.ts` when in
+doubt). Transport is native-key-or-OpenRouter per `_shared/llm-router.ts`;
+MedGemma is demoted from all primaries until a Vertex OAuth flow exists.
+
+| Prompt | Primary model | Fallback | Temp | Max tokens |
 |---|---|---|---|---|
-| Intake conversation | Gemini 2.0 Flash | 0.3 | 512 | Low temp for clinical accuracy |
-| Summary generation | Gemini 2.0 Flash | 0.1 | 2048 | Very low temp for structured output |
-| Prescription reading | Gemini 2.0 Flash | 0.1 | 1024 | Vision model, low temp |
-| Lab report reading | Gemini 2.0 Flash | 0.1 | 1024 | Vision model, low temp |
-| Briefing card | Gemini 2.0 Flash | 0.2 | 4096 | Structured clinical reasoning |
-| Clinical consult | Gemini 2.0 Flash | 0.4 | 2048 | Slightly higher for reasoning |
-| Note generation | Gemini 2.0 Flash | 0.1 | 2048 | Low temp for formal documentation |
-| WhatsApp summary | Gemini 2.0 Flash | 0.5 | 1024 | Slightly warmer for patient tone |
+| Intake greeting (`intake-start`) | gemini-2.0-flash | gemini-1.5-flash | 0.7 | 300 |
+| Intake conversation (`intake-turn`) | gemini-2.0-flash | gemini-1.5-flash | 0.5 | 500 |
+| Summary generation (`intake-complete`) | gemini-2.0-flash | claude-3-haiku | 0.1 | 2000 |
+| Prescription / lab reading (`extract-document`) | gemini-2.0-flash (vision) | claude-sonnet-4 | 0.1 | 3000 |
+| Briefing card (`generate-briefing`) | claude-sonnet-4 | gemini-2.0-flash | 0.2 | 4000 |
+| Consult: guideline / differential / generic (`consult-query`) | claude-sonnet-4 | gemini-2.0-pro | 0.2–0.3 | 3000 |
+| Consult: drug interaction / lab interpretation (`consult-query`) | claude-sonnet-4 | gemini-2.0-pro / -flash | 0.1 | 3000 |
+| Consult: recent studies (`consult-query`) | perplexity sonar-pro | claude-sonnet-4 | 0.2 | 3000 |
+| UpToDate synthesis fallback (`consult-uptodate`) | claude-sonnet-4 | gemini-2.0-flash | 0.2 | 2000 |
+| Note generation (`generate-note`) | claude-sonnet-4 | gemini-2.0-flash | 0.2 | 5000 |
+| WhatsApp summary (`generate-patient-summary`) | gemini-2.0-flash | gemini-1.5-flash | 0.4 | 1500 |
 
 ## Safety Invariants
 
