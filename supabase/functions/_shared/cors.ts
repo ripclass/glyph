@@ -17,7 +17,9 @@ export const corsHeaders: Record<string, string> = {
  */
 export function handleCors(req: Request): Response | null {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    // 204 must have a null body — a body here throws at runtime, turning
+    // every preflight into a 500 (latent until a client skips the /api proxy).
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
   return null;
 }
