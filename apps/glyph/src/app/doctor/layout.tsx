@@ -57,11 +57,14 @@ function DoctorChrome({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Settings icon */}
-          <Link
-            href="/doctor/settings"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Settings"
+          {/* Settings — no settings screen exists yet; a dead link that
+              404s erodes trust faster than a visibly-disabled control */}
+          <button
+            type="button"
+            disabled
+            title="Coming soon"
+            className="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-lg text-slate-300"
+            aria-label="Settings (coming soon)"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -78,7 +81,7 @@ function DoctorChrome({ children }: { children: React.ReactNode }) {
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -88,16 +91,11 @@ function DoctorChrome({ children }: { children: React.ReactNode }) {
         <aside className="hidden w-56 shrink-0 border-r border-slate-200 bg-white lg:block">
           <nav className="flex flex-col gap-1 p-3">
             <SidebarLink href="/doctor" icon={DashboardIcon} label="Dashboard" />
-            <SidebarLink
-              href="/doctor/patients"
-              icon={PatientsIcon}
-              label="Patients"
-            />
-            <SidebarLink
-              href="/doctor/schedule"
-              icon={ScheduleIcon}
-              label="Schedule"
-            />
+            {/* No /doctor/patients or /doctor/schedule routes exist yet —
+                shown disabled rather than 404ing (per-patient timelines are
+                reachable from the queue) */}
+            <SidebarSoon icon={PatientsIcon} label="Patients" />
+            <SidebarSoon icon={ScheduleIcon} label="Schedule" />
           </nav>
         </aside>
 
@@ -130,6 +128,31 @@ function SidebarLink({
       <Icon className="h-4 w-4 shrink-0" />
       {label}
     </Link>
+  );
+}
+
+/**
+ * Placeholder for a navigation destination that doesn't exist yet.
+ * @internal
+ */
+function SidebarSoon({
+  icon: Icon,
+  label,
+}: {
+  icon: React.FC<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <div
+      title="Coming soon"
+      className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-300"
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {label}
+      <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-normal text-slate-400">
+        soon
+      </span>
+    </div>
   );
 }
 
