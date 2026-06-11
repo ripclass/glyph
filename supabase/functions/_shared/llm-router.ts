@@ -423,10 +423,12 @@ async function callPerplexity(
  * throws, which hands control to callLLM's existing fallback chain.
  */
 const OPENROUTER_MODEL_MAP: Record<string, string> = {
-  "gemini-2.0-flash": "google/gemini-2.0-flash-001",
-  "gemini-1.5-flash": "google/gemini-flash-1.5",
-  // The native "gemini-2.0-pro" id in consult fallbacks is stale (never GA'd);
-  // nearest real successor on OpenRouter.
+  // OpenRouter no longer serves the Gemini 1.5/2.0 families (verified against
+  // its live /models catalog 2026-06-11) — these map to the stable successors:
+  // 2.5-flash for the workhorse tier, 2.5-flash-lite for the cheap fallback
+  // tier, 2.5-pro for the (never-GA'd) "2.0-pro" fallback id.
+  "gemini-2.0-flash": "google/gemini-2.5-flash",
+  "gemini-1.5-flash": "google/gemini-2.5-flash-lite",
   "gemini-2.0-pro": "google/gemini-2.5-pro",
   "claude-sonnet-4-20250514": "anthropic/claude-sonnet-4",
   "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
