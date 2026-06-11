@@ -71,8 +71,12 @@ serve(async (req: Request) => {
           ...(specialty ? { specialty } : {}),
         });
 
+        // Configurable endpoint (.env UPTODATE_BASE_URL) — the documented
+        // env var was never read; sandbox/regional endpoints need it.
+        const utdBase = (Deno.env.get("UPTODATE_BASE_URL") ?? "https://connect.uptodate.com")
+          .replace(/\/+$/, "");
         const utdRes = await fetch(
-          `https://connect.uptodate.com/services/search/v1/search?${searchParams}`,
+          `${utdBase}/services/search/v1/search?${searchParams}`,
           {
             headers: {
               Authorization: `Bearer ${uptodateApiKey}`,

@@ -10,8 +10,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # v5 actions run on the Node 24 runner — GitHub force-migrates v4's
+      # Node 20 on 2026-06-16 ("may not work as expected").
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
