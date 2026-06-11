@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useIntakeStore, type CapturedDocument } from "@/lib/stores/intake-store";
 import { completeIntake, type IntakeSummary } from "@/lib/services/ai";
+import { getPatient } from "@/lib/services/patients";
+import { recordConsent } from "@/lib/services/consents";
 import { ExtractedRxCard } from "@/components/intake/ExtractedRxCard";
 import { ExtractedLabCard } from "@/components/intake/ExtractedLabCard";
 import {
@@ -22,6 +24,8 @@ import {
 export default function IntakeSummaryPage() {
   const router = useRouter();
   const visitId = useIntakeStore((s) => s.visitId);
+  const patientId = useIntakeStore((s) => s.patientId);
+  const isAttendant = useIntakeStore((s) => s.isAttendant);
   const capturedDocuments = useIntakeStore((s) => s.capturedDocuments);
   const setIntakeSummary = useIntakeStore((s) => s.setIntakeSummary);
   const reset = useIntakeStore((s) => s.reset);
@@ -29,6 +33,38 @@ export default function IntakeSummaryPage() {
   const [summary, setSummary] = useState<IntakeSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ranRef = useRef(false);
+
+  /**
+   * WhatsApp follow-up is opt-in (PDPO): `send-followup` requires a live
+   * `whatsapp_followup` consent row, collected here — nowhere else asks.
+   * Only offered when the patient has a phone on file.
+   */
+  const [patientPhone, setPatientPhone] = useState<string | null>(null);
+  const [whatsapp, setWhatsapp] = useState<"idle" | "saving" | "granted">("idle");
+
+  useEffect(() => {
+    if (!patientId) return;
+    getPatient(patientId)
+      .then((p) => setPatientPhone(p.phone))
+      .catch(() => setPatientPhone(null));
+  }, [patientId]);
+
+  const handleWhatsappOptIn = () => {
+    if (!patientId || !visitId) return;
+    setWhatsapp("saving");
+    recordConsent({
+      patientId,
+      visitId,
+      consentType: "whatsapp_followup",
+      grantedBy: isAttendant ? "attendant" : "patient",
+    })
+      .then(() => setWhatsapp("granted"))
+      .catch(() => {
+        setWhatsapp("idle");
+        // TODO: i18n key intake.summary.whatsappFailed
+        toast.error("সম্মতি সংরক্ষণ করা যায়নি — আবার চেষ্টা করুন");
+      });
+  };
 
   useEffect(() => {
     if (!visitId) {
@@ -112,6 +148,41 @@ export default function IntakeSummaryPage() {
             {capturedDocuments.map((doc) => (
               <DocumentResult key={doc.id} doc={doc} />
             ))}
+          </div>
+        )}
+
+        {/* WhatsApp follow-up opt-in — consent collected here, used by
+            send-followup days later */}
+        {patientPhone && (
+          <div className="mt-6 rounded-2xl border border-clinical-border bg-white p-5 shadow-sm">
+            {whatsapp === "granted" ? (
+              <p className="font-bangla text-sm text-glyph-700">
+                {/* TODO: i18n key intake.summary.whatsappGranted */}
+                ✓ WhatsApp-এ ফলো-আপ বার্তা পাঠানো হবে ({patientPhone})
+              </p>
+            ) : (
+              <>
+                <p className="font-bangla text-sm font-semibold text-clinical-text">
+                  {/* TODO: i18n key intake.summary.whatsappTitle */}
+                  WhatsApp-এ ফলো-আপ পেতে চান?
+                </p>
+                <p className="mt-1 font-bangla text-xs leading-relaxed text-clinical-muted">
+                  {/* TODO: i18n key intake.summary.whatsappBody */}
+                  ভিজিটের সারাংশ ও ফলো-আপ বার্তা {patientPhone} নম্বরে WhatsApp
+                  (Meta) এর মাধ্যমে পাঠানো হবে — সম্মতি দিলে তবেই।
+                </p>
+                <Button
+                  variant="outline"
+                  size="default"
+                  className="mt-3 w-full font-bangla"
+                  disabled={whatsapp === "saving"}
+                  onClick={handleWhatsappOptIn}
+                >
+                  {/* TODO: i18n key intake.summary.whatsappAgree */}
+                  {whatsapp === "saving" ? "সংরক্ষণ হচ্ছে…" : "হ্যাঁ, রাজি আছি"}
+                </Button>
+              </>
+            )}
           </div>
         )}
 

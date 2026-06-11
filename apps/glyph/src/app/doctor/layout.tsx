@@ -91,10 +91,13 @@ function DoctorChrome({ children }: { children: React.ReactNode }) {
         <aside className="hidden w-56 shrink-0 border-r border-slate-200 bg-white lg:block">
           <nav className="flex flex-col gap-1 p-3">
             <SidebarLink href="/doctor" icon={DashboardIcon} label="Dashboard" />
-            {/* No /doctor/patients or /doctor/schedule routes exist yet —
-                shown disabled rather than 404ing (per-patient timelines are
-                reachable from the queue) */}
-            <SidebarSoon icon={PatientsIcon} label="Patients" />
+            <SidebarLink
+              href="/doctor/patients"
+              icon={PatientsIcon}
+              label="Patients"
+            />
+            {/* No /doctor/schedule route exists yet — shown disabled rather
+                than 404ing */}
             <SidebarSoon icon={ScheduleIcon} label="Schedule" />
           </nav>
         </aside>

@@ -9,6 +9,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { buildPatientSearchTerm } from './patients-logic';
 import type {
   Patient,
   PatientInsert,
@@ -25,6 +26,14 @@ export interface PatientHistory {
   prescriptions: Prescription[];
   labReports: LabReport[];
 }
+
+/** Patient row with its most recent visit date embedded (for list screens) */
+export type PatientWithLastVisit = Patient & {
+  visits: { visit_date: string | null }[];
+};
+
+/** Shared embed: each patient row carries only its latest visit date */
+const WITH_LAST_VISIT = '*, visits(visit_date)';
 
 /**
  * Fetches a single patient by ID.
@@ -54,40 +63,78 @@ export async function getPatient(id: string): Promise<Patient> {
 }
 
 /**
- * Searches patients within a clinic by name or phone number.
- * Uses case-insensitive partial matching on both fields.
+ * Searches patients within a clinic by name (Bangla or Latin) or phone.
+ *
+ * The input is interpreted by `buildPatientSearchTerm`: digits — however
+ * typed (+880, Bangla numerals, dashes) — search the phone column;
+ * everything else matches `name` and `name_bn` case-insensitively. Each
+ * result embeds its most recent visit date.
  *
  * @param clinicId - The clinic to search within
  * @param query - Search string (name or phone fragment)
- * @returns Array of matching patients, ordered by name
+ * @returns Matching patients ordered by name, with last visit embedded
  *
  * @example
  * ```ts
  * const results = await searchPatients('clinic-id', 'রহমান');
- * const byPhone = await searchPatients('clinic-id', '01711');
+ * const byPhone = await searchPatients('clinic-id', '+880 1711-223344');
  * ```
  */
 export async function searchPatients(
   clinicId: string,
   query: string
-): Promise<Patient[]> {
-  const supabase = createClient();
-  const trimmed = query.trim();
-
-  if (!trimmed) {
+): Promise<PatientWithLastVisit[]> {
+  const term = buildPatientSearchTerm(query);
+  if (term.kind === 'empty') {
     return [];
   }
 
+  const supabase = createClient();
+  const filter =
+    term.kind === 'phone'
+      ? `phone.ilike.%${term.value}%`
+      : `name.ilike.%${term.value}%,name_bn.ilike.%${term.value}%`;
+
   const { data, error } = await supabase
     .from('patients')
-    .select('*')
+    .select(WITH_LAST_VISIT)
     .eq('clinic_id', clinicId)
-    .or(`name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`)
+    .or(filter)
     .order('name', { ascending: true })
-    .limit(20);
+    .limit(20)
+    .order('visit_date', { referencedTable: 'visits', ascending: false })
+    .limit(1, { referencedTable: 'visits' });
 
   if (error) {
     throw new Error(`Patient search failed: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
+ * Lists the clinic's most recently active patients — the default content
+ * of the Patients screen before the doctor types a search. Each row
+ * embeds its most recent visit date.
+ *
+ * @param clinicId - The clinic to list within
+ * @returns Up to 30 patients by recent activity, with last visit embedded
+ */
+export async function listRecentPatients(
+  clinicId: string
+): Promise<PatientWithLastVisit[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('patients')
+    .select(WITH_LAST_VISIT)
+    .eq('clinic_id', clinicId)
+    .order('updated_at', { ascending: false })
+    .limit(30)
+    .order('visit_date', { referencedTable: 'visits', ascending: false })
+    .limit(1, { referencedTable: 'visits' });
+
+  if (error) {
+    throw new Error(`Failed to list patients: ${error.message}`);
   }
 
   return data ?? [];
