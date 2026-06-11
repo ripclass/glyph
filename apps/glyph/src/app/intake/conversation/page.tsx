@@ -1,177 +1,177 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { cn } from "@/lib/utils/cn";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { VoiceOrb } from "@/components/intake/VoiceOrb";
 import { SaaraMessage } from "@/components/intake/SaaraMessage";
 import { PatientMessage } from "@/components/intake/PatientMessage";
 import { AttendantBanner } from "@/components/intake/AttendantBanner";
-
-/** Chat message model for the intake conversation. */
-interface ChatMessage {
-  id: string;
-  role: "ai" | "patient";
-  text: string;
-  isStreaming?: boolean;
-}
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useIntakeStore } from "@/lib/stores/intake-store";
+import { useIntakeConversation } from "@/lib/hooks/useIntakeConversation";
+import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 
 /**
- * Intake Step 3 -- Voice-first clinical intake interview.
+ * Intake Step 3 — voice-first clinical intake interview, LIVE.
  *
- * Core intake experience. Displays a chat-style conversation between
- * the Saara AI assistant and the patient (or attendant). The VoiceOrb
- * at the bottom is the primary interaction element; the conversation
- * auto-scrolls as new messages arrive.
+ * The VoiceOrb drives Web Speech recognition (bn-BD); final transcripts go
+ * to intake-turn and the AI reply streams back through the egress gate.
+ * A typed-input fallback is always available. "শেষ করুন" hands off to the
+ * summary step.
  */
 export default function IntakeConversationPage() {
+  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Determine role from session
-  const [role, setRole] = useState<"patient" | "attendant">("patient");
-  const [attendantRelation] = useState<string>(""); // TODO: collect relation
+  const visitId = useIntakeStore((s) => s.visitId);
+  const isAttendant = useIntakeStore((s) => s.isAttendant);
+  const attendantRelation = useIntakeStore((s) => s.attendantRelation);
+
+  const { messages, isProcessing, isStreaming, initialize, sendMessage } =
+    useIntakeConversation(visitId ?? "", isAttendant);
+
+  const {
+    isListening,
+    transcript,
+    finalTranscript,
+    startListening,
+    stopListening,
+    error: voiceError,
+  } = useVoiceInput("bn-BD");
+
+  const [typed, setTyped] = useState("");
+
+  // No session → back to registration
+  useEffect(() => {
+    if (!visitId) router.replace("/intake");
+  }, [visitId, router]);
+
+  // Greeting on mount
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (visitId && !initRef.current) {
+      initRef.current = true;
+      initialize().catch((err) =>
+        toast.error(err instanceof Error ? err.message : "শুরু করা যায়নি")
+      );
+    }
+  }, [visitId, initialize]);
+
+  // Voice final transcript → send as a turn
+  useEffect(() => {
+    if (finalTranscript) {
+      sendMessage(finalTranscript);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalTranscript]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("intake_role");
-      if (stored === "attendant") setRole("attendant");
-    }
-  }, []);
+    if (voiceError) toast.error(voiceError);
+  }, [voiceError]);
 
-  // Voice orb state
-  const [orbState, setOrbState] = useState<"idle" | "listening" | "processing">(
-    "idle"
-  );
-
-  // Conversation messages
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "ai",
-      // TODO: i18n key intake.conversation.welcome
-      text: "আসসালামু আলাইকুম! আমি সারা, আপনার ডিজিটাল সহকারী। আজ আপনার কী সমস্যা হচ্ছে?",
-    },
-  ]);
-
-  // Auto-scroll on new messages
+  // Auto-scroll on new content
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    }
-  }, [messages]);
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages, transcript]);
 
-  /** Handle voice recording start. */
+  const orbState = isListening
+    ? "listening"
+    : isProcessing || isStreaming
+      ? "processing"
+      : "idle";
+
   const handlePressOrb = useCallback(() => {
-    setOrbState("listening");
-    // TODO: start audio recording via Web Audio API / MediaRecorder
-  }, []);
+    if (!isListening) startListening();
+  }, [isListening, startListening]);
 
-  /** Handle voice recording stop -- triggers transcription. */
   const handleReleaseOrb = useCallback(() => {
-    setOrbState("processing");
+    if (isListening) stopListening();
+  }, [isListening, stopListening]);
 
-    // TODO: replace with actual STT + LLM pipeline
-    // Simulated transcription and AI response for scaffolding
-    const simulatedTranscript = "আমার মাথায় ব্যথা হচ্ছে গত তিন দিন ধরে।";
-    const simulatedAiResponse =
-      "বুঝতে পারছি, মাথাব্যথা তিন দিন ধরে হচ্ছে। ব্যথাটা কোন জায়গায় হয়? পুরো মাথায় নাকি একদিকে?";
+  const handleTypedSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const text = typed.trim();
+      if (!text) return;
+      setTyped("");
+      sendMessage(text);
+    },
+    [typed, sendMessage]
+  );
 
-    setTimeout(() => {
-      // Add patient message
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "patient",
-          text: simulatedTranscript,
-        },
-      ]);
-
-      // Add AI response with streaming simulation
-      const aiId = crypto.randomUUID();
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: aiId,
-          role: "ai",
-          text: "",
-          isStreaming: true,
-        },
-      ]);
-
-      // Simulate streaming text
-      let charIndex = 0;
-      const streamInterval = setInterval(() => {
-        charIndex += 3;
-        if (charIndex >= simulatedAiResponse.length) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiId
-                ? { ...m, text: simulatedAiResponse, isStreaming: false }
-                : m
-            )
-          );
-          clearInterval(streamInterval);
-          setOrbState("idle");
-        } else {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiId
-                ? { ...m, text: simulatedAiResponse.slice(0, charIndex) }
-                : m
-            )
-          );
-        }
-      }, 40);
-    }, 800);
-  }, []);
+  if (!visitId) return null;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Attendant banner */}
-      {role === "attendant" && (
-        <AttendantBanner
-          relation={attendantRelation || undefined}
-        />
-      )}
+      {isAttendant && <AttendantBanner relation={attendantRelation ?? undefined} />}
 
       {/* ---------- Conversation ---------- */}
       <div
         ref={scrollRef}
         className="flex-1 space-y-4 overflow-y-auto px-4 py-6 scrollbar-hide"
       >
-        {messages.map((msg) =>
+        {messages.map((msg, i) =>
           msg.role === "ai" ? (
             <SaaraMessage
-              key={msg.id}
-              message={msg.text}
-              isStreaming={msg.isStreaming}
+              key={i}
+              message={msg.content}
+              isStreaming={isStreaming && i === messages.length - 1}
             />
           ) : (
             <PatientMessage
-              key={msg.id}
-              message={msg.text}
-              source={role}
-              attendantRelation={
-                role === "attendant" ? attendantRelation || undefined : undefined
-              }
+              key={i}
+              message={msg.content}
+              source={isAttendant ? "attendant" : "patient"}
+              attendantRelation={isAttendant ? attendantRelation ?? undefined : undefined}
             />
           )
         )}
+
+        {/* Live interim transcript while speaking */}
+        {transcript && (
+          <PatientMessage
+            message={`${transcript}…`}
+            source={isAttendant ? "attendant" : "patient"}
+          />
+        )}
       </div>
 
-      {/* ---------- Voice orb area ---------- */}
-      <div className="flex flex-col items-center gap-2 border-t border-clinical-border bg-white px-4 pb-8 pt-5">
-        <VoiceOrb
-          state={orbState}
-          onPress={handlePressOrb}
-          onRelease={handleReleaseOrb}
-        />
-        {orbState === "idle" && (
-          <p className="font-bangla text-sm text-clinical-muted">
-            {/* TODO: i18n key intake.conversation.holdToSpeak */}
-            কথা বলতে চাপ দিয়ে ধরুন
-          </p>
+      {/* ---------- Input area ---------- */}
+      <div className="flex flex-col items-center gap-3 border-t border-clinical-border bg-white px-4 pb-6 pt-5">
+        <VoiceOrb state={orbState} onPress={handlePressOrb} onRelease={handleReleaseOrb} />
+        <p className="font-bangla text-sm text-clinical-muted">
+          {orbState === "idle" && "কথা বলতে চাপ দিয়ে ধরুন"}
+          {orbState === "listening" && "শুনছি… ছেড়ে দিলে পাঠানো হবে"}
+          {orbState === "processing" && "ভাবছি…"}
+        </p>
+
+        {/* Typed fallback */}
+        <form onSubmit={handleTypedSubmit} className="flex w-full max-w-md gap-2">
+          <Input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder="অথবা এখানে লিখুন…"
+            className="font-bangla"
+            disabled={isProcessing}
+          />
+          <Button type="submit" variant="outline" disabled={!typed.trim() || isProcessing}>
+            পাঠান
+          </Button>
+        </form>
+
+        {/* Finish — visible once a real exchange happened */}
+        {messages.length >= 3 && (
+          <Button
+            variant="ghost"
+            className="text-glyph-700"
+            disabled={isProcessing || isStreaming}
+            onClick={() => router.push("/intake/summary")}
+          >
+            কথা শেষ — সারাংশ দেখুন →
+          </Button>
         )}
       </div>
     </div>

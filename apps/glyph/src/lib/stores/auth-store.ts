@@ -30,6 +30,12 @@ interface AuthActions {
    * @param phone - The doctor's phone number in BD format
    */
   signIn: (phone: string) => Promise<void>;
+  /**
+   * Sign in with email + password — the pilot auth path (phone OTP needs an
+   * SMS provider, which is a later decision). Doctor accounts are created
+   * administratively.
+   */
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   /** Sign out and clear session */
   signOut: () => Promise<void>;
   /** Check for an existing session and load the doctor profile */
@@ -71,6 +77,19 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
         phone: normalizedPhone,
       });
 
+      if (error) {
+        throw new Error(`Sign-in failed: ${error.message}`);
+      }
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  signInWithEmail: async (email: string, password: string) => {
+    set({ isLoading: true });
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         throw new Error(`Sign-in failed: ${error.message}`);
       }

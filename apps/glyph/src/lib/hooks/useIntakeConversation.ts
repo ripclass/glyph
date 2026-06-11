@@ -35,10 +35,29 @@ export interface UseIntakeConversationReturn {
   isProcessing: boolean;
   /** Whether the AI response is currently streaming */
   isStreaming: boolean;
+  /**
+   * Start the session: calls intake-start and pushes the AI greeting as the
+   * first message. Idempotent — safe to call from a mount effect.
+   */
+  initialize: () => Promise<void>;
   /** Send a message from the patient/attendant and get an AI response */
   sendMessage: (text: string) => void;
   /** Complete the intake and generate a structured summary */
   complete: () => Promise<IntakeSummary>;
+}
+
+/**
+ * Extracts the text delta from one Gemini-shaped SSE line
+ * (`data: {"candidates":[{"content":{"parts":[{"text":"…"}]}}]}`).
+ */
+function sseLineText(line: string): string {
+  if (!line.startsWith('data: ')) return '';
+  try {
+    const json = JSON.parse(line.slice(6));
+    return json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -85,19 +104,30 @@ export function useIntakeConversation(
   const streamingIndexRef = useRef<number | null>(null);
 
   /**
-   * Initializes the intake session if not already done.
-   * Called automatically on the first message.
+   * Initializes the intake session if not already done and surfaces the
+   * AI greeting as the opening message.
    */
   async function ensureInitialized(): Promise<void> {
-    if (!initializedRef.current) {
-      await startIntake(visitId, isAttendant);
-      initializedRef.current = true;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    try {
+      const result = await startIntake(visitId, isAttendant);
+      if (result.greeting) {
+        setMessages((prev) => [
+          { role: 'ai', content: result.greeting, timestamp: new Date() },
+          ...prev,
+        ]);
+      }
+    } catch (err) {
+      initializedRef.current = false;
+      throw err;
     }
   }
 
   /**
-   * Reads a ReadableStream and progressively appends text to the
-   * AI message at the given index in the messages array.
+   * Reads the intake-turn SSE stream (Gemini-shaped events) and
+   * progressively appends the TEXT deltas to the AI message at the given
+   * index — never the raw `data: {…}` lines.
    */
   async function readStream(
     stream: ReadableStream<Uint8Array>,
@@ -105,7 +135,21 @@ export function useIntakeConversation(
   ): Promise<void> {
     const reader = stream.getReader();
     const decoder = new TextDecoder();
-    let accumulated = '';
+    let lineBuffer = '';
+    let text = '';
+
+    function applyText() {
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated[aiMessageIndex]) {
+          updated[aiMessageIndex] = {
+            ...updated[aiMessageIndex],
+            content: text,
+          };
+        }
+        return updated;
+      });
+    }
 
     try {
       setIsStreaming(true);
@@ -115,26 +159,31 @@ export function useIntakeConversation(
         const { done, value } = await reader.read();
         if (done) break;
 
-        accumulated += decoder.decode(value, { stream: true });
-
-        /** Update the AI message in-place */
-        setMessages((prev) => {
-          const updated = [...prev];
-          if (updated[aiMessageIndex]) {
-            updated[aiMessageIndex] = {
-              ...updated[aiMessageIndex],
-              content: accumulated,
-            };
-          }
-          return updated;
-        });
+        lineBuffer += decoder.decode(value, { stream: true });
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() ?? '';
+        for (const line of lines) {
+          text += sseLineText(line);
+        }
+        applyText();
       }
+      text += sseLineText(lineBuffer);
+      applyText();
     } finally {
       setIsStreaming(false);
       streamingIndexRef.current = null;
       reader.releaseLock();
     }
   }
+
+  const initialize = useCallback(async () => {
+    setIsProcessing(true);
+    try {
+      await ensureInitialized();
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [visitId, isAttendant]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Sends a patient/attendant message and streams the AI response.
@@ -216,6 +265,7 @@ export function useIntakeConversation(
     messages,
     isProcessing,
     isStreaming,
+    initialize,
     sendMessage,
     complete,
   };

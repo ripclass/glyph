@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { AuthGuard } from "@/components/shared/AuthGuard";
 
 /**
  * Intake layout: patient-facing, voice-first UI with minimal chrome.
@@ -19,7 +20,9 @@ export default function IntakeLayout({
   // TODO: replace with i18n context provider
   const [lang, setLang] = useState<"bn" | "en">("bn");
 
+  // The intake tablet runs under the clinic doctor's session (RLS scope).
   return (
+    <AuthGuard>
     <div className="flex min-h-[100dvh] flex-col bg-clinical-bg">
       {/* ---------- Top bar ---------- */}
       <header className="flex items-center justify-between border-b border-clinical-border bg-white px-4 py-3">
@@ -70,5 +73,6 @@ export default function IntakeLayout({
         {children}
       </main>
     </div>
+    </AuthGuard>
   );
 }

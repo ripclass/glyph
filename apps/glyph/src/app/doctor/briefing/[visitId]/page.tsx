@@ -2,268 +2,209 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
-import { BriefingCard, type BriefingData } from "@/components/doctor/BriefingCard";
+import {
+  BriefingCard,
+  type BriefingData,
+  type SourcedClaim,
+} from "@/components/doctor/BriefingCard";
+import { getVisitWithBriefing, updateVisitStatus, type VisitWithRelations } from "@/lib/services/visits";
+import { generateBriefing } from "@/lib/services/ai";
+
+/** Server briefing JSON shape (generate-briefing edge function) */
+interface ServerBriefing {
+  patientSnapshot?: { name?: string; age?: number; gender?: string; visitNumber?: number };
+  chiefComplaint?: string;
+  hpiSummary?: string;
+  relevantHistory?: {
+    chronicConditions?: string[];
+    pastMedical?: string[];
+    surgicalHistory?: string[];
+    familyHistory?: string[];
+  };
+  currentMedications?: Array<{ name?: string; dose?: string; frequency?: string }>;
+  allergies?: string[];
+  recentLabs?: Array<{
+    testName?: string;
+    value?: string;
+    unit?: string;
+    normalRange?: string;
+    isAbnormal?: boolean;
+  }>;
+  redFlags?: Array<{ severity?: string; message?: string; details?: string }>;
+  suggestedFocus?: string[];
+  differentialConsiderations?: string[];
+}
+
+const claim = (text: string, sourceType: SourcedClaim["sourceType"] = "patient"): SourcedClaim => ({
+  text,
+  sourceType,
+});
+
+/** Adapt the server briefing JSON to the BriefingCard display model. */
+function toBriefingData(b: ServerBriefing, attendantPresent: boolean): BriefingData {
+  const personSource = attendantPresent ? "attendant" : "patient";
+  return {
+    redFlags: (b.redFlags ?? []).map((f, i) => ({
+      id: `flag-${i}`,
+      text: f.message ?? "Red flag",
+      reasoning: f.details ?? f.severity ?? "",
+    })),
+    chiefComplaint: b.chiefComplaint ? [claim(b.chiefComplaint, personSource)] : [],
+    hpiClaims: b.hpiSummary ? [claim(b.hpiSummary, personSource)] : [],
+    pastMedicalHistory: [
+      ...(b.relevantHistory?.chronicConditions ?? []),
+      ...(b.relevantHistory?.pastMedical ?? []),
+      ...(b.relevantHistory?.surgicalHistory ?? []),
+    ].map((t) => claim(t, personSource)),
+    currentMedications: (b.currentMedications ?? [])
+      .filter((m) => m.name)
+      .map((m) => ({
+        name: m.name!,
+        dosage: [m.dose, m.frequency].filter(Boolean).join(" ") || "—",
+        sourceType: "rx_photo" as const,
+      })),
+    recentLabs: (b.recentLabs ?? [])
+      .filter((l) => l.testName)
+      .map((l) => ({
+        testName: l.testName!,
+        value: [l.value, l.unit].filter(Boolean).join(" "),
+        referenceRange: l.normalRange,
+        isAbnormal: l.isAbnormal ?? false,
+        sourceType: "lab_report" as const,
+      })),
+    allergies: (b.allergies ?? []).map((t) => claim(t, personSource)),
+    socialHistory: [],
+    assessment: [
+      ...(b.suggestedFocus ?? []),
+      ...(b.differentialConsiderations ?? []),
+    ].map((t) => claim(t, "uptodate")),
+  };
+}
 
 /**
- * Full briefing card page for a specific patient visit.
- *
- * THE most important screen in the doctor workflow. Displays:
- * - Top bar with patient name, age, gender, and visit number
- * - Complete BriefingCard with all clinical sections
- * - "Start Consultation" button at the bottom
- *
- * Fetches visit data on mount (placeholder implementation).
- * Client component for interactivity and data fetching.
+ * THE doctor briefing screen, LIVE: loads the visit, polls briefly while the
+ * briefing card is still generating (it is produced asynchronously after
+ * intake completes), and renders the full source-attributed card.
  */
 export default function BriefingPage() {
   const params = useParams<{ visitId: string }>();
   const router = useRouter();
   const visitId = params.visitId;
 
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [visit, setVisit] = React.useState<VisitWithRelations | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // Placeholder: fetch visit data
-  // TODO: Replace with real Supabase fetch
   React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    let attempts = 0;
+
+    async function load() {
+      try {
+        const v = await getVisitWithBriefing(visitId);
+        if (cancelled) return;
+        setVisit(v);
+        // Briefing generates async after intake-complete — poll up to ~60s
+        if (!v.briefing_card && attempts < 20) {
+          attempts++;
+          setTimeout(load, 3000);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load visit");
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [visitId]);
 
-  // Placeholder patient info
-  const patient = MOCK_PATIENT;
-  const briefing = MOCK_BRIEFING;
-
-  const handleStartConsultation = () => {
+  const startConsultation = React.useCallback(async () => {
+    try {
+      await updateVisitStatus(visitId, "in_consultation");
+    } catch {
+      /* non-fatal — navigate anyway */
+    }
     router.push(`/doctor/consult/${visitId}`);
-  };
+  }, [visitId, router]);
 
-  if (isLoading) {
+  if (error) {
     return (
-      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
-        <div className="space-y-3 text-center">
-          <svg
-            className="mx-auto h-8 w-8 animate-spin text-glyph-600"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-          <p className="text-sm text-slate-400">Loading briefing...</p>
-        </div>
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <p className="text-sm text-red-600">{error}</p>
       </div>
     );
   }
 
+  if (!visit) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-glyph-200 border-t-glyph-600" />
+        <p className="mt-4 text-sm text-slate-500">Loading visit…</p>
+      </div>
+    );
+  }
+
+  const patient = visit.patients;
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      {/* Patient header bar */}
-      <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
-        <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Back button */}
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-              aria-label="Go back"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m12 19-7-7 7-7" />
-                <path d="M19 12H5" />
-              </svg>
-            </button>
-
-            {/* Patient info */}
-            <div>
-              <h1 className="text-base font-semibold text-slate-800">
-                {patient.nameEn}
-              </h1>
-              <p className="text-xs text-slate-500">
-                {patient.age}y / {patient.gender} &middot; Visit #{patient.visitNumber}
-              </p>
-            </div>
-          </div>
-
-          {/* Patient ID badge */}
-          <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">
-            {visitId}
-          </span>
+    <div className="mx-auto max-w-2xl px-4 py-6">
+      {/* Patient header */}
+      <header className="mb-5 flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">
+            {patient?.name_bn ?? patient?.name ?? "—"}
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {patient?.name} · {patient?.age ?? "?"}y · {patient?.gender ?? "—"}
+            {visit.visit_number ? ` · Visit #${visit.visit_number}` : ""}
+            {visit.attendant_present ? " · with attendant" : ""}
+          </p>
         </div>
-      </div>
+        <Button onClick={startConsultation}>Start Consultation →</Button>
+      </header>
 
-      {/* Briefing content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="mx-auto max-w-2xl">
-          <BriefingCard data={briefing} />
-        </div>
-      </div>
-
-      {/* Bottom action bar */}
-      <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
-        <div className="mx-auto max-w-2xl">
+      {visit.briefing_card ? (
+        <BriefingCard
+          data={toBriefingData(
+            visit.briefing_card as ServerBriefing,
+            visit.attendant_present ?? false
+          )}
+        />
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+          <div className="mx-auto h-6 w-6 animate-spin rounded-full border-[3px] border-glyph-200 border-t-glyph-600" />
+          <p className="mt-3 text-sm font-medium text-slate-500">
+            Briefing is being generated…
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            This appears automatically when ready (usually under a minute)
+          </p>
           <Button
-            size="lg"
-            className="w-full"
-            onClick={handleStartConsultation}
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={async () => {
+              // Generation can fail transiently (network) — re-kick it and
+              // let the existing poll pick the result up.
+              try {
+                const stream = await generateBriefing(visitId);
+                const reader = stream.getReader();
+                while (!(await reader.read()).done) {
+                  /* drain — capture branch persists */
+                }
+                const v = await getVisitWithBriefing(visitId);
+                setVisit(v);
+              } catch {
+                /* the empty state remains; doctor can retry again */
+              }
+            }}
           >
-            Start Consultation
+            Retry generation
           </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
-/* ── Mock data ── */
-
-const MOCK_PATIENT = {
-  nameEn: "Rahima Begum",
-  nameBn: "\u09b0\u09b9\u09bf\u09ae\u09be \u09ac\u09c7\u0997\u09ae",
-  age: 55,
-  gender: "Female",
-  visitNumber: 3,
-};
-
-const MOCK_BRIEFING: BriefingData = {
-  redFlags: [
-    {
-      id: "rf_1",
-      text: "Chest pain at rest with exertional worsening",
-      reasoning:
-        "New-onset chest pain in a 55-year-old female with diabetes warrants urgent cardiac evaluation. Reported directly by patient during intake.",
-    },
-  ],
-  chiefComplaint: [
-    {
-      text: "Chest pain for 2 days, worse when walking, dull aching character, left-sided",
-      sourceType: "patient",
-      evidence: {
-        id: "ev_1",
-        sourceType: "patient",
-        sourceLabel: "Per patient",
-        content:
-          "I have been having pain in my chest for 2 days. It gets worse when I walk. It is a dull ache on the left side.",
-        timestamp: new Date().toISOString(),
-        confidence: "high",
-        fullContext:
-          "Patient described the pain during structured intake interview, pointing to the left precordial region.",
-      },
-    },
-  ],
-  hpiClaims: [
-    {
-      text: "Pain started 2 days ago after climbing stairs",
-      sourceType: "patient",
-    },
-    {
-      text: "Son reports mother has been taking antacids thinking it was gas pain",
-      sourceType: "attendant",
-      sourceLabel: "Per attendant (son)",
-    },
-    {
-      text: "No radiation to arm or jaw, no diaphoresis",
-      sourceType: "patient",
-    },
-    {
-      text: "Mild shortness of breath on exertion (new symptom)",
-      sourceType: "attendant",
-      sourceLabel: "Per attendant (son)",
-    },
-  ],
-  pastMedicalHistory: [
-    {
-      text: "Type 2 Diabetes Mellitus, diagnosed 8 years ago",
-      sourceType: "patient",
-    },
-    {
-      text: "Hypertension, on medication for 5 years",
-      sourceType: "rx_photo",
-    },
-  ],
-  currentMedications: [
-    { name: "Metformin", dosage: "500mg 1+0+1", sourceType: "rx_photo" },
-    { name: "Amlodipine", dosage: "5mg 0+0+1", sourceType: "rx_photo" },
-    { name: "Omeprazole", dosage: "20mg 1+0+0", sourceType: "patient" },
-  ],
-  recentLabs: [
-    {
-      testName: "HbA1c",
-      value: "8.2%",
-      referenceRange: "4.0-5.6%",
-      isAbnormal: true,
-      sourceType: "lab_report",
-    },
-    {
-      testName: "Fasting Glucose",
-      value: "165 mg/dL",
-      referenceRange: "70-100 mg/dL",
-      isAbnormal: true,
-      sourceType: "lab_report",
-    },
-    {
-      testName: "Creatinine",
-      value: "1.0 mg/dL",
-      referenceRange: "0.6-1.2 mg/dL",
-      isAbnormal: false,
-      sourceType: "lab_report",
-    },
-    {
-      testName: "Total Cholesterol",
-      value: "245 mg/dL",
-      referenceRange: "<200 mg/dL",
-      isAbnormal: true,
-      sourceType: "lab_report",
-    },
-  ],
-  allergies: [
-    {
-      text: "Penicillin -- rash (reported by patient, unverified)",
-      sourceType: "patient",
-    },
-  ],
-  socialHistory: [
-    { text: "Homemaker, lives with son's family", sourceType: "patient" },
-    { text: "Non-smoker, no betel nut use", sourceType: "patient" },
-  ],
-  assessment: [
-    {
-      text: "New-onset chest pain in a diabetic, hypertensive patient -- consider ACS workup",
-      sourceType: "uptodate",
-    },
-    {
-      text: "Suboptimal glycemic control (HbA1c 8.2%) -- medication adjustment needed",
-      sourceType: "lab_report",
-    },
-    {
-      text: "Elevated cholesterol -- statin therapy should be considered given cardiac risk factors",
-      sourceType: "uptodate",
-    },
-  ],
-};

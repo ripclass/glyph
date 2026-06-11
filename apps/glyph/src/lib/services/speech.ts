@@ -1,7 +1,18 @@
 /**
- * @fileoverview Google Speech streaming service for real-time transcription.
- * Audio is captured via the MediaRecorder API and streamed through a
- * Supabase Edge Function proxy — never directly to Google from the client.
+ * @fileoverview Speech-to-text for the intake flow.
+ *
+ * M4 decision: the Web Speech API (built into Chromium; supports bn-BD) is
+ * the v1 transport — zero infrastructure, zero cost, typed input always
+ * available as fallback. The previous implementation targeted a
+ * `speech-stream` WebSocket edge function that was never built; a
+ * server-relayed Cloud STT path (gate-controlled) remains the documented
+ * upgrade when dialect accuracy demands it.
+ *
+ * PDPO note, recorded honestly: browser speech recognition transits the
+ * vendor's servers OUTSIDE our egress gate. It runs only inside the intake
+ * flow, which operates under the patient's `ai_processing` consent
+ * (collected at intake start) — the same consent that covers the transcript
+ * processing itself.
  *
  * @module lib/services/speech
  */
@@ -14,9 +25,9 @@ type ErrorCallback = (error: string) => void;
 
 /** Handle returned by `createSpeechStream` for controlling the stream lifecycle */
 export interface SpeechStreamHandle {
-  /** Begin capturing audio and streaming to the speech API */
+  /** Begin speech recognition */
   start: () => Promise<void>;
-  /** Stop capturing and close the WebSocket connection */
+  /** Stop recognition */
   stop: () => void;
   /** Register a callback for transcript updates (interim and final) */
   onTranscript: (cb: TranscriptCallback) => void;
@@ -24,16 +35,41 @@ export interface SpeechStreamHandle {
   onError: (cb: ErrorCallback) => void;
 }
 
+/** Minimal typings for the (still-prefixed) Web Speech API */
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: ArrayLike<{
+    isFinal: boolean;
+    0: { transcript: string };
+  }>;
+}
+
+function getRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === 'undefined') return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
 /**
- * Creates a speech streaming session that captures microphone audio
- * and sends it to Google Speech-to-Text via a WebSocket proxy.
+ * Creates a speech recognition session over the Web Speech API.
  *
- * The WebSocket connects to a Supabase Edge Function at
- * `{SUPABASE_URL}/functions/v1/speech-stream`, which proxies
- * audio to the Google Speech API and returns transcript events.
- *
- * @param language - BCP-47 language code for recognition (e.g. `"bn-BD"`, `"en-US"`)
- * @returns A handle with `start`, `stop`, `onTranscript`, and `onError` methods
+ * @param language - BCP-47 language code (e.g. `"bn-BD"`, `"en-US"`)
+ * @returns A handle with `start`, `stop`, `onTranscript`, and `onError`
  *
  * @example
  * ```ts
@@ -48,146 +84,82 @@ export interface SpeechStreamHandle {
  * ```
  */
 export function createSpeechStream(language: string): SpeechStreamHandle {
-  let mediaRecorder: MediaRecorder | null = null;
-  let mediaStream: MediaStream | null = null;
-  let ws: WebSocket | null = null;
+  let recognition: SpeechRecognitionLike | null = null;
   let transcriptCallback: TranscriptCallback | null = null;
   let errorCallback: ErrorCallback | null = null;
-
-  /**
-   * Builds the WebSocket URL for the speech proxy Edge Function.
-   * Converts the HTTP(S) Supabase URL to a WS(S) URL.
-   */
-  function getWsUrl(): string {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) {
-      throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured');
-    }
-    const wsBase = supabaseUrl.replace(/^https?:\/\//, (match) =>
-      match === 'https://' ? 'wss://' : 'ws://'
-    );
-    return `${wsBase}/functions/v1/speech-stream?language=${encodeURIComponent(language)}`;
-  }
-
-  /**
-   * Opens the WebSocket connection to the speech proxy.
-   */
-  function connectWebSocket(): Promise<WebSocket> {
-    return new Promise((resolve, reject) => {
-      const url = getWsUrl();
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-      const socket = new WebSocket(url, ['supabase-auth', anonKey]);
-
-      socket.onopen = () => resolve(socket);
-
-      socket.onerror = (event) => {
-        const message = 'WebSocket connection to speech proxy failed';
-        errorCallback?.(message);
-        reject(new Error(message));
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(String(event.data)) as {
-            transcript?: string;
-            is_final?: boolean;
-            error?: string;
-          };
-
-          if (data.error) {
-            errorCallback?.(data.error);
-            return;
-          }
-
-          if (data.transcript !== undefined) {
-            transcriptCallback?.(data.transcript, data.is_final ?? false);
-          }
-        } catch {
-          errorCallback?.('Failed to parse speech response');
-        }
-      };
-
-      socket.onclose = (event) => {
-        if (!event.wasClean && event.code !== 1000) {
-          errorCallback?.(`Speech connection closed unexpectedly (code ${event.code})`);
-        }
-      };
-    });
-  }
-
-  /**
-   * Configures MediaRecorder to capture audio and pipe chunks
-   * through the WebSocket.
-   */
-  async function setupMediaRecorder(): Promise<void> {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        sampleRate: 16000,
-        echoCancellation: true,
-        noiseSuppression: true,
-      },
-    });
-
-    /** Prefer webm/opus for compact streaming; fall back to webm */
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
-
-    mediaRecorder = new MediaRecorder(mediaStream, {
-      mimeType,
-      audioBitsPerSecond: 16000,
-    });
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0 && ws?.readyState === WebSocket.OPEN) {
-        ws.send(event.data);
-      }
-    };
-
-    mediaRecorder.onerror = () => {
-      errorCallback?.('MediaRecorder encountered an error');
-    };
-
-    /** Send audio in 250ms chunks for near-real-time streaming */
-    mediaRecorder.start(250);
-  }
+  let stopped = false;
 
   return {
-    async start() {
-      try {
-        ws = await connectWebSocket();
-        await setupMediaRecorder();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to start speech stream';
-        errorCallback?.(message);
-        throw err;
-      }
-    },
-
-    stop() {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      mediaRecorder = null;
-
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        mediaStream = null;
-      }
-
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, 'Client stopped');
-      }
-      ws = null;
-    },
-
     onTranscript(cb: TranscriptCallback) {
       transcriptCallback = cb;
     },
 
     onError(cb: ErrorCallback) {
       errorCallback = cb;
+    },
+
+    async start() {
+      const Ctor = getRecognitionCtor();
+      if (!Ctor) {
+        throw new Error(
+          'এই ব্রাউজারে ভয়েস ইনপুট নেই — দয়া করে টাইপ করুন (Speech recognition unavailable — please type)'
+        );
+      }
+
+      recognition = new Ctor();
+      recognition.lang = language;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const text = result[0]?.transcript ?? '';
+          if (result.isFinal) {
+            if (text.trim()) transcriptCallback?.(text.trim(), true);
+          } else {
+            interim += text;
+          }
+        }
+        if (interim.trim()) transcriptCallback?.(interim.trim(), false);
+      };
+
+      recognition.onerror = (event) => {
+        // "no-speech"/"aborted" are normal lifecycle noise, not failures
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
+        errorCallback?.(
+          event.error === 'not-allowed'
+            ? 'মাইক্রোফোনের অনুমতি দিন (Microphone permission needed)'
+            : `Speech error: ${event.error ?? 'unknown'}`
+        );
+      };
+
+      recognition.onend = () => {
+        // Chrome ends sessions on silence; keep listening until stop()
+        if (!stopped && recognition) {
+          try {
+            recognition.start();
+          } catch {
+            /* already restarting */
+          }
+        }
+      };
+
+      stopped = false;
+      recognition.start();
+    },
+
+    stop() {
+      stopped = true;
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch {
+          /* already stopped */
+        }
+        recognition = null;
+      }
     },
   };
 }

@@ -11,13 +11,12 @@
 import { useState, useEffect, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import { getTodayQueue } from '@/lib/services/visits';
-import type { Visit } from '@/lib/supabase/types';
+import { getTodayQueue, type VisitWithRelations } from '@/lib/services/visits';
 
 /** Return type of the `useRealtimeQueue` hook */
 export interface UseRealtimeQueueReturn {
   /** Today's patient queue, sorted in arrival order */
-  queue: Visit[];
+  queue: VisitWithRelations[];
   /** Whether the Realtime subscription is active */
   isConnected: boolean;
 }
@@ -47,7 +46,7 @@ export interface UseRealtimeQueueReturn {
  * ```
  */
 export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
-  const [queue, setQueue] = useState<Visit[]>([]);
+  const [queue, setQueue] = useState<VisitWithRelations[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
   /** Ref to track the Realtime channel for cleanup */
@@ -76,51 +75,30 @@ export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
      * Subscribe to real-time changes on the visits table.
      * Filters by clinic_id to only receive relevant updates.
      */
+    /**
+     * Realtime payloads carry bare visit rows (no joined patient names), so
+     * any event triggers a (debounced) refetch of the fully-joined queue —
+     * always consistent, and cheap at clinic queue sizes.
+     */
+    let refetchTimer: ReturnType<typeof setTimeout> | null = null;
+    function scheduleRefetch() {
+      if (refetchTimer) clearTimeout(refetchTimer);
+      refetchTimer = setTimeout(() => {
+        void loadInitialQueue();
+      }, 300);
+    }
+
     const channel = supabase
       .channel(`queue:${clinicId}`)
-      .on<Visit>(
+      .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'visits',
           filter: `clinic_id=eq.${clinicId}`,
         },
-        (payload) => {
-          setQueue((prev) => {
-            const updated = [...prev, payload.new];
-            return sortByArrival(updated);
-          });
-        }
-      )
-      .on<Visit>(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'visits',
-          filter: `clinic_id=eq.${clinicId}`,
-        },
-        (payload) => {
-          setQueue((prev) => {
-            const updated = prev.map((v) =>
-              v.id === payload.new.id ? payload.new : v
-            );
-            return sortByArrival(updated);
-          });
-        }
-      )
-      .on<Visit>(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'visits',
-          filter: `clinic_id=eq.${clinicId}`,
-        },
-        (payload) => {
-          setQueue((prev) => prev.filter((v) => v.id !== payload.old.id));
-        }
+        scheduleRefetch
       )
       .subscribe((status) => {
         setIsConnected(status === 'SUBSCRIBED');
@@ -130,6 +108,7 @@ export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
 
     /** Cleanup: unsubscribe and remove channel on unmount or clinicId change */
     return () => {
+      if (refetchTimer) clearTimeout(refetchTimer);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -141,18 +120,3 @@ export function useRealtimeQueue(clinicId: string): UseRealtimeQueueReturn {
   return { queue, isConnected };
 }
 
-/**
- * Sorts visits in arrival order (created_at ascending), with nulls at the end.
- * There is no queue_position column in the schema — arrival order IS the queue.
- *
- * @param visits - Array of visit records to sort
- * @returns Sorted array
- */
-function sortByArrival(visits: Visit[]): Visit[] {
-  return [...visits].sort((a, b) => {
-    if (a.created_at === b.created_at) return 0;
-    if (a.created_at === null) return 1;
-    if (b.created_at === null) return -1;
-    return a.created_at < b.created_at ? -1 : 1;
-  });
-}

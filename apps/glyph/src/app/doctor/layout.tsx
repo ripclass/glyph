@@ -1,22 +1,31 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
+import { AuthGuard } from "@/components/shared/AuthGuard";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 /**
  * Doctor layout providing a dense, clinical, professional chrome.
  *
- * Structure:
- * - Top navigation bar with Glyph logo, doctor name placeholder, and settings icon
- * - Optional sidebar for larger screens (hidden on mobile)
- * - Main content area that fills available viewport height
- *
- * Uses a slate/neutral color scheme to keep the interface professional
- * and non-distracting during clinical workflows.
+ * Auth-gated: bootstraps the doctor session and redirects to /login when
+ * absent. The header shows the real signed-in doctor.
  */
 export default function DoctorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <AuthGuard>
+      <DoctorChrome>{children}</DoctorChrome>
+    </AuthGuard>
+  );
+}
+
+function DoctorChrome({ children }: { children: React.ReactNode }) {
+  const doctor = useAuthStore((s) => s.doctor);
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       {/* ── Top Navigation Bar ── */}
@@ -33,17 +42,17 @@ export default function DoctorLayout({
 
         {/* Right: Doctor info + Settings */}
         <div className="flex items-center gap-3">
-          {/* Doctor name placeholder */}
+          {/* Signed-in doctor */}
           <div className="hidden items-center gap-2 sm:flex">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-600">
-              Dr
+              {(doctor?.name ?? "Dr").slice(0, 2)}
             </div>
             <div className="text-sm">
               <p className="font-medium leading-tight text-slate-700">
-                Dr. Placeholder
+                {doctor?.name_bn ?? doctor?.name ?? "—"}
               </p>
               <p className="text-xs leading-tight text-slate-400">
-                General Medicine
+                {doctor?.speciality ?? "General Medicine"}
               </p>
             </div>
           </div>

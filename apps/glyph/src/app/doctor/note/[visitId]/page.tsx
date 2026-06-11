@@ -1,246 +1,257 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils/cn";
+import { useParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   NoteEditor,
   type NoteFormat,
   type NoteEdits,
+  type SOAPNote,
 } from "@/components/doctor/NoteEditor";
 import type { BDNote } from "@/components/doctor/NoteFormatBD";
-import type { SOAPNote } from "@/components/doctor/NoteEditor";
-import {
-  LinkedEvidence,
-  type EvidenceItem,
-} from "@/components/doctor/LinkedEvidence";
+import { generateNote } from "@/lib/services/ai";
+import { getVisit, type VisitWithRelations } from "@/lib/services/visits";
+import { createClient } from "@/lib/supabase/client";
+
+/** Server note JSON shape (generate-note edge function, BD format) */
+interface ServerNote {
+  chiefComplaint?: string;
+  onExamination?: string;
+  investigations?: string;
+  diagnosis?: string;
+  prescription?: {
+    medications?: Array<{
+      name?: string;
+      dose?: string;
+      frequency?: string;
+      duration?: string;
+      instructions?: string;
+    }>;
+    investigationsOrdered?: string[];
+  };
+  advice?: string;
+  followUp?: string;
+}
+
+function rxText(note: ServerNote): string {
+  const meds = note.prescription?.medications ?? [];
+  return meds
+    .filter((m) => m.name)
+    .map(
+      (m, i) =>
+        `${i + 1}. ${[m.name, m.dose, m.frequency, m.duration, m.instructions]
+          .filter(Boolean)
+          .join(" — ")}`
+    )
+    .join("\n");
+}
+
+function toBDNote(note: ServerNote): BDNote {
+  return {
+    cc: note.chiefComplaint ?? "",
+    oe: note.onExamination ?? "",
+    ix: [note.investigations, ...(note.prescription?.investigationsOrdered ?? [])]
+      .filter(Boolean)
+      .join("; "),
+    rx: rxText(note),
+    advice: [note.advice, note.followUp ? `Follow-up: ${note.followUp}` : ""]
+      .filter(Boolean)
+      .join("\n"),
+  };
+}
+
+function toSOAPNote(note: ServerNote): SOAPNote {
+  return {
+    subjective: note.chiefComplaint ?? "",
+    objective: note.onExamination ?? "",
+    assessment: note.diagnosis ?? "",
+    plan: [rxText(note), note.advice, note.followUp].filter(Boolean).join("\n"),
+  };
+}
 
 /**
- * Review, edit, and approve the AI-generated clinical note.
+ * Note review + approval, LIVE.
  *
- * Displays:
- * - NoteEditor with the generated note in BD format (CC/O-E/Ix/Rx/Advice)
- * - Side panel with source references (LinkedEvidence)
- * - "Approve & Send" button and "Edit" toggle
- * - Option to switch note format between BD and SOAP
- *
- * After approval, the note is locked and can be sent to the patient
- * or stored in the medical record system.
+ * Generation streams server-side and the capture branch persists
+ * `generated_note` — this page kicks generation off, then reads the
+ * persisted note (single source of truth across transports). Approval goes
+ * through /api/visits/approve-note, which issues the VisitNote +
+ * Prescription credentials and freezes the note at the database level.
  */
 export default function NotePage() {
   const params = useParams<{ visitId: string }>();
-  const router = useRouter();
   const visitId = params.visitId;
 
-  const [isSending, setIsSending] = React.useState(false);
-  const [isSent, setIsSent] = React.useState(false);
-  const [isApproved, setIsApproved] = React.useState(false);
+  const [visit, setVisit] = React.useState<VisitWithRelations | null>(null);
+  const [generating, setGenerating] = React.useState(false);
+  const [approving, setApproving] = React.useState(false);
+  const [credentials, setCredentials] = React.useState<{
+    visitNoteVcId: string;
+    prescriptionVcId: string | null;
+  } | null>(null);
 
-  // Evidence panel state
-  const [evidenceOpen, setEvidenceOpen] = React.useState(false);
-  const [selectedEvidence, setSelectedEvidence] =
-    React.useState<EvidenceItem | null>(null);
+  const refresh = React.useCallback(async () => {
+    const v = await getVisit(visitId);
+    setVisit(v);
+    return v;
+  }, [visitId]);
 
-  // Placeholder generated notes
-  const bdNote: BDNote = {
-    cc: "Chest pain for 2 days, worse on exertion, dull aching, left-sided. No radiation to arm or jaw. Associated mild SOB on exertion (new).",
-    oe: "BP: 150/90 mmHg. Pulse: 88/min, regular. Temp: 98.4\u00b0F. SpO2: 97% on RA.\nChest: Clear bilateral air entry, no added sounds.\nCVS: S1S2 normal, no murmur. JVP not raised.\nAbdomen: Soft, non-tender.",
-    ix: "ECG: NSR, no ST changes (done at clinic).\n\nAdvised:\n- Troponin I (stat)\n- Lipid profile\n- Fasting glucose\n- Chest X-ray PA view\n- 2D Echo (if troponin negative)",
-    rx: "1. Tab. Aspirin 75mg -- 0+1+0 (after lunch) x continue\n2. Tab. Atorvastatin 20mg -- 0+0+1 x continue\n3. Tab. Metformin 500mg -- 1+0+1 x continue (existing)\n4. Tab. Amlodipine 5mg -- 0+0+1 x continue (existing)\n5. Tab. Pantoprazole 40mg -- 1+0+0 x 14 days (replace Omeprazole)\n6. SL Nitroglycerin 0.5mg -- SOS for chest pain",
-    advice: "1. Avoid heavy exertion until cardiac workup complete.\n2. If chest pain recurs at rest or becomes severe, go to nearest ER immediately.\n3. Get troponin and lipid profile done today.\n4. Follow up in 3 days with reports.\n5. Continue diabetic diet. Monitor blood sugar.\n6. Quit betel nut if applicable.",
-  };
+  React.useEffect(() => {
+    void refresh().catch(() => setVisit(null));
+  }, [refresh]);
 
-  const soapNote: SOAPNote = {
-    subjective:
-      "55-year-old female presents with chest pain for 2 days. Pain is dull, aching, left-sided, and worsens with exertion (e.g., climbing stairs). No radiation to arm or jaw. No diaphoresis. Son reports patient was self-treating with antacids. New-onset mild shortness of breath on exertion. PMH: T2DM (8y), HTN (5y). Current meds: Metformin 500mg BD, Amlodipine 5mg ON, Omeprazole 20mg OD. Allergy: Penicillin (rash, unverified).",
-    objective:
-      "VS: BP 150/90, HR 88 regular, Temp 98.4F, SpO2 97% RA. General: Alert, comfortable at rest. Chest: Clear B/L, no added sounds. CVS: S1S2 normal, no murmur, JVP normal. Abdomen: Soft, NT. ECG: NSR, no ST changes. Recent labs: HbA1c 8.2%, FBS 165, Cr 1.0, TC 245.",
-    assessment:
-      "1. Chest pain -- rule out ACS in high-risk patient (diabetic, hypertensive, hyperlipidemic)\n2. Uncontrolled T2DM (HbA1c 8.2%)\n3. Hypertension -- currently on Amlodipine, BP 150/90 (suboptimal)\n4. Hyperlipidemia -- new diagnosis, TC 245",
-    plan: "1. Stat troponin I, lipid profile, FBS\n2. Start Aspirin 75mg daily, Atorvastatin 20mg ON\n3. Change Omeprazole to Pantoprazole 40mg (better with Aspirin)\n4. SL NTG 0.5mg SOS for chest pain\n5. Chest X-ray PA, 2D Echo if troponin negative\n6. Continue Metformin and Amlodipine\n7. Follow up in 3 days with results\n8. Counsel: avoid exertion, ER if worsening",
-  };
+  /** Kick off generation, drain the stream, then poll for the persisted note. */
+  const handleGenerate = React.useCallback(async () => {
+    setGenerating(true);
+    try {
+      const stream = await generateNote(visitId, "bd");
+      const reader = stream.getReader();
+      while (!(await reader.read()).done) {
+        /* drain — the server capture branch persists the parsed note */
+      }
+      for (let i = 0; i < 10; i++) {
+        const v = await refresh();
+        if (v.generated_note) return;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      toast.error("Note generation finished but no note was stored — check function logs");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Note generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  }, [visitId, refresh]);
 
-  // Source references for the note
-  const sourceReferences: EvidenceItem[] = [
-    {
-      id: "src_1",
-      sourceType: "patient",
-      sourceLabel: "Patient intake interview",
-      content:
-        "I have been having pain in my chest for 2 days. It gets worse when I walk.",
-      timestamp: new Date().toISOString(),
-      confidence: "high",
-      fullContext:
-        "Recorded during structured intake, patient pointed to left precordial area.",
+  /**
+   * Approve → issue credentials. Doctor edits to the text sections are
+   * merged over the stored note; the structured medication list stays as
+   * generated (structured Rx editing is a follow-up feature) so the
+   * PrescriptionCredential always carries real structured data.
+   */
+  const handleApprove = React.useCallback(
+    async (_note: BDNote | SOAPNote, format: NoteFormat, edits: NoteEdits) => {
+      if (format === "soap") {
+        toast.error("Approval is BD-format only for now");
+        return;
+      }
+      setApproving(true);
+      try {
+        const original = (visit?.generated_note ?? {}) as ServerNote;
+        const edited = _note as BDNote;
+        const hasEdits = Object.values(edits).some(Boolean);
+        const doctorEdits = hasEdits
+          ? {
+              ...original,
+              chiefComplaint: edited.cc,
+              onExamination: edited.oe,
+              investigations: edited.ix,
+              advice: edited.advice,
+            }
+          : undefined;
+
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        const res = await fetch("/api/visits/approve-note", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ visitId, ...(doctorEdits ? { doctorEdits } : {}) }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error ?? `Approval failed (${res.status})`);
+        }
+
+        setCredentials({
+          visitNoteVcId: json.data.visitNoteVcId,
+          prescriptionVcId: json.data.prescriptionVcId,
+        });
+        toast.success("Note approved — credentials issued");
+        await refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Approval failed");
+      } finally {
+        setApproving(false);
+      }
     },
-    {
-      id: "src_2",
-      sourceType: "attendant",
-      sourceLabel: "Attendant (son)",
-      content:
-        "My mother has been taking Gaviscon thinking it is gas pain. She also gets breathless walking to the bathroom now.",
-      timestamp: new Date().toISOString(),
-      confidence: "high",
-    },
-    {
-      id: "src_3",
-      sourceType: "rx_photo",
-      sourceLabel: "Previous prescription photo",
-      content:
-        "Extracted medications: Metformin 500mg 1+0+1, Amlodipine 5mg 0+0+1, Omeprazole 20mg 1+0+0",
-      timestamp: new Date().toISOString(),
-      confidence: "high",
-    },
-    {
-      id: "src_4",
-      sourceType: "lab_report",
-      sourceLabel: "Lab report (2 weeks ago)",
-      content:
-        "HbA1c: 8.2%, FBS: 165 mg/dL, S. Creatinine: 1.0 mg/dL, Total Cholesterol: 245 mg/dL",
-      timestamp: new Date().toISOString(),
-      confidence: "high",
-    },
-  ];
+    [visitId, visit, refresh]
+  );
 
-  const handleApprove = (
-    note: BDNote | SOAPNote,
-    format: NoteFormat,
-    edits: NoteEdits
-  ) => {
-    setIsApproved(true);
-    // TODO: Save approved note to Supabase
-    console.log("Note approved:", { visitId, format, edits });
-  };
+  if (!visit) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-glyph-200 border-t-glyph-600" />
+      </div>
+    );
+  }
 
-  const handleSend = async () => {
-    setIsSending(true);
-    // TODO: Send note via API
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSending(false);
-    setIsSent(true);
-  };
+  const serverNote = visit.generated_note as ServerNote | null;
+  const isApproved = Boolean(visit.note_credential_id);
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Go back"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="m12 19-7-7 7-7" />
-              <path d="M19 12H5" />
-            </svg>
-          </button>
-          <div>
-            <h1 className="text-sm font-semibold text-slate-800">
-              Clinical Note
-            </h1>
-            <p className="text-[10px] text-slate-400">
-              Rahima Begum &middot; {visitId}
+    <div className="mx-auto max-w-2xl px-4 py-6">
+      <header className="mb-5 flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Clinical Note</h1>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {visit.patients?.name_bn ?? visit.patients?.name ?? "—"}
+            {isApproved ? " · approved & credentialed" : ""}
+          </p>
+        </div>
+        {!serverNote && (
+          <Button onClick={handleGenerate} disabled={generating}>
+            {generating ? "Generating…" : "Generate Note"}
+          </Button>
+        )}
+      </header>
+
+      {(credentials || isApproved) && (
+        <div className="mb-5 rounded-xl border border-glyph-200 bg-glyph-50 p-4 text-sm">
+          <p className="font-semibold text-glyph-800">
+            ✓ Signed credentials issued — this note is now immutable
+          </p>
+          {credentials && (
+            <div className="mt-2 space-y-1 font-mono text-[11px] text-glyph-700">
+              <p>VisitNote: {credentials.visitNoteVcId}</p>
+              {credentials.prescriptionVcId && (
+                <p>Prescription: {credentials.prescriptionVcId}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {serverNote ? (
+        <>
+          {approving && (
+            <p className="mb-3 text-center text-sm text-slate-500">
+              Issuing credentials…
             </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isApproved && !isSent && (
-            <Button size="sm" onClick={handleSend} loading={isSending}>
-              Approve &amp; Send
-            </Button>
           )}
-          {isSent && (
-            <span className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              Sent
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Main content: Note editor + Source references */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Note editor */}
-        <div className="flex-1 overflow-y-auto">
           <NoteEditor
             visitId={visitId}
-            bdNote={bdNote}
-            soapNote={soapNote}
+            bdNote={toBDNote(serverNote)}
+            soapNote={toSOAPNote(serverNote)}
             onApprove={handleApprove}
             isApproved={isApproved}
-            className="h-full"
           />
+        </>
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+          <p className="text-sm font-medium text-slate-500">
+            {generating
+              ? "The note is being generated from the visit record…"
+              : "No note yet — generate one from the intake + consultation data"}
+          </p>
         </div>
-
-        {/* Source references sidebar */}
-        <aside className="hidden w-72 shrink-0 flex-col border-l border-slate-200 bg-slate-50 lg:flex">
-          <div className="border-b border-slate-200 px-4 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Source References
-            </h2>
-          </div>
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="space-y-2">
-              {sourceReferences.map((ref) => (
-                <button
-                  key={ref.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedEvidence(ref);
-                    setEvidenceOpen(true);
-                  }}
-                  className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-left transition hover:border-glyph-300 hover:shadow-sm"
-                >
-                  <span className="mb-1 block text-[10px] font-medium text-glyph-600">
-                    {ref.sourceLabel}
-                  </span>
-                  <p className="line-clamp-2 text-xs text-slate-600">
-                    &ldquo;{ref.content}&rdquo;
-                  </p>
-                  <span className="mt-1 block text-[9px] text-slate-400">
-                    {ref.confidence} confidence
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      {/* Linked Evidence panel */}
-      <LinkedEvidence
-        open={evidenceOpen}
-        evidence={selectedEvidence}
-        onClose={() => setEvidenceOpen(false)}
-      />
+      )}
     </div>
   );
 }

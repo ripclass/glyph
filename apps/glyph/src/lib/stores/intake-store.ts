@@ -7,6 +7,7 @@
  */
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { IntakeSummary } from '@/lib/services/ai';
 
 /** Steps in the intake workflow */
@@ -108,7 +109,9 @@ const initialState: IntakeState = {
  * }
  * ```
  */
-export const useIntakeStore = create<IntakeState & IntakeActions>((set) => ({
+export const useIntakeStore = create<IntakeState & IntakeActions>()(
+  persist(
+    (set) => ({
   ...initialState,
 
   startIntake: (visitId, patientId) =>
@@ -164,4 +167,22 @@ export const useIntakeStore = create<IntakeState & IntakeActions>((set) => ({
   setStep: (step) => set({ step }),
 
   reset: () => set(initialState),
-}));
+    }),
+    {
+      name: 'glyph-intake-session',
+      /**
+       * sessionStorage so a tablet refresh mid-intake doesn't lose the visit
+       * (and closing the browser still clears it). Only session scalars are
+       * persisted — documents/summary are refetchable.
+       */
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        visitId: state.visitId,
+        patientId: state.patientId,
+        isAttendant: state.isAttendant,
+        attendantRelation: state.attendantRelation,
+        step: state.step,
+      }),
+    }
+  )
+);
