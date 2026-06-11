@@ -12,6 +12,7 @@ import {
 } from "@/components/doctor/NoteEditor";
 import type { BDNote } from "@/components/doctor/NoteFormatBD";
 import { generateNote } from "@/lib/services/ai";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { getVisit, type VisitWithRelations } from "@/lib/services/visits";
 import { createClient } from "@/lib/supabase/client";
 
@@ -83,6 +84,13 @@ function toSOAPNote(note: ServerNote): SOAPNote {
 export default function NotePage() {
   const params = useParams<{ visitId: string }>();
   const visitId = params.visitId;
+  /**
+   * Note format follows the doctor's saved preference (settings screen).
+   * BD is the default; SOAP only when explicitly chosen — the §12 opt-in.
+   */
+  const preferredFormat = useAuthStore((s) =>
+    s.doctor?.preferred_note_format === "soap" ? ("soap" as const) : ("bd" as const)
+  );
 
   const [visit, setVisit] = React.useState<VisitWithRelations | null>(null);
   const [generating, setGenerating] = React.useState(false);
@@ -106,7 +114,7 @@ export default function NotePage() {
   const handleGenerate = React.useCallback(async () => {
     setGenerating(true);
     try {
-      const stream = await generateNote(visitId, "bd");
+      const stream = await generateNote(visitId, preferredFormat);
       const reader = stream.getReader();
       while (!(await reader.read()).done) {
         /* drain — the server capture branch persists the parsed note */
@@ -122,7 +130,7 @@ export default function NotePage() {
     } finally {
       setGenerating(false);
     }
-  }, [visitId, refresh]);
+  }, [visitId, preferredFormat, refresh]);
 
   /**
    * Approve → issue credentials. Doctor edits to the text sections are
