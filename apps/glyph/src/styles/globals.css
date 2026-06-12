@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap");
-/* Landing display faces: Tiro Bangla (Bengali editorial serif) + Fraunces (Latin editorial serif) */
-@import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,340..620;1,9..144,340..620&display=swap");
+/* Landing faces: Instrument Sans (refined grotesque display) + JetBrains Mono (section indices) */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @layer base {
   :root {
@@ -75,47 +75,63 @@
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Landing page — "Editorial Bangla"
-   The hero headline is written the way Bengali is written: the matra
-   (headstroke) draws across first, and the letters appear behind the
-   pen. One orchestrated load; everything else is restraint.
+   Landing — KhaM Health company page ("quiet clinical" after the
+   nion reference): bone sheet floating on a soft sage-steel
+   gradient scene, sentence-case Instrument Sans, one chartreuse
+   accent, frosted gallery cards with overlay chips.
    ──────────────────────────────────────────────────────────────── */
 @layer utilities {
-  /* Paper grain: tiny SVG turbulence, multiplied into the warm bg */
-  .grain::before {
+  /* The page backdrop behind the bone sheet */
+  .scene {
+    background:
+      radial-gradient(60rem 40rem at 12% -10%, #c7d3c6 0%, transparent 60%),
+      radial-gradient(50rem 36rem at 95% 15%, #aebfc0 0%, transparent 55%),
+      radial-gradient(70rem 50rem at 50% 110%, #b6c2b4 0%, transparent 60%),
+      linear-gradient(165deg, #c2cdc3 0%, #a9bab8 48%, #becab9 100%);
+  }
+
+  /* Frosted "photography" stand-ins for the gallery cards */
+  .frost-1 {
+    background:
+      radial-gradient(22rem 18rem at 30% 25%, #9db4ad 0%, transparent 70%),
+      radial-gradient(20rem 22rem at 80% 80%, #7e98a0 0%, transparent 65%),
+      linear-gradient(160deg, #c5d2cb 0%, #8aa39e 100%);
+  }
+  .frost-2 {
+    background:
+      radial-gradient(20rem 16rem at 70% 20%, #b9c8d2 0%, transparent 65%),
+      radial-gradient(24rem 20rem at 20% 90%, #6f8894 0%, transparent 70%),
+      linear-gradient(200deg, #cdd8da 0%, #7d949b 100%);
+  }
+  .frost-3 {
+    background:
+      radial-gradient(18rem 20rem at 25% 70%, #a4b6c4 0%, transparent 65%),
+      radial-gradient(22rem 18rem at 85% 25%, #d4dde0 0%, transparent 60%),
+      linear-gradient(150deg, #e3e9e8 0%, #93a8b2 100%);
+  }
+  .frost-4 {
+    background:
+      radial-gradient(20rem 18rem at 75% 75%, #94aa9c 0%, transparent 65%),
+      radial-gradient(18rem 16rem at 20% 20%, #ccd9cd 0%, transparent 60%),
+      linear-gradient(170deg, #d7dfd5 0%, #849a8e 100%);
+  }
+
+  /* Soft paper grain on the bone sheet */
+  .grain-soft::before {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.5;
+    opacity: 0.35;
     mix-blend-mode: multiply;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.52 0 0 0 0 0.45 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.52 0 0 0 0 0.48 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  /* The matra line: draws left → right like a pen stroke, then dissolves
-     into the letters' own matra (delay via --matra-delay, not
-     animation-delay, because the two animations need different offsets) */
-  .matra-line {
-    position: absolute;
-    top: 0.16em;
-    left: 0;
-    width: 100%;
-    height: 0.05em;
-    background: currentColor;
-    border-radius: 999px;
-    transform: scaleX(0);
-    transform-origin: left center;
-    animation:
-      matra-draw 0.9s var(--matra-delay, 0s) cubic-bezier(0.65, 0, 0.35, 1) forwards,
-      matra-fade 0.7s calc(var(--matra-delay, 0s) + 1s) ease forwards;
-  }
-
-  /* The letters: revealed by the passing pen (same timing as the line) */
-  .matra-text {
-    display: inline-block;
-    clip-path: inset(-0.3em 100% -0.35em 0);
-    animation: pen-reveal 0.9s var(--matra-delay, 0s) cubic-bezier(0.65, 0, 0.35, 1)
-      forwards;
+  /* Infinite marquee — track holds two copies of the content */
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee 32s linear infinite;
   }
 
   .landing-fade-up {
@@ -137,11 +153,12 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .matra-line,
-    .matra-text,
     .landing-fade-up {
       animation-duration: 0.01s !important;
       animation-delay: 0s !important;
+    }
+    .marquee-track {
+      animation: none !important;
     }
     .reveal-pending {
       opacity: 1;
@@ -151,27 +168,15 @@
   }
 }
 
-@keyframes matra-draw {
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes pen-reveal {
-  to {
-    clip-path: inset(-0.3em -0.15em -0.35em 0);
-  }
-}
-
-@keyframes matra-fade {
-  to {
-    opacity: 0;
-  }
-}
-
 @keyframes landing-fade-up {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
   }
 }

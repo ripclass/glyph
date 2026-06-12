@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   if (error && error.code !== UNIQUE_VIOLATION) {
     console.error('[waitlist] insert failed:', error.code, error.message);
     return NextResponse.json(
-      { success: false, error: 'সাময়িক সমস্যা হয়েছে — একটু পরে আবার চেষ্টা করুন', code: 'server_error' },
+      { success: false, error: 'Temporary problem — please try again shortly', code: 'server_error' },
       { status: 500 }
     );
   }

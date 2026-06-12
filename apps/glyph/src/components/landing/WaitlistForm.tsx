@@ -7,10 +7,6 @@ import { cn } from "@/lib/utils/cn";
 /**
  * Pilot waitlist signup form — THE conversion element of the landing page.
  * Phone-first (BD reality), posts to /api/waitlist, never navigates away.
- *
- * Marketing copy is deliberately bilingual-inline (both languages render
- * together, magazine-style) — the t() dictionary convention is for app
- * chrome, not for this page.
  */
 export function WaitlistForm() {
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
@@ -45,31 +41,32 @@ export function WaitlistForm() {
         setStatus("done");
       } else {
         setStatus("idle");
-        setError(data.error ?? "সাময়িক সমস্যা হয়েছে — আবার চেষ্টা করুন");
+        setError(data.error ?? "Something went wrong — please try again");
       }
     } catch {
       setStatus("idle");
-      setError("নেটওয়ার্ক সমস্যা — আবার চেষ্টা করুন");
+      setError("Network problem — please try again");
     }
   }
 
   if (status === "done") {
     return (
-      <div className="rounded-2xl border border-glyph-600/30 bg-glyph-600/5 p-10 text-center">
-        <CheckCircle2 className="mx-auto h-10 w-10 text-glyph-600" strokeWidth={1.5} />
-        <p className="mt-4 font-display-bn text-2xl text-ink">আপনি তালিকায় আছেন।</p>
+      <div className="rounded-2xl border border-lime-deep/40 bg-lime/15 p-10 text-center">
+        <CheckCircle2 className="mx-auto h-10 w-10 text-ink" strokeWidth={1.5} />
+        <p className="mt-4 font-display text-2xl font-semibold text-ink">
+          You&apos;re on the list.
+        </p>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          পাইলট খুললে আমরা প্রথমে আপনাকে জানাবো।
-          <span className="mt-1 block font-display italic text-ink-faint">
-            You&apos;re on the list — we&apos;ll reach out when your spot opens.
-          </span>
+          We onboard a small number of chambers at a time — you&apos;ll hear
+          from us first when your spot opens.
         </p>
       </div>
     );
   }
 
   const fieldClass =
-    "w-full rounded-xl border border-paper-line bg-white/70 px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint/70 outline-none transition focus:border-glyph-600 focus:bg-white focus:ring-2 focus:ring-glyph-600/15";
+    "w-full rounded-xl border border-bone-line bg-white px-4 py-3 text-[15px] text-ink placeholder:text-ink-faint/70 outline-none transition focus:border-ink/40 focus:ring-2 focus:ring-lime/60";
+  const labelClass = "mb-1.5 block text-[13px] font-medium text-ink-soft";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -85,14 +82,14 @@ export function WaitlistForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-            নাম <span className="text-red_flag">*</span>
+          <span className={labelClass}>
+            Name <span className="text-red_flag">*</span>
           </span>
-          <input name="name" required placeholder="ডাঃ রহিমা খাতুন" className={fieldClass} />
+          <input name="name" required placeholder="Dr. Rahima Khatun" className={fieldClass} />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-            মোবাইল <span className="text-red_flag">*</span>
+          <span className={labelClass}>
+            Mobile <span className="text-red_flag">*</span>
           </span>
           <input
             name="phone"
@@ -107,34 +104,28 @@ export function WaitlistForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-            আপনি
-          </span>
+          <span className={labelClass}>You are</span>
           <select
             name="role"
             value={role}
             onChange={(e) => setRole(e.target.value)}
             className={cn(fieldClass, "appearance-none")}
           >
-            <option value="doctor">ডাক্তার</option>
-            <option value="clinic">ক্লিনিক / চেম্বার</option>
-            <option value="pharmacy">ফার্মেসি</option>
-            <option value="other">অন্যান্য</option>
+            <option value="doctor">A doctor</option>
+            <option value="clinic">A clinic / chamber</option>
+            <option value="pharmacy">A pharmacy</option>
+            <option value="other">Something else</option>
           </select>
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-            জেলা
-          </span>
-          <input name="district" placeholder="ঢাকা" className={fieldClass} />
+          <span className={labelClass}>District</span>
+          <input name="district" placeholder="Dhaka" className={fieldClass} />
         </label>
       </div>
 
       {role === "doctor" && (
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink-faint">
-            BMDC রেজিস্ট্রেশন নম্বর (ঐচ্ছিক)
-          </span>
+          <span className={labelClass}>BMDC registration no. (optional)</span>
           <input name="bmdcRegNo" placeholder="A-XXXXX" className={fieldClass} />
         </label>
       )}
@@ -148,22 +139,17 @@ export function WaitlistForm() {
       <button
         type="submit"
         disabled={status === "sending"}
-        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-6 py-4 text-base font-semibold text-paper transition hover:bg-glyph-700 active:scale-[0.99] disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-4 text-base font-semibold text-bone-raise transition hover:bg-ink-soft active:scale-[0.99] disabled:opacity-60"
       >
         {status === "sending" ? (
           <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} />
         ) : (
-          <>
-            ওয়েটলিস্টে যোগ দিন
-            <span className="hidden font-display italic font-normal text-paper/70 transition group-hover:text-paper sm:inline">
-              — join the waitlist
-            </span>
-          </>
+          "Join the pilot waitlist"
         )}
       </button>
 
       <p className="text-center text-xs leading-relaxed text-ink-faint">
-        শুধু পাইলটের খবর জানাতেই আপনার নম্বর ব্যবহার হবে — আর কিছুতে নয়।
+        Your number is used for pilot updates only — nothing else.
       </p>
     </form>
   );

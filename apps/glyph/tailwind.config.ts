@@ -26,16 +26,20 @@ const config: Config = {
           muted: "#64748b",
         },
         red_flag: "#dc2626",
-        /* Landing page palette — warm editorial paper + deep clinical ink */
-        paper: {
-          DEFAULT: "#faf8f2",
-          deep: "#f1ecdf",
-          line: "#e3dcc9",
-        },
+        /* Landing palette — bone sheet, near-black ink, chartreuse accent */
         ink: {
-          DEFAULT: "#15241c",
-          soft: "#41524a",
-          faint: "#71807a",
+          DEFAULT: "#161d1a",
+          soft: "#4c5a54",
+          faint: "#7d8a83",
+        },
+        bone: {
+          DEFAULT: "#edeee8",
+          raise: "#f7f8f4",
+          line: "#d9dbd1",
+        },
+        lime: {
+          DEFAULT: "#d7ef3e",
+          deep: "#b8d41f",
         },
         /* CSS-variable-driven semantic colors (set in globals.css :root) */
         background: "hsl(var(--background))",
@@ -72,9 +76,8 @@ const config: Config = {
         sans: ["Inter", "Noto Sans Bengali", "sans-serif"],
         bangla: ["Noto Sans Bengali", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
-        /* Landing display faces — editorial serifs, Latin + Bangla */
-        display: ["Fraunces", "Georgia", "serif"],
-        "display-bn": ["Tiro Bangla", "Noto Sans Bengali", "serif"],
+        /* Landing display face — refined grotesque, sentence-case */
+        display: ["Instrument Sans", "Inter", "sans-serif"],
       },
       animation: {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",

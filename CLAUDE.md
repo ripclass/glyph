@@ -145,9 +145,11 @@ Glyph/
     └── src/
         ├── app/
         │   ├── layout.tsx          # <html lang="bn">, sonner Toaster
-        │   ├── page.tsx            # MARKETING LANDING ("Editorial Bangla"): bilingual hero w/ matra
-        │   │                       # animation, before/during/after acts, trust section, waitlist form.
-        │   │                       # Bilingual-inline copy is deliberate (not the t() convention).
+        │   ├── page.tsx            # COMPANY LANDING ("quiet clinical", per founder's nion reference):
+        │   │                       # bone sheet on sage gradient scene, Instrument Sans, lime accent,
+        │   │                       # frosted gallery, product family (Glyph live + 6 in design),
+        │   │                       # waitlist. English-first by founder decision (2026-06-12) —
+        │   │                       # Bangla returns later as an art-directed layer, possibly paid type.
         │   ├── start/page.tsx      # Role selection (was the old root): Doctor Login / রোগী ইনটেক — clinic tablets use this
         │   ├── login/page.tsx      # email+password pilot auth (accounts via scripts/create-doctor.mjs)
         │   ├── pharmacy/page.tsx   # M5 verify loop: phone → DID → ✓ dispensable / ✗ revoked

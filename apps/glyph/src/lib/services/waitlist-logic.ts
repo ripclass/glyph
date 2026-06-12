@@ -58,14 +58,14 @@ export function validateWaitlistInput(input: WaitlistInput): WaitlistValidation 
 
   const name = typeof input.name === 'string' ? normalizeName(input.name) : '';
   if (name.length < 2 || name.length > 120) {
-    return { ok: false, error: 'নাম লিখুন (অন্তত ২ অক্ষর)', code: 'invalid_name' };
+    return { ok: false, error: 'Please enter your name (at least 2 characters)', code: 'invalid_name' };
   }
 
   const phone = typeof input.phone === 'string' ? normalizeBdPhone(input.phone) : null;
   if (!phone) {
     return {
       ok: false,
-      error: 'সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)',
+      error: 'Please enter a valid BD mobile number (01XXXXXXXXX)',
       code: 'invalid_phone',
     };
   }

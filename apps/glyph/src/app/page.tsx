@@ -1,85 +1,92 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ShieldCheck,
-  ScanLine,
-  Quote,
+  Stethoscope,
+  FlaskConical,
+  HeartPulse,
   FileSignature,
+  Factory,
+  Plane,
+  Globe2,
+  Fingerprint,
+  ShieldCheck,
+  PenLine,
+  Mic,
+  CheckCheck,
+  ArrowRight,
   ArrowDown,
+  ArrowUpRight,
+  QrCode,
 } from "lucide-react";
 import { WaitlistForm } from "@/components/landing/WaitlistForm";
 import { Reveal } from "@/components/landing/Reveal";
 
 /**
- * THE marketing landing page — "Editorial Bangla".
+ * THE company landing — khamhealth.com is the umbrella; products live
+ * under it (khamhealth.com/glyph etc., pages to follow).
  *
- * Design language: warm paper, deep clinical ink, glyph-green as the only
- * accent. Tiro Bangla (Bengali editorial serif) for display, Fraunces for
- * Latin editorial lines. The hero headline is written the way Bengali is
- * written — the matra draws across and the letters appear behind the pen.
- *
- * Copy is deliberately bilingual-inline (Bangla display + English deck,
- * magazine-style) — both languages render together, so the t() dictionary
- * convention for app chrome does not apply here.
+ * Design language ("quiet clinical", after the nion reference): a bone
+ * sheet floating on a soft sage-steel gradient scene, sentence-case
+ * Instrument Sans, near-black ink, ONE chartreuse accent, dark pill
+ * buttons, frosted gallery cards with overlay UI chips. Calm over loud.
  */
 
 export const metadata: Metadata = {
-  title: "Glyph — আপনি শুধু রোগী দেখুন। বাকিটা Glyph-এর কাজ।",
+  title: "KhaM Health — Healthcare that remembers you",
   description:
-    "Glyph is a clinical AI copilot for Bangladeshi doctors: Bangla voice intake, red-flag briefings, cited research in the chamber, notes in CC/O-E/Ix/Rx/Advice format, and WhatsApp follow-ups. PDPO-compliant, consent-first. ঢাকায় পাইলট শুরু হচ্ছে — ওয়েটলিস্টে যোগ দিন।",
+    "KhaM Health is building Bangladesh's missing clinical infrastructure: one patient identity, every prescription, lab result, and visit — signed, verifiable, owned by the patient. Glyph, our clinical AI copilot for doctors, is live in Dhaka. Join the pilot.",
   openGraph: {
-    title: "Glyph — clinical AI copilot for Bangladeshi doctors",
+    title: "KhaM Health — Healthcare that remembers you",
     description:
-      "Bangla voice intake → red-flag briefing → cited research → BD-format notes → WhatsApp follow-up. Consent-first, PDPO-compliant. Pilot starting in Dhaka.",
-    siteName: "Glyph by KhaM Health",
-    locale: "bn_BD",
+      "One patient identity. Every prescription, lab, and visit — signed and verifiable. Glyph, the clinical AI copilot for Bangladeshi doctors, is live in Dhaka.",
+    siteName: "KhaM Health",
+    locale: "en_US",
     type: "website",
   },
 };
 
 export default function LandingPage() {
   return (
-    <main className="relative bg-paper text-ink">
-      <Nav />
-      <Hero />
-      <RealityBand />
-      <HowItWorks />
-      <TrustSection />
-      <WaitlistSection />
-      <Footer />
-    </main>
+    <div className="scene min-h-screen px-2 py-2 sm:px-4 sm:py-4">
+      <main className="grain-soft relative mx-auto max-w-[1480px] overflow-hidden rounded-[1.75rem] bg-bone text-ink shadow-[0_40px_120px_-40px_rgba(22,29,26,0.45)]">
+        <Nav />
+        <Hero />
+        <Gallery />
+        <Marquee />
+        <Products />
+        <WhySection />
+        <TrustSection />
+        <WaitlistSection />
+        <Footer />
+      </main>
+    </div>
   );
 }
 
-/** Per-element delay for the matra draw + fade pair (see globals.css) */
-function matraDelay(delay: string): React.CSSProperties {
-  return { "--matra-delay": delay } as React.CSSProperties;
+/* ── Shared bits ─────────────────────────────────────────────── */
+
+function SectionIndex({ index, label }: { index: string; label: string }) {
+  return (
+    <p className="font-mono text-[13px] tracking-wide text-ink-faint">
+      <span className="text-ink">{index}</span> — {label}
+    </p>
+  );
 }
 
-/**
- * Section eyebrow — a short green rule + label. Bangla must never be
- * letter-spaced or uppercased (it tears conjuncts apart), so hierarchy
- * comes from the rule, size, and color instead.
- */
-function Eyebrow({
+function PillDark({
+  href,
   children,
-  dark = false,
 }: {
+  href: string;
   children: React.ReactNode;
-  dark?: boolean;
 }) {
   return (
-    <p
-      className={`flex items-center gap-3 text-sm font-medium ${
-        dark ? "text-paper/55" : "text-ink-faint"
-      }`}
+    <a
+      href={href}
+      className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-bone-raise transition hover:bg-ink-soft active:scale-[0.98]"
     >
-      <span
-        aria-hidden="true"
-        className={`h-px w-8 ${dark ? "bg-glyph-400" : "bg-glyph-600"}`}
-      />
       {children}
-    </p>
+    </a>
   );
 }
 
@@ -87,41 +94,41 @@ function Eyebrow({
 
 function Nav() {
   return (
-    <header className="sticky top-0 z-50 border-b border-paper-line bg-paper/85 backdrop-blur-md">
-      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-display text-[22px] font-semibold tracking-tight">
-            Glyph
-          </span>
-          <span className="hidden text-xs text-ink-faint sm:inline">
-            by KhaM Health
-          </span>
+    <header className="relative z-40">
+      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 md:px-10">
+        <Link href="/" className="font-display text-[22px] font-semibold lowercase tracking-tight">
+          kham<span className="text-lime-deep">°</span>
         </Link>
 
-        <div className="flex items-center gap-1 sm:gap-2">
-          <a
-            href="#how"
-            className="hidden rounded-lg px-3 py-2 text-sm text-ink-soft transition hover:text-ink md:inline"
-          >
-            কীভাবে কাজ করে
+        <div className="hidden items-center gap-7 text-sm text-ink-soft md:flex">
+          <a href="#products" className="transition hover:text-ink">
+            Glyph
+            <sup className="ml-0.5 font-mono text-[10px] text-lime-deep">live</sup>
           </a>
-          <a
-            href="#trust"
-            className="hidden rounded-lg px-3 py-2 text-sm text-ink-soft transition hover:text-ink md:inline"
-          >
-            আস্থা
+          <a href="#products" className="transition hover:text-ink">
+            Products
+            <sup className="ml-0.5 font-mono text-[10px] text-ink-faint">6</sup>
           </a>
+          <a href="#why" className="transition hover:text-ink">
+            Why
+          </a>
+          <a href="#trust" className="transition hover:text-ink">
+            Trust
+          </a>
+        </div>
+
+        <div className="flex items-center gap-3">
           <Link
             href="/login"
-            className="rounded-lg px-3 py-2 text-sm text-ink-soft transition hover:text-ink"
+            className="hidden rounded-full px-4 py-2.5 text-sm text-ink-soft transition hover:text-ink sm:inline"
           >
-            ডাক্তার লগইন
+            Doctor login
           </Link>
           <a
             href="#waitlist"
-            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:bg-glyph-700"
+            className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bone-raise transition hover:bg-ink-soft"
           >
-            ওয়েটলিস্ট
+            Join the pilot
           </a>
         </div>
       </nav>
@@ -133,433 +140,422 @@ function Nav() {
 
 function Hero() {
   return (
-    <section className="grain relative overflow-hidden">
-      {/* Watermark glyph — a huge, whisper-faint গ্ */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-10 -top-24 select-none font-display-bn text-[26rem] leading-none text-ink/[0.04] md:-right-4 md:text-[34rem]"
+    <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-10 md:px-10 md:pt-16">
+      <p
+        className="landing-fade-up flex items-center gap-2 text-sm text-ink-soft"
+        style={{ animationDelay: "0.1s" }}
       >
-        গ্ল
-      </span>
+        <ArrowRight className="h-4 w-4 text-lime-deep" strokeWidth={2} />
+        AI-infused care, made in Dhaka
+      </p>
 
-      <div className="relative mx-auto max-w-6xl px-5 pb-24 pt-20 md:px-8 md:pb-32 md:pt-28">
-        <div className="landing-fade-up" style={{ animationDelay: "0.1s" }}>
-          <Eyebrow>ক্লিনিক্যাল AI কোপাইলট · বাংলাদেশের ডাক্তারদের জন্য</Eyebrow>
-        </div>
-
-        <h1 className="mt-8 font-display-bn text-[1.92rem] leading-[1.55] sm:text-6xl sm:leading-[1.4] md:text-7xl md:leading-[1.38]">
-          <span className="relative inline-block">
-            <span className="matra-line" style={matraDelay("0.35s")} />
-            <span className="matra-text" style={matraDelay("0.35s")}>
-              আপনি শুধু রোগী দেখুন।
-            </span>
-          </span>{" "}
-          <br className="hidden sm:block" />
-          <span className="relative inline-block">
-            <span className="matra-line" style={matraDelay("1.35s")} />
-            <span className="matra-text" style={matraDelay("1.35s")}>
-              বাকিটা <span className="font-display italic">Glyph</span>-এর কাজ।
-            </span>
-          </span>
+      <div className="mt-6 grid gap-10 md:grid-cols-[1.5fr_1fr] md:items-end">
+        <h1
+          className="landing-fade-up font-display text-[clamp(2.5rem,5.2vw,4.6rem)] font-medium leading-[1.04] tracking-[-0.02em]"
+          style={{ animationDelay: "0.25s" }}
+        >
+          Healthcare that
+          <br />
+          remembers you
         </h1>
 
-        <p
-          className="landing-fade-up mt-9 max-w-2xl font-display text-lg leading-relaxed text-ink-soft md:text-xl"
-          style={{ animationDelay: "2.3s" }}
-        >
-          A clinical AI copilot for Bangladeshi doctors. It takes the history{" "}
-          <em>in Bangla</em> before the patient walks in, briefs you with the
-          red flags, researches while you consult, writes the note in{" "}
-          <em>your</em> format — and follows up on WhatsApp.
-        </p>
-
-        <div
-          className="landing-fade-up mt-10 flex flex-wrap items-center gap-4"
-          style={{ animationDelay: "2.55s" }}
-        >
-          <a
-            href="#waitlist"
-            className="rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-paper shadow-lg shadow-ink/10 transition hover:bg-glyph-700 active:scale-[0.98]"
-          >
-            ওয়েটলিস্টে যোগ দিন
-          </a>
-          <a
-            href="#how"
-            className="group flex items-center gap-2 px-2 py-3 text-base text-ink-soft transition hover:text-ink"
-          >
-            কীভাবে কাজ করে
-            <ArrowDown
-              className="h-4 w-4 transition group-hover:translate-y-0.5"
-              strokeWidth={2}
-            />
-          </a>
-        </div>
-
-        <p
-          className="landing-fade-up mt-12 text-[13px] text-ink-faint"
-          style={{ animationDelay: "2.8s" }}
-        >
-          PDPO ২০২৫ সম্মত &nbsp;·&nbsp; সম্মতি-প্রথম নকশা &nbsp;·&nbsp; শুধু
-          BMDC-নিবন্ধিত ডাক্তার
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/* ── Reality band ────────────────────────────────────────────── */
-
-function RealityBand() {
-  const stats = [
-    { value: "৫০–১০০", label: "রোগী প্রতিদিন, একজন ডাক্তারের" },
-    { value: "৩ মিনিট", label: "গড় সময়, প্রতি রোগী" },
-    { value: "১ : ১,৪০০", label: "ডাক্তার–জনসংখ্যা অনুপাত" },
-  ];
-
-  return (
-    <section className="border-y border-paper-line bg-paper-deep/60">
-      <Reveal className="mx-auto max-w-6xl px-5 py-14 md:px-8">
-        <div className="grid gap-10 sm:grid-cols-3">
-          {stats.map((s) => (
-            <div key={s.value} className="text-center sm:text-left">
-              <div className="font-display-bn text-4xl text-ink md:text-5xl">
-                {s.value}
-              </div>
-              <div className="mt-2 text-sm leading-relaxed text-ink-soft">
-                {s.label}
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="mt-10 border-t border-paper-line pt-6 text-center font-display text-base italic text-ink-faint">
-          Built for this reality — the chamber in Dhaka, not a clinic in
-          California.
-        </p>
-      </Reveal>
-    </section>
-  );
-}
-
-/* ── How it works: three acts ────────────────────────────────── */
-
-function HowItWorks() {
-  return (
-    <section id="how" className="relative scroll-mt-16 overflow-hidden">
-      <div className="mx-auto max-w-6xl px-5 py-24 md:px-8 md:py-32">
-        <Reveal>
-          <Eyebrow>কীভাবে কাজ করে</Eyebrow>
-          <h2 className="mt-4 max-w-3xl font-display-bn text-4xl leading-[1.45] md:text-5xl md:leading-[1.4]">
-            ভিজিটের আগে, চেম্বারে, আর পরে।
-          </h2>
-          <p className="mt-4 max-w-2xl font-display text-lg italic leading-relaxed text-ink-soft">
-            The whole loop — before, during, and after the visit.
+        <div className="landing-fade-up md:pb-2" style={{ animationDelay: "0.4s" }}>
+          <p className="max-w-sm text-[15px] leading-relaxed text-ink-soft">
+            One patient identity. Every prescription, lab result, and visit —
+            signed, verifiable, owned by the patient for life. Built for
+            Bangladesh first.
           </p>
-        </Reveal>
-
-        <div className="mt-20 space-y-24 md:space-y-32">
-          <Act
-            number="১"
-            label="রোগী আসার আগে"
-            english="Before the visit"
-            features={[
-              {
-                title: "ভয়েস ইনটেক, বাংলায়",
-                desc: "ক্লিনিকের ট্যাবলেটে রোগী নিজের ভাষায় ইতিহাস বলেন। সাথে স্বজন এলে Glyph মনে রাখে — কোন কথা কার।",
-              },
-              {
-                title: "পুরনো কাগজের ব্যাগ",
-                desc: "আগের প্রেসক্রিপশন আর ল্যাব রিপোর্টের ছবি তুললেই পড়ে নেয় — হাতের লেখা Rx হোক বা ১+০+১ ডোজ।",
-              },
-              {
-                title: "এক নজরের ব্রিফিং",
-                desc: "রোগী ঢোকার আগেই টেবিলে সারসংক্ষেপ — লাল পতাকা সবার উপরে।",
-              },
-            ]}
-            visual={<BriefingMock />}
-          />
-
-          <Act
-            number="২"
-            label="চেম্বারে"
-            english="In the chamber"
-            reversed
-            features={[
-              {
-                title: "আপনি কথা বলুন, Glyph শোনে",
-                desc: "সম্মতি নিয়ে অ্যামবিয়েন্ট রেকর্ডিং — নোটের কাঁচামাল নিজে থেকেই জমা হয়, আপনার চোখ থাকে রোগীর দিকে।",
-              },
-              {
-                title: "প্রশ্ন করুন, উৎসসহ উত্তর",
-                desc: "গাইডলাইন, ড্রাগ ইন্টার‍্যাকশন, সাম্প্রতিক গবেষণা — UpToDate আর PubMed থেকে, সাইটেশনসহ, সেকেন্ডে।",
-              },
-            ]}
-            visual={<ConsultMock />}
-          />
-
-          <Act
-            number="৩"
-            label="ভিজিটের পরে"
-            english="After the visit"
-            features={[
-              {
-                title: "নোট, আপনার ফরম্যাটে",
-                desc: "CC / O-E / Ix / Rx / Advice — SOAP নয়। আপনি দেখে, বদলে, এক ক্লিকে অনুমোদন করেন।",
-              },
-              {
-                title: "স্বাক্ষরিত ডিজিটাল প্রেসক্রিপশন",
-                desc: "অনুমোদনের সাথে সাথে ক্রিপ্টোগ্রাফিক স্বাক্ষর — ফার্মেসির কাউন্টারে যাচাইযোগ্য।",
-              },
-              {
-                title: "WhatsApp ফলো-আপ",
-                desc: "২–৩ দিন পর রোগীর কাছে সহজ বাংলায় সারাংশ — কোন ওষুধ কখন, কী লক্ষণে ফিরে আসতে হবে।",
-              },
-            ]}
-            visual={<NoteMock />}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Act({
-  number,
-  label,
-  english,
-  features,
-  visual,
-  reversed = false,
-}: {
-  number: string;
-  label: string;
-  english: string;
-  features: { title: string; desc: string }[];
-  visual: React.ReactNode;
-  reversed?: boolean;
-}) {
-  return (
-    <Reveal>
-      <div
-        className={`relative grid items-center gap-12 md:grid-cols-2 md:gap-16 ${
-          reversed ? "md:[&>*:first-child]:order-2" : ""
-        }`}
-      >
-        <div className="relative">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -left-6 -top-16 select-none font-display-bn text-[11rem] leading-none text-glyph-600/10 md:-left-10"
-          >
-            {number}
-          </span>
-          <div className="relative">
-            <h3 className="font-display-bn text-3xl leading-snug md:text-4xl">
-              {label}
-            </h3>
-            <p className="mt-1 font-display text-base italic text-ink-faint">
-              {english}
-            </p>
-            <ul className="mt-8 space-y-6">
-              {features.map((f) => (
-                <li key={f.title} className="flex gap-4">
-                  <span className="mt-[0.55rem] h-1.5 w-1.5 shrink-0 rounded-full bg-glyph-600" />
-                  <div>
-                    <h4 className="text-[17px] font-semibold leading-snug">
-                      {f.title}
-                    </h4>
-                    <p className="mt-1.5 text-[15px] leading-relaxed text-ink-soft">
-                      {f.desc}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href="#why"
+              className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-5 py-3 text-sm font-medium text-ink transition hover:border-ink/50"
+            >
+              Why we exist
+            </a>
+            <PillDark href="#waitlist">Join the pilot</PillDark>
+            <a
+              href="#products"
+              aria-label="See the products"
+              className="grid h-11 w-11 place-items-center rounded-full bg-lime text-ink transition hover:bg-lime-deep"
+            >
+              <ArrowDown className="h-4 w-4" strokeWidth={2.2} />
+            </a>
           </div>
         </div>
-        <div>{visual}</div>
       </div>
-    </Reveal>
+    </section>
   );
 }
 
-/* ── Product mocks — show, don't tell ────────────────────────── */
+/* ── Gallery: frosted cards with overlay chips ───────────────── */
 
-function MockCard({
-  header,
+function Chip({
   children,
+  className = "",
 }: {
-  header: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-paper-line bg-white p-6 shadow-[0_24px_60px_-32px_rgba(21,36,28,0.35)]">
-      <div className="flex items-center justify-between border-b border-paper-line pb-3">
-        <span className="text-xs font-medium text-ink-faint">{header}</span>
-        <span className="flex gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-paper-line" />
-          <span className="h-2 w-2 rounded-full bg-paper-line" />
-          <span className="h-2 w-2 rounded-full bg-glyph-400" />
-        </span>
-      </div>
-      <div className="pt-4">{children}</div>
-    </div>
-  );
-}
-
-function SourceTagChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="ml-2 inline-block rounded-full bg-paper-deep px-2 py-0.5 align-middle text-[11px] leading-snug text-ink-faint">
+    <span
+      className={`inline-flex items-center gap-2 rounded-full bg-white/85 px-3.5 py-2 text-[12px] font-medium text-ink shadow-sm backdrop-blur ${className}`}
+    >
       {children}
     </span>
   );
 }
 
-function BriefingMock() {
+function Gallery() {
   return (
-    <MockCard header="ব্রিফিং কার্ড · ভিজিট ৪">
-      <div className="mb-4 flex items-center gap-2 rounded-lg border border-red_flag/25 bg-red_flag/5 px-3 py-2.5">
-        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-red_flag" />
-        <span className="text-sm font-semibold text-red_flag">
-          লাল পতাকা: বুকে চাপ ব্যথা + ঘাম — আগে দেখুন
-        </span>
-      </div>
-      <ul className="space-y-3 text-[14px] leading-relaxed text-ink-soft">
-        <li>
-          ৩ দিন ধরে বুকে চাপ ধরা ব্যথা, সিঁড়িতে বাড়ে
-          <SourceTagChip>রোগীর ভাষ্য</SourceTagChip>
-        </li>
-        <li>
-          রাতে ঘাম, একবার বমি ভাব
-          <SourceTagChip>অ্যাটেনডেন্টের ভাষ্য</SourceTagChip>
-        </li>
-        <li>
-          Tab. Amlodipine 5mg — ০+০+১ চলছে
-          <SourceTagChip>Rx ছবি থেকে</SourceTagChip>
-        </li>
-        <li>
-          HbA1c 7.9% (৩ মাস আগে)
-          <SourceTagChip>রিপোর্ট থেকে</SourceTagChip>
-        </li>
-      </ul>
-    </MockCard>
-  );
-}
+    <section className="landing-fade-up mx-auto max-w-7xl px-6 pb-16 md:px-10" style={{ animationDelay: "0.55s" }}>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* 1 — Voice intake */}
+        <figure className="frost-1 relative h-72 overflow-hidden rounded-2xl md:h-80">
+          <Chip className="absolute left-4 top-4">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute h-full w-full animate-ping rounded-full bg-red_flag/70" />
+              <span className="relative h-2 w-2 rounded-full bg-red_flag" />
+            </span>
+            Listening · বাংলা
+          </Chip>
+          <figcaption className="absolute inset-x-4 bottom-4">
+            <Chip>Voice intake — knows who&apos;s speaking</Chip>
+          </figcaption>
+        </figure>
 
-function ConsultMock() {
-  return (
-    <MockCard header="কনসাল্ট · লাইভ">
-      <div className="space-y-4">
-        <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-ink px-4 py-3 text-sm leading-relaxed text-paper">
-          Metformin চলমান রোগীকে contrast CT দিতে চাই — কী সাবধানতা?
-        </div>
-        <div className="max-w-[92%] rounded-2xl rounded-tl-sm bg-paper-deep/70 px-4 py-3 text-sm leading-relaxed text-ink-soft">
-          eGFR ≥ 30 হলে স্ক্যানের দিন বন্ধ রেখে ৪৮ ঘণ্টা পরে রিনাল ফাংশন
-          দেখে আবার শুরু করুন…
-          <span className="mt-3 flex flex-wrap gap-1.5">
-            <span className="rounded-full border border-glyph-600/30 bg-glyph-600/10 px-2.5 py-0.5 text-[11px] font-medium text-glyph-700">
-              UpToDate
-            </span>
-            <span className="rounded-full border border-glyph-600/30 bg-glyph-600/10 px-2.5 py-0.5 text-[11px] font-medium text-glyph-700">
-              PubMed
-            </span>
+        {/* 2 — Briefing */}
+        <figure className="frost-2 relative h-72 overflow-hidden rounded-2xl md:h-80">
+          <Chip className="absolute left-4 top-4">
+            <span className="h-2 w-2 rounded-full bg-red_flag" />
+            Red flag · chest pain + sweating
+          </Chip>
+          <figcaption className="absolute inset-x-4 bottom-4">
+            <Chip>Briefed before the patient walks in</Chip>
+          </figcaption>
+        </figure>
+
+        {/* 3 — Signed prescription */}
+        <figure className="frost-3 relative h-72 overflow-hidden rounded-2xl md:h-80">
+          <span className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl bg-white/90 shadow-sm backdrop-blur">
+            <QrCode className="h-6 w-6 text-ink" strokeWidth={1.5} />
           </span>
-        </div>
+          <figcaption className="absolute inset-x-4 bottom-4">
+            <Chip>
+              Signed Rx — verified at the pharmacy
+              <CheckCheck className="h-3.5 w-3.5 text-lime-deep" strokeWidth={2.5} />
+            </Chip>
+          </figcaption>
+        </figure>
+
+        {/* 4 — Follow-up */}
+        <figure className="frost-4 relative h-72 overflow-hidden rounded-2xl md:h-80">
+          <span className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-lime shadow-sm">
+            <Mic className="h-5 w-5 text-ink" strokeWidth={1.8} />
+          </span>
+          <figcaption className="absolute inset-x-4 bottom-4">
+            <Chip>WhatsApp follow-up · 2 days later</Chip>
+          </figcaption>
+        </figure>
       </div>
-    </MockCard>
+    </section>
   );
 }
 
-function NoteMock() {
-  return (
-    <MockCard header="ভিজিট নোট · অনুমোদনের অপেক্ষায়">
-      <dl className="space-y-2.5 text-[13.5px] leading-relaxed">
-        {[
-          ["CC", "বুকে চাপ ব্যথা ৩ দিন, পরিশ্রমে বাড়ে"],
-          ["O/E", "BP 140/90 · Pulse 96 · বুকে শ্বাসের শব্দ স্বাভাবিক"],
-          ["Ix", "ECG, Troponin-I, RBS, Lipid profile"],
-          ["Rx", "Tab. Ecosprin 75mg — ০+১+০ · চলবে"],
-          ["Advice", "ব্যথা বাড়লে দেরি না করে হাসপাতালে"],
-        ].map(([k, v]) => (
-          <div key={k} className="flex gap-3">
-            <dt className="w-14 shrink-0 font-mono text-xs font-semibold uppercase tracking-wide text-glyph-700">
-              {k}
-            </dt>
-            <dd className="text-ink-soft">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-5 flex items-start gap-2 rounded-xl bg-[#e7f7ee] px-4 py-3">
-        <span className="mt-0.5 text-[15px] leading-none">✓</span>
-        <p className="text-[13px] leading-relaxed text-ink-soft">
-          <span className="font-semibold text-ink">WhatsApp ফলো-আপ:</span>{" "}
-          “চাচা, ডাক্তারের পরামর্শমতো ওষুধগুলো চলছে তো? বুকের ব্যথা আবার হলে…”
-        </p>
-      </div>
-    </MockCard>
-  );
-}
+/* ── Marquee divider ─────────────────────────────────────────── */
 
-/* ── Trust ───────────────────────────────────────────────────── */
-
-function TrustSection() {
+function Marquee() {
   const items = [
-    {
-      icon: ShieldCheck,
-      title: "সম্মতি প্রথমে",
-      english: "Consent before anything",
-      desc: "কোনো ডেটা প্রসেস হওয়ার আগে সম্মতি রেকর্ড হয়। প্রত্যাহার করলে পরের সেকেন্ড থেকেই কার্যকর — PDPO ২০২৫ মেনে।",
-    },
-    {
-      icon: ScanLine,
-      title: "পরিচয় ছাড়া এক বাইটও বাইরে নয়",
-      english: "A fail-closed egress gate",
-      desc: "নাম, নম্বর, ঠিকানা মুছে তবেই কিছু AI-এর কাছে যায়। প্রতিটি কল অপরিবর্তনযোগ্য অডিট লগে — গেট আটকালে ডেটা যায় না, ব্যস।",
-    },
-    {
-      icon: Quote,
-      title: "প্রতিটি দাবির উৎস",
-      english: "Every claim, attributed",
-      desc: "রোগীর কথা, স্বজনের কথা, কাগজের ছবি, না গবেষণাপত্র — ব্রিফিংয়ের প্রতিটি লাইন জানে সে কোথা থেকে এসেছে।",
-    },
+    "voice-first",
+    "bangla-native",
+    "consent-first",
+    "offline-tolerant",
+    "patient-owned",
+    "pdpo 2025 ready",
+    "doctor-led",
+  ];
+  const row = items.map((t) => (
+    <span key={t} className="flex items-center gap-8 pr-8">
+      <span className="text-sm font-medium lowercase tracking-wide text-ink-faint">{t}</span>
+      <span aria-hidden="true" className="text-lime-deep">
+        ✳
+      </span>
+    </span>
+  ));
+
+  return (
+    <div className="relative overflow-hidden border-y border-bone-line bg-bone-raise/60 py-3.5" aria-hidden="true">
+      <div className="marquee-track">
+        <div className="flex">{row}</div>
+        <div className="flex">{row}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 01 — Products ───────────────────────────────────────────── */
+
+type Status = "live" | "design";
+
+function StatusChip({ status }: { status: Status }) {
+  if (status === "live") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-lime px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink">
+        <span className="h-1.5 w-1.5 rounded-full bg-ink" />
+        Live
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full border border-bone-line px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+      In design
+    </span>
+  );
+}
+
+function Products() {
+  const products: {
+    icon: typeof FlaskConical;
+    name: string;
+    status: Status;
+    desc: string;
+    audience: string;
+  }[] = [
     {
       icon: FileSignature,
-      title: "স্বাক্ষরিত প্রেসক্রিপশন",
-      english: "Cryptographically signed Rx",
-      desc: "অনুমোদিত প্রতিটি প্রেসক্রিপশন ডিজিটালি স্বাক্ষরিত — ফার্মেসিতে যাচাইযোগ্য, প্রয়োজনে প্রত্যাহারযোগ্য।",
+      name: "Prescription",
+      status: "live",
+      desc: "Digitally signed prescriptions a pharmacy counter can verify in seconds — and that revoke instantly when they should.",
+      audience: "Pharmacies · Doctors",
+    },
+    {
+      icon: FlaskConical,
+      name: "Lab",
+      status: "design",
+      desc: "Structured orders in, signed results out. AI co-interpretation for diagnostic centres of every size.",
+      audience: "Diagnostic centres",
+    },
+    {
+      icon: HeartPulse,
+      name: "Mother",
+      status: "design",
+      desc: "Schedule-driven antenatal and postpartum care with home BP monitoring — for the 3.5 million pregnancies a year.",
+      audience: "Mothers · OB-GYNs · CHWs",
+    },
+    {
+      icon: Factory,
+      name: "Factory",
+      status: "design",
+      desc: "Real workplace healthcare for garment workers — and audit-ready compliance documentation for buyers.",
+      audience: "Workers · Compliance",
+    },
+    {
+      icon: Plane,
+      name: "Migrant",
+      status: "design",
+      desc: "Asynchronous assessment and triage across borders for 13 million workers abroad — voice symptoms in Bangla, matched BD physicians.",
+      audience: "Migrant workers · Families",
+    },
+    {
+      icon: Globe2,
+      name: "Connect",
+      status: "design",
+      desc: "A patient's verified credential bundle, sent to cross-border specialists — opinions return as signed records, not PDFs.",
+      audience: "Specialists · Hospitals",
     },
   ];
 
   return (
-    <section
-      id="trust"
-      className="grain relative scroll-mt-16 overflow-hidden bg-ink text-paper"
-    >
-      <div className="mx-auto max-w-6xl px-5 py-24 md:px-8 md:py-32">
+    <section id="products" className="relative scroll-mt-10">
+      <div className="mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
         <Reveal>
-          <Eyebrow dark>আস্থা</Eyebrow>
-          <h2 className="mt-4 max-w-3xl font-display-bn text-4xl leading-[1.45] md:text-5xl md:leading-[1.4]">
-            আস্থা কোনো ফিচার নয় — কাঠামো।
-          </h2>
-          <p className="mt-4 max-w-2xl font-display text-lg italic leading-relaxed text-paper/60">
-            Trust is not a feature here. It is the architecture.
-          </p>
+          <SectionIndex index="01" label="Products" />
+          <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <h2 className="max-w-2xl font-display text-4xl font-medium leading-[1.06] tracking-[-0.02em] md:text-5xl">
+              One spine,
+              <br />
+              many products
+            </h2>
+            <p className="max-w-sm text-[15px] leading-relaxed text-ink-soft md:pb-1">
+              Every product writes to the same patient-owned clinical record.
+              Start anywhere — the history follows.
+            </p>
+          </div>
         </Reveal>
 
-        <div className="mt-16 grid gap-x-12 gap-y-12 md:grid-cols-2">
+        {/* Featured: Glyph */}
+        <Reveal className="mt-12">
+          <div className="group relative overflow-hidden rounded-3xl bg-ink p-8 text-bone md:p-12">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-lime/20 blur-3xl transition group-hover:bg-lime/30"
+            />
+            <div className="relative flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+              <div className="max-w-xl">
+                <div className="flex items-center gap-3">
+                  <Stethoscope className="h-6 w-6 text-lime" strokeWidth={1.5} />
+                  <h3 className="font-display text-3xl font-semibold tracking-tight text-bone-raise">
+                    Glyph
+                  </h3>
+                  <StatusChip status="live" />
+                </div>
+                <p className="mt-4 text-[17px] leading-relaxed text-bone/70">
+                  The clinical AI copilot for Bangladeshi doctors. It takes the
+                  patient&apos;s history in Bangla before they walk in, briefs
+                  the doctor with red flags, researches with citations during
+                  the consult, writes the note in the chamber&apos;s own format
+                  — and follows up on WhatsApp.
+                </p>
+                <ul className="mt-6 flex flex-wrap gap-2">
+                  {[
+                    "Bangla voice intake",
+                    "Reads the plastic bag",
+                    "Red-flag briefings",
+                    "Cited evidence, live",
+                    "BD-format notes",
+                    "WhatsApp follow-up",
+                  ].map((c) => (
+                    <li
+                      key={c}
+                      className="rounded-full border border-bone/20 px-3.5 py-1.5 text-[13px] text-bone/70"
+                    >
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <a
+                href="#waitlist"
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-lime px-6 py-3 text-sm font-semibold text-ink transition hover:bg-lime-deep"
+              >
+                Get Glyph for your chamber
+                <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+              </a>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* The family */}
+        <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((p, i) => (
+            <Reveal key={p.name} delay={(i % 3) * 90}>
+              <div className="flex h-full flex-col rounded-3xl border border-bone-line bg-bone-raise p-7 transition hover:border-ink/25">
+                <div className="flex items-center justify-between">
+                  <p.icon className="h-6 w-6 text-ink" strokeWidth={1.5} />
+                  <StatusChip status={p.status} />
+                </div>
+                <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">
+                  {p.name}
+                </h3>
+                <p className="mt-2.5 flex-1 text-[14.5px] leading-relaxed text-ink-soft">
+                  {p.desc}
+                </p>
+                <p className="mt-5 border-t border-bone-line pt-4 font-mono text-xs text-ink-faint">
+                  {p.audience}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── 02 — Why ────────────────────────────────────────────────── */
+
+function WhySection() {
+  const stats = [
+    { value: "1 : 1,400", label: "doctor-to-population ratio" },
+    { value: "7 min", label: "the average consultation" },
+    { value: "13M", label: "migrant workers with no clinical continuity" },
+    { value: "156", label: "maternal deaths per 100k live births" },
+  ];
+
+  return (
+    <section id="why" className="relative scroll-mt-10 border-y border-bone-line bg-bone-raise/60">
+      <div className="mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+        <Reveal>
+          <SectionIndex index="02" label="Why" />
+          <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <h2 className="max-w-2xl font-display text-4xl font-medium leading-[1.06] tracking-[-0.02em] md:text-5xl">
+              The plastic bag is
+              <br />
+              the medical record
+            </h2>
+            <p className="max-w-sm text-[15px] leading-relaxed text-ink-soft md:pb-1">
+              A patient&apos;s history lives in a bag of paper prescriptions
+              and the memory of whichever relative came along. Every visit
+              starts from zero. That isn&apos;t a record-keeping problem —
+              it&apos;s missing infrastructure.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((s, i) => (
+            <Reveal key={s.label} delay={i * 90}>
+              <div className="flex h-full flex-col justify-between gap-8 rounded-3xl border border-bone-line bg-bone p-7">
+                <span className="font-display text-4xl font-medium tracking-[-0.02em] md:text-5xl">
+                  {s.value}
+                </span>
+                <span className="text-sm leading-relaxed text-ink-soft">{s.label}</span>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── 03 — Trust ──────────────────────────────────────────────── */
+
+function TrustSection() {
+  const items = [
+    {
+      icon: Fingerprint,
+      title: "One identity for life",
+      desc: "Every patient, doctor, lab, and pharmacy holds a permanent did:web identifier. Records attach to the person — not to whichever clinic happened to see them.",
+    },
+    {
+      icon: FileSignature,
+      title: "Signed, not stored-and-trusted",
+      desc: "Every clinical event is a verifiable credential signed by whoever is authoritative for it — the doctor, the lab, the pharmacy. Tamper with it and verification fails.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Consent before computation",
+      desc: "Nothing is processed without recorded consent, and nothing identifiable leaves the clinic — a fail-closed gate strips identifiers and logs every egress. PDPO 2025 compliant.",
+    },
+    {
+      icon: PenLine,
+      title: "The doctor decides",
+      desc: "Our AI never diagnoses and never prescribes. It prepares, briefs, researches, and drafts — the clinical decision belongs to the clinician, always.",
+    },
+  ];
+
+  return (
+    <section id="trust" className="relative scroll-mt-10">
+      <div className="mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
+        <Reveal>
+          <SectionIndex index="03" label="Trust" />
+          <h2 className="mt-4 max-w-2xl font-display text-4xl font-medium leading-[1.06] tracking-[-0.02em] md:text-5xl">
+            Trust is the architecture
+          </h2>
+        </Reveal>
+
+        <div className="mt-12 grid gap-5 md:grid-cols-2">
           {items.map((item, i) => (
-            <Reveal key={item.title} delay={i * 90}>
-              <div className="flex gap-5">
-                <item.icon
-                  className="mt-1 h-6 w-6 shrink-0 text-glyph-400"
-                  strokeWidth={1.5}
-                />
+            <Reveal key={item.title} delay={(i % 2) * 90}>
+              <div className="flex h-full gap-5 rounded-3xl border border-bone-line bg-bone-raise p-7">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-lime">
+                  <item.icon className="h-5 w-5 text-ink" strokeWidth={1.8} />
+                </span>
                 <div>
-                  <h3 className="font-display-bn text-2xl leading-snug">
+                  <h3 className="font-display text-lg font-semibold tracking-tight">
                     {item.title}
                   </h3>
-                  <p className="mt-0.5 font-display text-sm italic text-paper/50">
-                    {item.english}
-                  </p>
-                  <p className="mt-3 text-[15px] leading-relaxed text-paper/75">
+                  <p className="mt-2 text-[14.5px] leading-relaxed text-ink-soft">
                     {item.desc}
                   </p>
                 </div>
@@ -567,41 +563,31 @@ function TrustSection() {
             </Reveal>
           ))}
         </div>
-
-        <Reveal className="mt-20">
-          <p className="border-t border-paper/15 pt-8 text-center font-display-bn text-xl leading-relaxed text-paper/80 md:text-2xl">
-            Glyph কখনো ডায়াগনোসিস করে না, কখনো প্রেসক্রাইব করে না।
-            <span className="mt-1 block text-glyph-400">
-              সিদ্ধান্ত সবসময় ডাক্তারের।
-            </span>
-          </p>
-        </Reveal>
       </div>
     </section>
   );
 }
 
-/* ── Waitlist ────────────────────────────────────────────────── */
+/* ── 04 — Waitlist ───────────────────────────────────────────── */
 
 function WaitlistSection() {
   return (
-    <section id="waitlist" className="grain relative scroll-mt-16 overflow-hidden">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-24 md:grid-cols-2 md:gap-20 md:px-8 md:py-32">
+    <section id="waitlist" className="relative scroll-mt-10 border-t border-bone-line bg-bone-raise/60">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 md:grid-cols-2 md:gap-20 md:px-10 md:py-28">
         <Reveal>
-          <Eyebrow>পাইলট · ২০২৬</Eyebrow>
-          <h2 className="mt-4 font-display-bn text-4xl leading-[1.45] md:text-5xl md:leading-[1.4]">
-            শুরু হচ্ছে ঢাকায়।
-            <br />
-            অল্প কিছু চেম্বার দিয়ে।
+          <SectionIndex index="04" label="Join" />
+          <h2 className="mt-4 font-display text-4xl font-medium leading-[1.06] tracking-[-0.02em] md:text-5xl">
+            Starting in Dhaka,
+            <br />a few chambers at a time
           </h2>
-          <p className="mt-5 max-w-md font-display text-lg italic leading-relaxed text-ink-soft">
-            We are onboarding a small number of chambers first — so each one
-            gets it right. Your spot in line is your spot in the pilot.
+          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-soft">
+            We onboard slowly so each chamber gets it right. Your spot in
+            line is your spot in the pilot.
           </p>
         </Reveal>
 
         <Reveal delay={120}>
-          <div className="rounded-3xl border border-paper-line bg-paper-deep/40 p-6 md:p-8">
+          <div className="rounded-3xl border border-bone-line bg-bone p-6 md:p-8">
             <WaitlistForm />
           </div>
         </Reveal>
@@ -614,23 +600,23 @@ function WaitlistSection() {
 
 function Footer() {
   return (
-    <footer className="border-t border-paper-line">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-5 py-10 text-sm text-ink-faint md:flex-row md:px-8">
-        <div className="flex items-baseline gap-2">
-          <span className="font-display text-lg font-semibold tracking-tight text-ink">
-            Glyph
+    <footer className="border-t border-bone-line">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-10 text-sm text-ink-faint md:flex-row md:px-10">
+        <div className="flex items-baseline gap-2.5">
+          <span className="font-display text-base font-semibold lowercase tracking-tight text-ink">
+            kham<span className="text-lime-deep">°</span>
           </span>
-          <span>by KhaM Health · ঢাকা</span>
+          <span>Dhaka, Bangladesh</span>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
           <Link href="/login" className="transition hover:text-ink">
-            ডাক্তার লগইন
+            Doctor login
           </Link>
           <Link href="/start" className="transition hover:text-ink">
-            ক্লিনিক ট্যাবলেট
+            Clinic tablet
           </Link>
           <Link href="/pharmacy" className="transition hover:text-ink">
-            ফার্মেসি ভেরিফাই
+            Pharmacy verify
           </Link>
         </div>
         <p>© {new Date().getFullYear()} KhaM Health</p>
