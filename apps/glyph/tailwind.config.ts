@@ -26,6 +26,17 @@ const config: Config = {
           muted: "#64748b",
         },
         red_flag: "#dc2626",
+        /* Landing page palette — warm editorial paper + deep clinical ink */
+        paper: {
+          DEFAULT: "#faf8f2",
+          deep: "#f1ecdf",
+          line: "#e3dcc9",
+        },
+        ink: {
+          DEFAULT: "#15241c",
+          soft: "#41524a",
+          faint: "#71807a",
+        },
         /* CSS-variable-driven semantic colors (set in globals.css :root) */
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -61,6 +72,9 @@ const config: Config = {
         sans: ["Inter", "Noto Sans Bengali", "sans-serif"],
         bangla: ["Noto Sans Bengali", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+        /* Landing display faces — editorial serifs, Latin + Bangla */
+        display: ["Fraunces", "Georgia", "serif"],
+        "display-bn": ["Tiro Bangla", "Noto Sans Bengali", "serif"],
       },
       animation: {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",

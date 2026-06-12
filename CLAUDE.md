@@ -110,7 +110,8 @@ Glyph/
 │   │   ├── 001_initial_schema.sql  # All 8 tables, RLS, triggers
 │   │   ├── 002_identity_layer.sql  # INSERT-only credentials, versioned did_documents, status log, projection freeze
 │   │   ├── 003_egress_log.sql      # append-only egress evidence (the M4 gate's audit trail)
-│   │   └── 004_document_storage.sql # private `documents` bucket + clinic-scoped storage RLS
+│   │   ├── 004_document_storage.sql # private `documents` bucket + clinic-scoped storage RLS
+│   │   └── 005_waitlist.sql        # waitlist_signups: RLS deny-all (service-role only via /api/waitlist)
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -144,13 +145,17 @@ Glyph/
     └── src/
         ├── app/
         │   ├── layout.tsx          # <html lang="bn">, sonner Toaster
-        │   ├── page.tsx            # Landing: Doctor Login / রোগী ইনটেক শুরু করুন
+        │   ├── page.tsx            # MARKETING LANDING ("Editorial Bangla"): bilingual hero w/ matra
+        │   │                       # animation, before/during/after acts, trust section, waitlist form.
+        │   │                       # Bilingual-inline copy is deliberate (not the t() convention).
+        │   ├── start/page.tsx      # Role selection (was the old root): Doctor Login / রোগী ইনটেক — clinic tablets use this
         │   ├── login/page.tsx      # email+password pilot auth (accounts via scripts/create-doctor.mjs)
         │   ├── pharmacy/page.tsx   # M5 verify loop: phone → DID → ✓ dispensable / ✗ revoked
         │   ├── .well-known/did/[...slug]/route.ts  # public did:web resolution
         │   ├── api/[...path]/route.ts   # Catch-all proxy → Supabase Edge Functions
         │   ├── api/verify/route.ts      # credential verification (local fast-path + status overlay)
         │   ├── api/visits/approve-note/route.ts  # note approval → Rx + VisitNote credentials (one-shot)
+        │   ├── api/waitlist/route.ts    # public (unauthenticated) waitlist signup: honeypot, phone-dedupe, service-role insert
         │   ├── intake/
         │   │   ├── layout.tsx
         │   │   ├── page.tsx             # role selection + patient registration (registerAndStartVisit)
@@ -231,6 +236,7 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 | `lab_reports` | Same pattern as prescriptions + `test_category`, `results JSONB` | — |
 | `consent_records` | `consent_type` enum: `recording`, `data_storage`, `ai_processing`, `image_capture`, `whatsapp_followup`, `data_sharing`; `granted_by` ∈ {patient, attendant, guardian} | Tracks withdrawal + device info for PDPO audit |
 | `api_usage_log` | `edge_function`, `model_used`, `was_fallback`, input/output tokens, latency, cost, error | Populated by `cost-logger.ts` |
+| `waitlist_signups` | `name`, `phone` (unique, canonical `01X…`), `role` (doctor/clinic/pharmacy/other), `district`, `bmdc_reg_no`, `status` | Migration 005. RLS enabled with ZERO policies — service-role only, written by `/api/waitlist` |
 
 **Indexes:** on `visits(patient_id|doctor_id|visit_date DESC|status|clinic_id,visit_date)`, `prescriptions(patient_id)`, `lab_reports(patient_id|category)`, `patients(phone|clinic_id)`, `consent_records(patient_id)`, `api_usage_log(visit_id)`.
 

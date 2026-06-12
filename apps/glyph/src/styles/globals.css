@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap");
+/* Landing display faces: Tiro Bangla (Bengali editorial serif) + Fraunces (Latin editorial serif) */
+@import url("https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,340..620;1,9..144,340..620&display=swap");
 
 @layer base {
   :root {
@@ -69,5 +71,107 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Landing page — "Editorial Bangla"
+   The hero headline is written the way Bengali is written: the matra
+   (headstroke) draws across first, and the letters appear behind the
+   pen. One orchestrated load; everything else is restraint.
+   ──────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Paper grain: tiny SVG turbulence, multiplied into the warm bg */
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.52 0 0 0 0 0.45 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* The matra line: draws left → right like a pen stroke, then dissolves
+     into the letters' own matra (delay via --matra-delay, not
+     animation-delay, because the two animations need different offsets) */
+  .matra-line {
+    position: absolute;
+    top: 0.16em;
+    left: 0;
+    width: 100%;
+    height: 0.05em;
+    background: currentColor;
+    border-radius: 999px;
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation:
+      matra-draw 0.9s var(--matra-delay, 0s) cubic-bezier(0.65, 0, 0.35, 1) forwards,
+      matra-fade 0.7s calc(var(--matra-delay, 0s) + 1s) ease forwards;
+  }
+
+  /* The letters: revealed by the passing pen (same timing as the line) */
+  .matra-text {
+    display: inline-block;
+    clip-path: inset(-0.3em 100% -0.35em 0);
+    animation: pen-reveal 0.9s var(--matra-delay, 0s) cubic-bezier(0.65, 0, 0.35, 1)
+      forwards;
+  }
+
+  .landing-fade-up {
+    opacity: 0;
+    transform: translateY(14px);
+    animation: landing-fade-up 0.8s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  }
+
+  /* Scroll-triggered reveal (driven by the Reveal client component) */
+  .reveal-pending {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.9s cubic-bezier(0.33, 1, 0.68, 1),
+      transform 0.9s cubic-bezier(0.33, 1, 0.68, 1);
+  }
+  .reveal-shown {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .matra-line,
+    .matra-text,
+    .landing-fade-up {
+      animation-duration: 0.01s !important;
+      animation-delay: 0s !important;
+    }
+    .reveal-pending {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+}
+
+@keyframes matra-draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pen-reveal {
+  to {
+    clip-path: inset(-0.3em -0.15em -0.35em 0);
+  }
+}
+
+@keyframes matra-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-fade-up {
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
