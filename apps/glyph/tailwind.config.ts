@@ -26,6 +26,22 @@ const config: Config = {
           muted: "#64748b",
         },
         red_flag: "#dc2626",
+        /* Landing palette — sampled from the founder's reference image:
+           canvas #F6F6F6, backdrop steel-teal #9DB7B8, accent #DFF258 */
+        ink: {
+          DEFAULT: "#171a19",
+          soft: "#4e5755",
+          faint: "#7e8784",
+        },
+        bone: {
+          DEFAULT: "#f4f5f3",
+          raise: "#fbfbfa",
+          line: "#e2e4e0",
+        },
+        lime: {
+          DEFAULT: "#dff258",
+          deep: "#c4dd2e",
+        },
         /* CSS-variable-driven semantic colors (set in globals.css :root) */
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -61,6 +77,8 @@ const config: Config = {
         sans: ["Inter", "Noto Sans Bengali", "sans-serif"],
         bangla: ["Noto Sans Bengali", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+        /* Landing display face — refined grotesque, sentence-case */
+        display: ["Instrument Sans", "Inter", "sans-serif"],
       },
       animation: {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
