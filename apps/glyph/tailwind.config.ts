@@ -26,20 +26,21 @@ const config: Config = {
           muted: "#64748b",
         },
         red_flag: "#dc2626",
-        /* Landing palette — bone sheet, near-black ink, chartreuse accent */
+        /* Landing palette — sampled from the founder's reference image:
+           canvas #F6F6F6, backdrop steel-teal #9DB7B8, accent #DFF258 */
         ink: {
-          DEFAULT: "#161d1a",
-          soft: "#4c5a54",
-          faint: "#7d8a83",
+          DEFAULT: "#171a19",
+          soft: "#4e5755",
+          faint: "#7e8784",
         },
         bone: {
-          DEFAULT: "#edeee8",
-          raise: "#f7f8f4",
-          line: "#d9dbd1",
+          DEFAULT: "#f4f5f3",
+          raise: "#fbfbfa",
+          line: "#e2e4e0",
         },
         lime: {
-          DEFAULT: "#d7ef3e",
-          deep: "#b8d41f",
+          DEFAULT: "#dff258",
+          deep: "#c4dd2e",
         },
         /* CSS-variable-driven semantic colors (set in globals.css :root) */
         background: "hsl(var(--background))",

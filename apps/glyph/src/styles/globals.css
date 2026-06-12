@@ -81,39 +81,40 @@
    accent, frosted gallery cards with overlay chips.
    ──────────────────────────────────────────────────────────────── */
 @layer utilities {
-  /* The page backdrop behind the bone sheet */
+  /* The page backdrop behind the bone sheet — sampled steel-teal
+     (#9FB8BC / #9DB7B8 / #A2B6B7) with soft radial variation */
   .scene {
     background:
-      radial-gradient(60rem 40rem at 12% -10%, #c7d3c6 0%, transparent 60%),
-      radial-gradient(50rem 36rem at 95% 15%, #aebfc0 0%, transparent 55%),
-      radial-gradient(70rem 50rem at 50% 110%, #b6c2b4 0%, transparent 60%),
-      linear-gradient(165deg, #c2cdc3 0%, #a9bab8 48%, #becab9 100%);
+      radial-gradient(55rem 38rem at 10% -8%, #aac2c4 0%, transparent 60%),
+      radial-gradient(48rem 34rem at 96% 20%, #93acaf 0%, transparent 55%),
+      radial-gradient(64rem 46rem at 45% 112%, #a7bab8 0%, transparent 60%),
+      linear-gradient(168deg, #a3bbbd 0%, #9db7b8 50%, #a2b6b7 100%);
   }
 
-  /* Frosted "photography" stand-ins for the gallery cards */
+  /* Frosted fallbacks behind the gallery photography (steel-teal family) */
   .frost-1 {
     background:
-      radial-gradient(22rem 18rem at 30% 25%, #9db4ad 0%, transparent 70%),
-      radial-gradient(20rem 22rem at 80% 80%, #7e98a0 0%, transparent 65%),
-      linear-gradient(160deg, #c5d2cb 0%, #8aa39e 100%);
+      radial-gradient(22rem 18rem at 30% 25%, #a3bcbd 0%, transparent 70%),
+      radial-gradient(20rem 22rem at 80% 80%, #7f9aa1 0%, transparent 65%),
+      linear-gradient(160deg, #ccd9d8 0%, #8ea8a9 100%);
   }
   .frost-2 {
     background:
-      radial-gradient(20rem 16rem at 70% 20%, #b9c8d2 0%, transparent 65%),
-      radial-gradient(24rem 20rem at 20% 90%, #6f8894 0%, transparent 70%),
-      linear-gradient(200deg, #cdd8da 0%, #7d949b 100%);
+      radial-gradient(20rem 16rem at 70% 20%, #b5c8d0 0%, transparent 65%),
+      radial-gradient(24rem 20rem at 20% 90%, #6f8a94 0%, transparent 70%),
+      linear-gradient(200deg, #cfdadc 0%, #7e959c 100%);
   }
   .frost-3 {
     background:
-      radial-gradient(18rem 20rem at 25% 70%, #a4b6c4 0%, transparent 65%),
-      radial-gradient(22rem 18rem at 85% 25%, #d4dde0 0%, transparent 60%),
-      linear-gradient(150deg, #e3e9e8 0%, #93a8b2 100%);
+      radial-gradient(18rem 20rem at 25% 70%, #a2b5c2 0%, transparent 65%),
+      radial-gradient(22rem 18rem at 85% 25%, #d6dfe1 0%, transparent 60%),
+      linear-gradient(150deg, #e4eae9 0%, #92a8b1 100%);
   }
   .frost-4 {
     background:
-      radial-gradient(20rem 18rem at 75% 75%, #94aa9c 0%, transparent 65%),
-      radial-gradient(18rem 16rem at 20% 20%, #ccd9cd 0%, transparent 60%),
-      linear-gradient(170deg, #d7dfd5 0%, #849a8e 100%);
+      radial-gradient(20rem 18rem at 75% 75%, #93aaa9 0%, transparent 65%),
+      radial-gradient(18rem 16rem at 20% 20%, #cdd9d6 0%, transparent 60%),
+      linear-gradient(170deg, #d8dfdc 0%, #879c99 100%);
   }
 
   /* Soft paper grain on the bone sheet */

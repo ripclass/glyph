@@ -145,11 +145,15 @@ Glyph/
     └── src/
         ├── app/
         │   ├── layout.tsx          # <html lang="bn">, sonner Toaster
-        │   ├── page.tsx            # COMPANY LANDING ("quiet clinical", per founder's nion reference):
-        │   │                       # bone sheet on sage gradient scene, Instrument Sans, lime accent,
-        │   │                       # frosted gallery, product family (Glyph live + 6 in design),
-        │   │                       # waitlist. English-first by founder decision (2026-06-12) —
-        │   │                       # Bangla returns later as an art-directed layer, possibly paid type.
+        │   ├── page.tsx            # COMPANY LANDING ("quiet clinical", color-matched to founder's
+        │   │                       # reference: canvas #F6F6F6, scene #9DB7B8, lime #DFF258).
+        │   │                       # NO product status labels here (founder rule) — status lives in
+        │   │                       # prose on the product pages. English-first (founder decision);
+        │   │                       # KhaM casing is sacred (named for Khayer + Mamataj).
+        │   ├── [product]/page.tsx  # Editorial product landings (/glyph /network /prescription /lab
+        │   │                       # /mother /factory /migrant /connect) for policy/gov/donor readers.
+        │   │                       # Content in lib/landing/products.ts; dynamicParams=false (404 else).
+        │   │                       # Hero images: AI-generated (Higgsfield soul_2) in public/landing/.
         │   ├── start/page.tsx      # Role selection (was the old root): Doctor Login / রোগী ইনটেক — clinic tablets use this
         │   ├── login/page.tsx      # email+password pilot auth (accounts via scripts/create-doctor.mjs)
         │   ├── pharmacy/page.tsx   # M5 verify loop: phone → DID → ✓ dispensable / ✗ revoked
