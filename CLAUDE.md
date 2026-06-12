@@ -152,7 +152,7 @@ Glyph/
         │   │                       # KhaM casing is sacred (named for Khayer + Mamataj).
         │   ├── [product]/page.tsx  # Editorial product landings for policy/gov/donor readers, condensed
         │   │                       # from the founder's 11 product docs (feature-*.md, repo root,
-        │   │                       # UNTRACKED): /chamber /pocket /pharmacy /lens /continuity /suta
+        │   │                       # UNTRACKED): /chamber /pocket /pharmacy /lens /continuity /karigor
         │   │                       # /maa /hospital /bridge /identity /kham-med. Content in
         │   │                       # lib/landing/products.ts; dynamicParams=false. NO em dashes in
         │   │                       # copy (founder voice rule). Brand: Glyph = product family,

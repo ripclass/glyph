@@ -297,13 +297,13 @@ export const PRODUCTS: ProductContent[] = [
     audience: "Migrant workers · Families · BMET · Missions abroad",
   },
   {
-    slug: "suta",
-    name: "Glyph Suta",
+    slug: "karigor",
+    name: "Glyph Karigor",
     codename: "the garment worker's interface",
-    headline: "The thread that follows her",
+    headline: "Care for the hands that clothe the world",
     standfirst:
-      "A sewing operator in Ashulia, 26 years old, eight years on the line. Her back aches by mid-morning; her eyes burn by evening. There is a medical room downstairs, the law put it there, but going means losing her hourly production target, and the room exists mostly for the buyer audits anyway. So she buys Panadol and keeps sewing. She is newly pregnant and has told no one at the factory, because she has watched what happens to women who tell. Suta is the thread: her health, recorded, hers, running through her working life and following her wherever she goes next.",
-    image: "/landing/suta.webp",
+      "A sewing operator in Ashulia, 26 years old, eight years on the line. Her back aches by mid-morning; her eyes burn by evening. There is a medical room downstairs, the law put it there, but going means losing her hourly production target, and the room exists mostly for the buyer audits anyway. So she buys Panadol and keeps sewing. She is newly pregnant and has told no one at the factory, because she has watched what happens to women who tell. She is a karigor, an artisan, and Karigor is built for her: her health, recorded, hers, following her wherever she goes next.",
+    image: "/landing/karigor.webp",
     imageAlt: "A young garment worker, sewing floor behind her",
     sections: [
       {
@@ -312,16 +312,16 @@ export const PRODUCTS: ProductContent[] = [
         body: [
           "Bangladesh's export garment industry employs about 3 million workers across 3,555 verified factories, a majority of them women, though the female share has fallen from 80% in the early years to near 52% today. The reasons women leave are documented: childcare, pregnancy, and discrimination for being pregnant. Pregnancy concealment is not an edge case. It is a documented exit driver, and it defines this product's confidentiality architecture.",
           "The law already mandates the infrastructure. The Labour Act 2006 requires medical facilities scaled to workforce size, up to permanent medical centres and multiple physicians for the largest plants, with occupational injury treated at the employer's expense until cure. The published assessment is consistent: low awareness, uneven compliance, weak enforcement, and the starkest finding of all, workers do not use the rooms. A compliance artifact is not a care system.",
-          "What works has already been demonstrated. The HERhealth program, evaluated in Bangladeshi factories, moved health knowledge and behavior measurably, and the active ingredient was not a better doctor or a better room. It was a trusted peer, on the floor, during work hours. Suta is that finding, given a clinical backbone.",
+          "What works has already been demonstrated. The HERhealth program, evaluated in Bangladeshi factories, moved health knowledge and behavior measurably, and the active ingredient was not a better doctor or a better room. It was a trusted peer, on the floor, during work hours. Karigor is that finding, given a clinical backbone.",
         ],
       },
       {
         index: "02",
-        heading: "What Suta does",
+        heading: "What Karigor does",
         body: [
           "In each participating factory, the medical room is staffed by a Glyph-trained health assistant, in most factories a woman recruited the HERhealth way, equipped with a tablet, a BP cuff, a glucometer, and KhaM-Med guidance in Bangla. She captures structured vitals and complaints in minutes, between production targets. KhaM-Med routes what she captures: self-care guidance relayed in plain Bangla, escalation to a remote physician for asynchronous review, or urgent referral out. The mandated room finally has a function the worker has a reason to enter.",
           "Every encounter writes to the worker's own wallet. Management never sees clinical content. This line is absolute because the evidence demands it: in a sector where pregnancy discrimination drives exits, a factory-readable health record would be a weapon against the women it claims to serve. The early-pregnancy consultation and the reproductive-health question are shielded categories, visible to the worker and her chosen clinicians only.",
-          "What management receives instead is what it actually needs and the buyer actually audits: compliance documentation as signed credentials, the staffed room, the encounters happening, occupational injuries tracked to resolution, plus de-identified aggregate trends with small-count suppression. Individual records, never. And when she leaves at 35, her decade of occupational health history leaves with her: the documented back injury that becomes a disability claim, the respiratory baseline a future doctor needs. Today that history evaporates at the factory gate. Under Suta it is hers.",
+          "What management receives instead is what it actually needs and the buyer actually audits: compliance documentation as signed credentials, the staffed room, the encounters happening, occupational injuries tracked to resolution, plus de-identified aggregate trends with small-count suppression. Individual records, never. And when she leaves at 35, her decade of occupational health history leaves with her: the documented back injury that becomes a disability claim, the respiratory baseline a future doctor needs. Today that history evaporates at the factory gate. Under Karigor it is hers.",
         ],
         pullQuote: "The factory pays for compliance proof. The worker owns the record. The line never moves.",
       },
@@ -329,14 +329,14 @@ export const PRODUCTS: ProductContent[] = [
         index: "03",
         heading: "Economics",
         body: [
-          "The factory pays Tk 15,000 to 30,000 per month per facility, priced against what it already spends on a mandated room that delivers audit theater, and against the cost of a failed social audit. The sale rests on compliance made provable, on absenteeism and attrition in a workforce that exits by 40, and on the simple fact that the room is a sunk cost Suta makes work. The worker pays nothing, ever. Brand- and buyer-funded deployment is the scaling path: the same EU buyers now implementing Digital Product Passport requirements are the natural demand side for verifiable worker-health compliance, and the factory's existing digital identity for product provenance can anchor its health-compliance credentials too, with the worker's clinical data never crossing that bridge.",
+          "The factory pays Tk 15,000 to 30,000 per month per facility, priced against what it already spends on a mandated room that delivers audit theater, and against the cost of a failed social audit. The sale rests on compliance made provable, on absenteeism and attrition in a workforce that exits by 40, and on the simple fact that the room is a sunk cost Karigor makes work. The worker pays nothing, ever. Brand- and buyer-funded deployment is the scaling path: the same EU buyers now implementing Digital Product Passport requirements are the natural demand side for verifiable worker-health compliance, and the factory's existing digital identity for product provenance can anchor its health-compliance credentials too, with the worker's clinical data never crossing that bridge.",
         ],
       },
       {
         index: "04",
         heading: "Where it stands",
         body: [
-          "Designed, not built. Suta inherits the assisted-capture flow, the asynchronous physician queue, the wallet, and the identity layer. The first pilot is one factory in the 1,000 to 3,000 worker range, one trained health assistant, a small female-physician review panel, and two measured questions: do workers use the room more than the Panadol baseline, and does management keep its hands off the clinical data when the architecture says it must.",
+          "Designed, not built. Karigor inherits the assisted-capture flow, the asynchronous physician queue, the wallet, and the identity layer. The first pilot is one factory in the 1,000 to 3,000 worker range, one trained health assistant, a small female-physician review panel, and two measured questions: do workers use the room more than the Panadol baseline, and does management keep its hands off the clinical data when the architecture says it must.",
         ],
       },
     ],
@@ -367,7 +367,7 @@ export const PRODUCTS: ProductContent[] = [
         index: "02",
         heading: "What Maa does",
         body: [
-          "Enrollment happens at first contact, wherever that is: a Chamber doctor, a community health worker, a Suta health assistant in a garment factory, or self-enrollment through Pocket. The pregnancy record opens with a care schedule, and WHO-aligned visit reminders go by WhatsApp in plain Bangla to the mother and her family circle, because the husband and mother-in-law decide whether she travels to a visit.",
+          "Enrollment happens at first contact, wherever that is: a Chamber doctor, a community health worker, a Karigor health assistant in a garment factory, or self-enrollment through Pocket. The pregnancy record opens with a care schedule, and WHO-aligned visit reminders go by WhatsApp in plain Bangla to the mother and her family circle, because the husband and mother-in-law decide whether she travels to a visit.",
           "Blood-pressure surveillance is the spine. Every contact captures a reading: a CHW visit, a pharmacy corner, a factory medical room, a neighbor's cuff. KhaM-Med watches the trend, not the single value. A climbing trajectory triggers escalation under national protocol, and the receiving facility, where connected, sees her record and her warning before she arrives. Surveillance does not stop at delivery; the 48-hour postpartum window has its own schedule.",
           "When escalation fires, Maa answers the question no awareness campaign can: where. Which reachable facility actually stocks magnesium sulfate, which actually staffs emergency obstetric care, which is being notified now. The woman who today arrives as a stranger at her third facility arrives instead as an expected patient at the right first one. And delivery closes one record while opening another: the newborn's identity, birth details, and immunization schedule, a health record that begins at birth.",
         ],
@@ -470,7 +470,7 @@ export const PRODUCTS: ProductContent[] = [
         index: "03",
         heading: "Bridge's honest role in the ecosystem",
         body: [
-          "Bridge serves the families who can contemplate 5,000 to 30,000 dollars of foreign treatment, and it is priced accordingly: second opinions at market rates, bundle preparation at Tk 3,000 to 8,000, diaspora-billed in foreign currency. Its role is stated plainly: Bridge is the ecosystem's paying tier and a cross-subsidy engine. Every Bridge fee helps pay for Maa cuffs and Suta tablets. It is not the mission. It funds the mission, and the product documents say so in writing, because stating it is the cheapest governance mechanism available.",
+          "Bridge serves the families who can contemplate 5,000 to 30,000 dollars of foreign treatment, and it is priced accordingly: second opinions at market rates, bundle preparation at Tk 3,000 to 8,000, diaspora-billed in foreign currency. Its role is stated plainly: Bridge is the ecosystem's paying tier and a cross-subsidy engine. Every Bridge fee helps pay for Maa cuffs and Karigor tablets. It is not the mission. It funds the mission, and the product documents say so in writing, because stating it is the cheapest governance mechanism available.",
         ],
       },
       {

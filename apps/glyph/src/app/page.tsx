@@ -320,8 +320,8 @@ function Products() {
     },
     {
       icon: Shirt,
-      name: "Suta",
-      slug: "suta",
+      name: "Karigor",
+      slug: "karigor",
       desc: "A working medical room on the factory floor. The worker owns her record; the factory gets verifiable compliance. The line never moves.",
       audience: "Garment workers · Brands",
     },
