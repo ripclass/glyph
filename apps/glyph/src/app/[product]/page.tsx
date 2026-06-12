@@ -172,16 +172,24 @@ export default function ProductPage({
               </h2>
               <p className="mt-3 max-w-md text-[15px] leading-relaxed text-ink-soft">
                 We work with clinicians, institutions, regulators, and funders.
-                The pilot waitlist is the fastest way to reach us.
+                Join the pilot waitlist, or write to us directly.
               </p>
             </div>
-            <a
-              href="/#waitlist"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-bone-raise transition hover:bg-ink-soft"
-            >
-              Join the pilot waitlist
-              <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
-            </a>
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
+              <a
+                href="/#waitlist"
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-bone-raise transition hover:bg-ink-soft"
+              >
+                Join the pilot waitlist
+                <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+              </a>
+              <a
+                href="mailto:hello@khamhealth.com"
+                className="inline-flex items-center gap-2 rounded-full border border-ink/20 px-6 py-3.5 text-base font-medium text-ink transition hover:border-ink/50"
+              >
+                hello@khamhealth.com
+              </a>
+            </div>
           </div>
         </section>
 
