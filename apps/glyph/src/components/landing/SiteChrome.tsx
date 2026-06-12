@@ -60,6 +60,9 @@ export function SiteFooter() {
           <span>Dhaka, Bangladesh</span>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+          <a href="mailto:hello@khamhealth.com" className="transition hover:text-ink">
+            hello@khamhealth.com
+          </a>
           <Link href="/login" className="transition hover:text-ink">
             Doctor login
           </Link>

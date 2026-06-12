@@ -633,6 +633,15 @@ function WaitlistSection() {
             We onboard slowly so each chamber gets it right. Your spot in
             line is your spot in the pilot.
           </p>
+          <p className="mt-4 text-[15px] text-ink-soft">
+            Institutions, regulators, and funders: write to{" "}
+            <a
+              href="mailto:hello@khamhealth.com"
+              className="font-medium text-ink underline decoration-lime decoration-2 underline-offset-4 transition hover:decoration-lime-deep"
+            >
+              hello@khamhealth.com
+            </a>
+          </p>
         </Reveal>
 
         <Reveal delay={120}>
