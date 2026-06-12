@@ -150,13 +150,18 @@ Glyph/
         │   │                       # NO product status labels here (founder rule) — status lives in
         │   │                       # prose on the product pages. English-first (founder decision);
         │   │                       # KhaM casing is sacred (named for Khayer + Mamataj).
-        │   ├── [product]/page.tsx  # Editorial product landings (/glyph /network /prescription /lab
-        │   │                       # /mother /factory /migrant /connect) for policy/gov/donor readers.
-        │   │                       # Content in lib/landing/products.ts; dynamicParams=false (404 else).
+        │   ├── [product]/page.tsx  # Editorial product landings for policy/gov/donor readers, condensed
+        │   │                       # from the founder's 11 product docs (feature-*.md, repo root,
+        │   │                       # UNTRACKED): /chamber /pocket /pharmacy /lens /continuity /suta
+        │   │                       # /maa /hospital /bridge /identity /kham-med. Content in
+        │   │                       # lib/landing/products.ts; dynamicParams=false. NO em dashes in
+        │   │                       # copy (founder voice rule). Brand: Glyph = product family,
+        │   │                       # KhaM-Med = sovereign model, KhaM Labs = house.
         │   │                       # Hero images: AI-generated (Higgsfield soul_2) in public/landing/.
         │   ├── start/page.tsx      # Role selection (was the old root): Doctor Login / রোগী ইনটেক — clinic tablets use this
         │   ├── login/page.tsx      # email+password pilot auth (accounts via scripts/create-doctor.mjs)
-        │   ├── pharmacy/page.tsx   # M5 verify loop: phone → DID → ✓ dispensable / ✗ revoked
+        │   ├── verify/page.tsx     # M5 pharmacy verify loop (moved from /pharmacy, which is now the
+        │   │                       # marketing page): phone → DID → ✓ dispensable / ✗ revoked
         │   ├── .well-known/did/[...slug]/route.ts  # public did:web resolution
         │   ├── api/[...path]/route.ts   # Catch-all proxy → Supabase Edge Functions
         │   ├── api/verify/route.ts      # credential verification (local fast-path + status overlay)

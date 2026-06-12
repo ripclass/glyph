@@ -41,11 +41,11 @@ export function WaitlistForm() {
         setStatus("done");
       } else {
         setStatus("idle");
-        setError(data.error ?? "Something went wrong — please try again");
+        setError(data.error ?? "Something went wrong. Please try again");
       }
     } catch {
       setStatus("idle");
-      setError("Network problem — please try again");
+      setError("Network problem. Please try again");
     }
   }
 
@@ -57,7 +57,7 @@ export function WaitlistForm() {
           You&apos;re on the list.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          We onboard a small number of chambers at a time — you&apos;ll hear
+          We onboard a small number of chambers at a time. You&apos;ll hear
           from us first when your spot opens.
         </p>
       </div>
@@ -149,7 +149,7 @@ export function WaitlistForm() {
       </button>
 
       <p className="text-center text-xs leading-relaxed text-ink-faint">
-        Your number is used for pilot updates only — nothing else.
+        Your number is used for pilot updates only, nothing else.
       </p>
     </form>
   );

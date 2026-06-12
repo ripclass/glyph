@@ -29,7 +29,7 @@ export function generateMetadata({
   const product = getProduct(params.product);
   if (!product) return {};
   return {
-    title: `${product.name} — ${product.headline} | KhaM Health`,
+    title: `${product.name} · ${product.headline} | KhaM Health`,
     description: product.standfirst,
     openGraph: {
       title: `${product.name} by KhaM Health`,

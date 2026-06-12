@@ -15,12 +15,12 @@ export function SiteNav() {
         </Link>
 
         <div className="hidden items-center gap-7 text-sm text-ink-soft md:flex">
-          <Link href="/glyph" className="transition hover:text-ink">
-            Glyph
+          <Link href="/chamber" className="transition hover:text-ink">
+            Chamber
           </Link>
           <a href="/#products" className="transition hover:text-ink">
             Products
-            <sup className="ml-0.5 font-mono text-[10px] text-ink-faint">8</sup>
+            <sup className="ml-0.5 font-mono text-[10px] text-ink-faint">11</sup>
           </a>
           <a href="/#why" className="transition hover:text-ink">
             Why
@@ -66,12 +66,15 @@ export function SiteFooter() {
           <Link href="/start" className="transition hover:text-ink">
             Clinic tablet
           </Link>
-          <Link href="/pharmacy" className="transition hover:text-ink">
-            Pharmacy verify
+          <Link href="/verify" className="transition hover:text-ink">
+            Verify a prescription
           </Link>
         </div>
-        <p>© {new Date().getFullYear()} KhaM Health</p>
+        <p>© {new Date().getFullYear()} KhaM Health · KhaM Labs Inc.</p>
       </div>
+      <p className="border-t border-bone-line py-5 text-center font-display text-[13px] italic text-ink-faint">
+        In memory of Khayer and Mamataj.
+      </p>
     </footer>
   );
 }
