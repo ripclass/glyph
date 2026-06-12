@@ -144,10 +144,19 @@ function Chip({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full bg-white/85 px-3.5 py-2 text-[12px] font-medium text-ink shadow-sm backdrop-blur ${className}`}
+      className={`inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/40 px-3.5 py-2 text-[12px] font-medium text-ink shadow-sm backdrop-blur-md ${className}`}
     >
       {children}
     </span>
+  );
+}
+
+/** The Apple-style frost: a glass band over the (clean, sharp) photo */
+function GlassBand({ children }: { children: React.ReactNode }) {
+  return (
+    <figcaption className="absolute inset-x-3 bottom-3 rounded-xl border border-white/45 bg-white/30 px-4 py-3 text-[12.5px] font-medium leading-snug text-ink shadow-sm backdrop-blur-lg">
+      {children}
+    </figcaption>
   );
 }
 
@@ -174,9 +183,7 @@ function Gallery() {
             </span>
             Listening · বাংলা
           </Chip>
-          <figcaption className="absolute inset-x-4 bottom-4">
-            <Chip>Voice intake — knows who&apos;s speaking</Chip>
-          </figcaption>
+          <GlassBand>Voice intake — knows who&apos;s speaking</GlassBand>
         </figure>
 
         {/* 2 — Early warning */}
@@ -192,9 +199,7 @@ function Gallery() {
             <span className="h-2 w-2 rounded-full bg-red_flag" />
             Red flag · BP 150/95 at week 28
           </Chip>
-          <figcaption className="absolute inset-x-4 bottom-4">
-            <Chip>Caught on schedule, not in the ER</Chip>
-          </figcaption>
+          <GlassBand>Caught on schedule, not in the ER</GlassBand>
         </figure>
 
         {/* 3 — Signed prescription */}
@@ -206,15 +211,15 @@ function Gallery() {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="object-cover"
           />
-          <span className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl bg-white/90 shadow-sm backdrop-blur">
+          <span className="absolute left-4 top-4 grid h-12 w-12 place-items-center rounded-xl border border-white/50 bg-white/40 shadow-sm backdrop-blur-md">
             <QrCode className="h-6 w-6 text-ink" strokeWidth={1.5} />
           </span>
-          <figcaption className="absolute inset-x-4 bottom-4">
-            <Chip>
+          <GlassBand>
+            <span className="inline-flex items-center gap-2">
               Signed Rx — verified at the pharmacy
               <CheckCheck className="h-3.5 w-3.5 text-lime-deep" strokeWidth={2.5} />
-            </Chip>
-          </figcaption>
+            </span>
+          </GlassBand>
         </figure>
 
         {/* 4 — Across borders */}
@@ -229,9 +234,7 @@ function Gallery() {
           <span className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-lime shadow-sm">
             <Mic className="h-5 w-5 text-ink" strokeWidth={1.8} />
           </span>
-          <figcaption className="absolute inset-x-4 bottom-4">
-            <Chip>His doctor is 5,000 km away. It works.</Chip>
-          </figcaption>
+          <GlassBand>His doctor is 5,000 km away. It works.</GlassBand>
         </figure>
       </div>
     </section>

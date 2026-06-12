@@ -96,7 +96,7 @@ export default function ProductPage({
             </p>
           </header>
 
-          {/* ── Hero image ───────────────────────────────────────── */}
+          {/* ── Hero image: clean photo, Apple-style glass plate over it ── */}
           <div
             className="landing-fade-up relative aspect-[16/8] overflow-hidden rounded-2xl md:aspect-[16/6]"
             style={{ animationDelay: "0.5s" }}
@@ -109,6 +109,12 @@ export default function ProductPage({
               sizes="(max-width: 1480px) 100vw, 1400px"
               className="object-cover"
             />
+            <div className="absolute bottom-4 left-4 rounded-xl border border-white/45 bg-white/30 px-4 py-2.5 shadow-sm backdrop-blur-lg">
+              <p className="font-mono text-[12px] text-ink">
+                {product.name}
+                <span className="text-ink-soft"> · {product.codename}</span>
+              </p>
+            </div>
           </div>
 
           {/* ── Body ─────────────────────────────────────────────── */}
