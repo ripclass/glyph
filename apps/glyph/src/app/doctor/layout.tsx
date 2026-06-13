@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils/cn";
 import { AuthGuard } from "@/components/shared/AuthGuard";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
@@ -120,10 +122,20 @@ function SidebarLink({
   icon: React.FC<{ className?: string }>;
   label: string;
 }) {
+  const pathname = usePathname();
+  // Dashboard (/doctor) matches exactly; section links match their prefix.
+  const active = href === "/doctor" ? pathname === "/doctor" : pathname.startsWith(href);
+
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-2.5 rounded-full px-3.5 py-2 text-sm transition",
+        active
+          ? "bg-glyph-100 font-semibold text-clinical-text"
+          : "font-medium text-clinical-muted hover:bg-clinical-bg hover:text-clinical-text"
+      )}
     >
       <Icon className="h-4 w-4 shrink-0" />
       {label}

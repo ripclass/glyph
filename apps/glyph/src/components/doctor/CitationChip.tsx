@@ -18,41 +18,41 @@ export interface CitationChipProps {
   className?: string;
 }
 
-/** Visual configuration for each citation type. */
+/**
+ * Visual configuration. Anchored epistemic logic (matches SourceTag): cited
+ * external evidence (UpToDate, PubMed, web) is lime, the trust accent, because
+ * making evidence visible is the whole point. The model's own knowledge is
+ * neutral, signalling lower authority than a citation.
+ */
 const CITATION_CONFIG: Record<
   CitationType,
   { color: string; icon: string; label: string }
 > = {
   uptodate: {
-    color: "bg-orange-100 text-orange-800 border-orange-200",
+    color: "bg-glyph-100 text-glyph-800 border-glyph-300",
     icon: "U",
     label: "UpToDate",
   },
   pubmed: {
-    color: "bg-blue-100 text-blue-800 border-blue-200",
+    color: "bg-glyph-100 text-glyph-800 border-glyph-300",
     icon: "P",
     label: "PubMed",
   },
   web: {
-    color: "bg-gray-100 text-gray-700 border-gray-200",
+    color: "bg-glyph-100 text-glyph-800 border-glyph-300",
     icon: "W",
     label: "Web",
   },
   model: {
-    color: "bg-green-100 text-green-800 border-green-200",
+    color: "bg-clinical-bg text-ink-soft border-clinical-border",
     icon: "AI",
     label: "AI Model",
   },
 };
 
 /**
- * Small chip showing a citation in the AI research chat.
- *
- * Types and their colors:
- * - **UpToDate** (orange) -- clinical decision support reference
- * - **PubMed** (blue) -- peer-reviewed medical literature
- * - **Web** (gray) -- general web source
- * - **Model** (green) -- AI model's own knowledge
+ * Small chip showing a citation in the AI research chat. Cited evidence
+ * (UpToDate, PubMed, web) is lime; the model's own knowledge is neutral.
  *
  * Tappable to expand the citation details or open the source URL.
  *
@@ -88,7 +88,7 @@ export function CitationChip({
       type="button"
       onClick={handleClick}
       className={cn(
-        "inline-flex max-w-xs items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-opacity hover:opacity-80",
+        "inline-flex max-w-xs items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity hover:opacity-80",
         config.color,
         className
       )}

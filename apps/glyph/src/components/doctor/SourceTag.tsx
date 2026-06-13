@@ -23,45 +23,41 @@ export interface SourceTagProps {
   className?: string;
 }
 
-/** Color and label configuration for each source type. */
-const SOURCE_CONFIG: Record<SourceType, { label: string; className: string }> = {
-  patient: {
-    label: "Per patient",
-    className: "bg-blue-100 text-blue-800 border-blue-200",
-  },
-  attendant: {
-    label: "Per attendant",
-    className: "bg-amber-100 text-amber-800 border-amber-200",
-  },
-  rx_photo: {
-    label: "From Rx photo",
-    className: "bg-purple-100 text-purple-800 border-purple-200",
-  },
-  lab_report: {
-    label: "From lab report",
-    className: "bg-teal-100 text-teal-800 border-teal-200",
-  },
-  uptodate: {
-    label: "UpToDate",
-    className: "bg-orange-100 text-orange-800 border-orange-200",
-  },
-  pubmed: {
-    label: "PubMed",
-    className: "bg-gray-100 text-gray-700 border-gray-200",
-  },
+/**
+ * Epistemic colour logic (anchored design): a claim is tagged not by an
+ * arbitrary per-source colour but by WHERE its authority comes from. Three
+ * groups, mapped to the palette so the briefing reads coherent and scans by
+ * category, not rainbow:
+ *
+ *   reported  — a person said this (patient / attendant). Warm ink/amber.
+ *   document  — a paper says this (Rx photo / lab report). Quiet neutral.
+ *   evidence  — the literature says this (UpToDate / PubMed). Lime, the
+ *               trust accent: cited evidence is the thing Glyph makes visible.
+ */
+type Group = "reported-self" | "reported-other" | "document" | "evidence";
+
+const GROUP_CLASS: Record<Group, string> = {
+  "reported-self": "bg-clinical-bg text-ink-soft border-clinical-border",
+  "reported-other": "bg-amber-50 text-amber-800 border-amber-200",
+  document: "bg-clinical-bg text-ink-soft border-clinical-border",
+  evidence: "bg-glyph-100 text-glyph-800 border-glyph-300",
+};
+
+const SOURCE_CONFIG: Record<
+  SourceType,
+  { label: string; group: Group; icon: React.ReactNode }
+> = {
+  patient: { label: "Per patient", group: "reported-self", icon: <PersonIcon /> },
+  attendant: { label: "Per attendant", group: "reported-other", icon: <PeopleIcon /> },
+  rx_photo: { label: "From Rx photo", group: "document", icon: <DocIcon /> },
+  lab_report: { label: "From lab report", group: "document", icon: <FlaskIcon /> },
+  uptodate: { label: "UpToDate", group: "evidence", icon: <BookIcon /> },
+  pubmed: { label: "PubMed", group: "evidence", icon: <BookIcon /> },
 };
 
 /**
- * Small inline tag showing the source of a clinical claim.
- *
- * Color-coded by source type:
- * - **Patient** (blue) -- information reported directly by the patient
- * - **Attendant** (amber) -- reported by a family member / attendant
- * - **Rx photo** (purple) -- extracted from a prescription photograph
- * - **Lab report** (teal) -- extracted from uploaded lab results
- * - **UpToDate** (orange) -- evidence from UpToDate clinical resource
- * - **PubMed** (gray) -- evidence from PubMed literature
- *
+ * Small inline tag showing the source of a clinical claim, coloured by
+ * epistemic group (see above) and distinguished within a group by its icon.
  * Tappable to open the LinkedEvidence detail panel.
  *
  * @example
@@ -83,29 +79,74 @@ export function SourceTag({ type, label, onTap, className }: SourceTagProps) {
       type="button"
       onClick={handleClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium leading-tight transition-opacity hover:opacity-80",
-        config.className,
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-tight transition-opacity hover:opacity-75",
+        GROUP_CLASS[config.group],
         onTap ? "cursor-pointer" : "cursor-default",
         className
       )}
       aria-label={`Source: ${displayLabel}`}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="10"
-        height="10"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-      </svg>
+      {config.icon}
       {displayLabel}
     </button>
+  );
+}
+
+/* ── Icons (10px, currentColor) ── */
+
+function iconProps() {
+  return {
+    width: 10,
+    height: 10,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2.5,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+}
+
+function PersonIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+function PeopleIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+function DocIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+    </svg>
+  );
+}
+function FlaskIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M10 2v7.5L4.5 19a1 1 0 0 0 .9 1.5h13.2a1 1 0 0 0 .9-1.5L14 9.5V2" />
+      <path d="M8.5 2h7" />
+    </svg>
+  );
+}
+function BookIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
   );
 }

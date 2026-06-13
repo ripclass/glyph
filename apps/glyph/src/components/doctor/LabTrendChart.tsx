@@ -188,7 +188,7 @@ function TrendChart({ trend }: { trend: LabTrend }) {
           x={PADDING.left - 4}
           y={refBandTop}
           textAnchor="end"
-          className="fill-green-600 text-[9px]"
+          className="fill-glyph-600 text-[9px]"
           dominantBaseline="middle"
         >
           {refHigh}
@@ -197,7 +197,7 @@ function TrendChart({ trend }: { trend: LabTrend }) {
           x={PADDING.left - 4}
           y={refBandBottom}
           textAnchor="end"
-          className="fill-green-600 text-[9px]"
+          className="fill-glyph-600 text-[9px]"
           dominantBaseline="middle"
         >
           {refLow}

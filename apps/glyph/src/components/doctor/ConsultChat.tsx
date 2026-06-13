@@ -160,14 +160,14 @@ export function ConsultChat({
             onKeyDown={handleKeyDown}
             placeholder="Ask about this patient..."
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-glyph-400 focus:outline-none focus:ring-1 focus:ring-glyph-400"
+            className="flex-1 resize-none rounded-2xl border border-clinical-border bg-clinical-surface px-4 py-2.5 text-sm text-clinical-text placeholder:text-clinical-muted focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-glyph-400/50"
             disabled={isLoading}
             aria-label="Type your clinical question"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-glyph-600 text-white transition hover:bg-glyph-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-glyph-600 text-white transition hover:bg-glyph-700 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Send message"
           >
             <svg
@@ -194,10 +194,10 @@ export function ConsultChat({
 
 /* ── Internal sub-components ── */
 
-/** Confidence badge configuration. */
+/** Confidence badge configuration — lime for high (the trust accent). */
 const CONFIDENCE_BADGE: Record<string, string> = {
-  high: "bg-green-100 text-green-700",
-  medium: "bg-amber-100 text-amber-700",
+  high: "bg-glyph-100 text-glyph-800",
+  medium: "bg-amber-100 text-amber-800",
   low: "bg-red-100 text-red-700",
 };
 
@@ -211,10 +211,10 @@ function ChatBubble({ message }: { message: ChatMessage }) {
     <div className={cn("flex", isDoctor ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[85%] rounded-lg px-3 py-2",
+          "max-w-[85%] px-4 py-2.5",
           isDoctor
-            ? "bg-glyph-600 text-white"
-            : "border border-slate-200 bg-white text-slate-800"
+            ? "rounded-2xl rounded-br-md bg-glyph-600 text-white"
+            : "rounded-2xl rounded-bl-md border border-clinical-border bg-clinical-surface text-clinical-text"
         )}
       >
         {/* Message content */}

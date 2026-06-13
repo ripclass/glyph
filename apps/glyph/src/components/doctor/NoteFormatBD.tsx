@@ -63,25 +63,25 @@ export function NoteFormatBD({ note, className }: NoteFormatBDProps) {
       {sections.map(({ key, label, fullLabel }) => (
         <section key={key} className="relative">
           {/* Section header */}
-          <div className="mb-1 flex items-baseline gap-2">
-            <span className="inline-flex min-w-[3rem] items-center justify-center rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+          <div className="mb-1.5 flex items-baseline gap-2">
+            <span className="inline-flex min-w-[3rem] items-center justify-center rounded-md bg-ink px-2 py-0.5 font-mono text-xs font-semibold text-bone-raise">
               {label}
             </span>
-            <span className="text-[10px] uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-clinical-muted">
               {fullLabel}
             </span>
           </div>
 
           {/* Section content */}
-          <div className="whitespace-pre-wrap border-l-2 border-slate-200 pl-3 leading-relaxed text-slate-700">
+          <div className="whitespace-pre-wrap border-l-2 border-glyph-300 pl-3.5 leading-relaxed text-clinical-text">
             {note[key] || (
-              <span className="text-slate-300 italic">Not documented</span>
+              <span className="italic text-clinical-muted">Not documented</span>
             )}
           </div>
 
           {/* Divider except last */}
           {key !== "advice" && (
-            <div className="mt-4 border-b border-dashed border-slate-200" />
+            <div className="mt-4 border-b border-dashed border-clinical-border" />
           )}
         </section>
       ))}

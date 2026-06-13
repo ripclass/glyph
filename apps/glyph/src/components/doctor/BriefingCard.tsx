@@ -143,13 +143,13 @@ export function BriefingCard({ data, className }: BriefingCardProps) {
               {data.currentMedications.map((med, i) => (
                 <li
                   key={i}
-                  className="flex items-center justify-between gap-2 rounded bg-slate-50 px-2 py-1.5 text-sm"
+                  className="flex items-center justify-between gap-2 rounded-lg bg-clinical-bg px-2.5 py-1.5 text-sm"
                 >
                   <div className="min-w-0">
-                    <span className="font-medium text-slate-800">
+                    <span className="font-medium text-clinical-text">
                       {med.name}
                     </span>
-                    <span className="ml-2 text-xs text-slate-500">
+                    <span className="ml-2 font-mono text-xs text-ink-soft">
                       {med.dosage}
                     </span>
                   </div>
@@ -170,28 +170,26 @@ export function BriefingCard({ data, className }: BriefingCardProps) {
                 <div
                   key={i}
                   className={cn(
-                    "flex items-center justify-between rounded px-2 py-1.5 text-sm",
+                    "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm",
                     lab.isAbnormal
-                      ? "bg-red-50 border border-red-200"
-                      : "bg-slate-50"
+                      ? "border border-red-200 bg-red-50"
+                      : "bg-clinical-bg"
                   )}
                 >
-                  <span className="font-medium text-slate-700">
+                  <span className="font-medium text-clinical-text">
                     {lab.testName}
                   </span>
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
                         "font-mono text-xs",
-                        lab.isAbnormal
-                          ? "font-bold text-red-700"
-                          : "text-slate-600"
+                        lab.isAbnormal ? "font-bold text-red-700" : "text-ink-soft"
                       )}
                     >
                       {lab.value}
                     </span>
                     {lab.referenceRange && (
-                      <span className="text-[10px] text-slate-400">
+                      <span className="font-mono text-[10px] text-clinical-muted">
                         ({lab.referenceRange})
                       </span>
                     )}
@@ -257,24 +255,24 @@ function BriefingSection({
   return (
     <section
       className={cn(
-        "rounded-lg border bg-white p-3",
+        "rounded-2xl border bg-clinical-surface p-4",
         priority === "high"
-          ? "border-glyph-200"
+          ? "border-glyph-300"
           : priority === "medium"
             ? "border-amber-200"
-            : "border-slate-200"
+            : "border-clinical-border"
       )}
     >
-      <h3
-        className={cn(
-          "mb-2 text-xs font-semibold uppercase tracking-wider",
-          priority === "high"
-            ? "text-glyph-700"
-            : priority === "medium"
-              ? "text-amber-700"
-              : "text-slate-500"
+      <h3 className="mb-2.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+        {priority && (
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              priority === "high" ? "bg-glyph-400" : "bg-amber-400"
+            )}
+            aria-hidden="true"
+          />
         )}
-      >
         {title}
       </h3>
       {children}
@@ -295,9 +293,9 @@ function ClaimList({
   return (
     <ul className="space-y-1.5">
       {claims.map((claim, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" aria-hidden="true" />
-          <span className="flex-1 text-slate-700">{claim.text}</span>
+        <li key={i} className="flex items-start gap-2.5 text-sm leading-relaxed">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-glyph-400" aria-hidden="true" />
+          <span className="flex-1 text-clinical-text">{claim.text}</span>
           <SourceTag
             type={claim.sourceType}
             label={claim.sourceLabel}

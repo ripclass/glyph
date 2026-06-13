@@ -164,7 +164,7 @@ export function NoteEditor({
         {/* Edit / Approve controls */}
         <div className="flex items-center gap-2">
           {approved && (
-            <span className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+            <span className="flex items-center gap-1 rounded-full bg-glyph-100 px-2.5 py-0.5 text-xs font-medium text-glyph-800">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="12"
