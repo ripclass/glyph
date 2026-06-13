@@ -25,12 +25,12 @@ export interface UpToDatePanelProps {
 
 /** Evidence grade color mapping. */
 const GRADE_COLORS: Record<EvidenceGrade, string> = {
-  "1A": "bg-green-100 text-green-800",
-  "1B": "bg-green-50 text-green-700",
-  "1C": "bg-lime-100 text-lime-800",
+  "1A": "bg-glyph-100 text-glyph-800",
+  "1B": "bg-glyph-50 text-glyph-700",
+  "1C": "bg-glyph-50 text-glyph-700",
   "2A": "bg-amber-100 text-amber-800",
   "2B": "bg-amber-50 text-amber-700",
-  "2C": "bg-orange-100 text-orange-800",
+  "2C": "bg-amber-100 text-amber-800",
 };
 
 /**
@@ -66,15 +66,15 @@ export function UpToDatePanel({
   return (
     <div
       className={cn(
-        "rounded-lg border border-orange-200 bg-orange-50/50 shadow-sm",
+        "rounded-2xl border border-glyph-300 bg-glyph-50/60 shadow-sm",
         className
       )}
     >
       {/* Header */}
-      <div className="border-b border-orange-200 px-4 py-3">
+      <div className="border-b border-glyph-300/70 px-4 py-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold text-slate-800">{topicTitle}</h3>
-          <span className="shrink-0 rounded bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
+          <h3 className="text-sm font-semibold text-clinical-text">{topicTitle}</h3>
+          <span className="shrink-0 rounded-full bg-glyph-200 px-2 py-0.5 text-[10px] font-semibold text-glyph-800">
             UpToDate
           </span>
         </div>
@@ -109,7 +109,7 @@ export function UpToDatePanel({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-orange-200 px-4 py-2.5">
+      <div className="flex items-center justify-between border-t border-glyph-300/70 px-4 py-2.5">
         <span className="text-[10px] text-slate-400">
           Powered by UpToDate&reg;
         </span>
@@ -118,7 +118,7 @@ export function UpToDatePanel({
             href={articleUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[11px] font-medium text-orange-700 transition hover:text-orange-900"
+            className="flex items-center gap-1 text-[11px] font-medium text-glyph-700 transition hover:text-clinical-text"
           >
             View full article
             <svg

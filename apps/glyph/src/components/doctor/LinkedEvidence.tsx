@@ -37,22 +37,23 @@ const CONFIDENCE_MAP: Record<
   EvidenceItem["confidence"],
   { label: string; className: string }
 > = {
-  high: { label: "High confidence", className: "text-green-700 bg-green-100" },
+  high: { label: "High confidence", className: "text-glyph-800 bg-glyph-100" },
   medium: {
     label: "Medium confidence",
-    className: "text-amber-700 bg-amber-100",
+    className: "text-amber-800 bg-amber-100",
   },
   low: { label: "Low confidence", className: "text-red-700 bg-red-100" },
 };
 
-/** Source type colors (matching SourceTag). */
+/** Source-type frames, by epistemic group (matches SourceTag): reported by a
+    person is warm, a document is neutral, cited evidence is lime. */
 const SOURCE_COLORS: Record<SourceType, string> = {
-  patient: "border-blue-300 bg-blue-50",
-  attendant: "border-amber-300 bg-amber-50",
-  rx_photo: "border-purple-300 bg-purple-50",
-  lab_report: "border-teal-300 bg-teal-50",
-  uptodate: "border-orange-300 bg-orange-50",
-  pubmed: "border-gray-300 bg-gray-50",
+  patient: "border-clinical-border bg-clinical-bg",
+  attendant: "border-amber-200 bg-amber-50",
+  rx_photo: "border-clinical-border bg-clinical-bg",
+  lab_report: "border-clinical-border bg-clinical-bg",
+  uptodate: "border-glyph-300 bg-glyph-100/60",
+  pubmed: "border-glyph-300 bg-glyph-100/60",
 };
 
 /**
@@ -180,9 +181,9 @@ export function LinkedEvidence({
                 className={cn(
                   "h-1.5 w-1.5 rounded-full",
                   evidence.confidence === "high"
-                    ? "bg-green-600"
+                    ? "bg-glyph-500"
                     : evidence.confidence === "medium"
-                      ? "bg-amber-600"
+                      ? "bg-amber-500"
                       : "bg-red-600"
                 )}
                 aria-hidden="true"
