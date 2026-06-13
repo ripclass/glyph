@@ -168,7 +168,10 @@ export async function POST(req: Request, { params }: { params: { token: string }
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        // Shared secret only this server holds — the function authenticates
+        // on it (a dedicated secret, not the service-role key, so it doesn't
+        // depend on Vercel's and the function's injected keys matching).
+        Authorization: `Bearer ${process.env.TRIAGE_SHARED_SECRET}`,
       },
       body: JSON.stringify({ messages: rawMessages, patientContext, questionCount, consentId }),
     });

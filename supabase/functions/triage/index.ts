@@ -5,8 +5,9 @@
  *
  * Server-to-server only: called by the trusted Next route
  * /api/wallet/[token]/triage, which has already validated the patient's wallet
- * bearer token and run the deterministic red-flag pre-screen. Auth here is the
- * service-role key (patients never reach this function directly).
+ * bearer token and run the deterministic red-flag pre-screen. Auth here is a
+ * shared secret (TRIAGE_SHARED_SECRET) only that route holds — patients never
+ * reach this function directly.
  *
  * Free-text symptoms are Tier B egress (consent-gated, best-effort scrub). The
  * function returns the model's RAW structured reply; the Next route validates
@@ -48,10 +49,13 @@ serve(async (req: Request) => {
   if (corsResp) return corsResp;
 
   try {
-    // ── Auth: service-role only (trusted server-to-server) ────
+    // ── Auth: a shared secret only the trusted Next route holds ────
+    // Deployed with --no-verify-jwt, so this app-layer secret is the gate.
+    // A dedicated secret (not the project service-role key) so it doesn't
+    // depend on the Vercel env and the function's auto-injected key matching.
     const authHeader = req.headers.get("Authorization") ?? "";
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (authHeader !== `Bearer ${serviceKey}`) {
+    const sharedSecret = Deno.env.get("TRIAGE_SHARED_SECRET");
+    if (!sharedSecret || authHeader !== `Bearer ${sharedSecret}`) {
       return jsonResponse<EdgeFunctionResponse>(
         { success: false, error: "Forbidden", code: "FORBIDDEN" },
         403,
