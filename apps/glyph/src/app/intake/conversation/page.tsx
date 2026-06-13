@@ -144,17 +144,33 @@ export default function IntakeConversationPage() {
       />
       {isAttendant && <AttendantBanner relation={attendantRelation ?? undefined} />}
 
-      {/* ---------- Conversation ---------- */}
+      {/* ---------- Conversation stage ----------
+          justify-end keeps the exchange gravitating toward the orb, so a
+          short conversation never floats in an empty void. It scrolls up
+          as it grows. */}
       <div
         ref={scrollRef}
-        className="flex-1 space-y-4 overflow-y-auto px-4 py-6 scrollbar-hide"
+        className="flex flex-1 flex-col justify-end gap-8 overflow-y-auto px-6 py-10 scrollbar-hide"
       >
+        {/* Warm welcome holds the first moment while the greeting arrives */}
+        {messages.length === 0 && (
+          <div className="mx-auto w-full max-w-2xl text-center">
+            <p className="font-bangla text-2xl leading-[1.7] text-clinical-text/70 md:text-[28px]">
+              একটু সময় নিন। নিচের বোতাম চেপে ধরে নিজের কথা বলুন।
+            </p>
+            <p className="mt-3 text-base text-clinical-muted">
+              Take your time. Press and hold the button below to speak.
+            </p>
+          </div>
+        )}
+
         {messages.map((msg, i) =>
           msg.role === "ai" ? (
             <SaaraMessage
               key={i}
               message={msg.content}
               isStreaming={isStreaming && i === messages.length - 1}
+              emphasized={i === messages.length - 1}
             />
           ) : (
             <PatientMessage
@@ -171,12 +187,16 @@ export default function IntakeConversationPage() {
           <PatientMessage
             message={`${transcript}…`}
             source={isAttendant ? "attendant" : "patient"}
+            attendantRelation={isAttendant ? attendantRelation ?? undefined : undefined}
+            interim
           />
         )}
       </div>
 
-      {/* ---------- Input area ---------- */}
-      <div className="flex flex-col items-center gap-3 border-t border-clinical-border bg-white px-4 pb-6 pt-5">
+      {/* ---------- Orb zone ----------
+          On the same bone canvas (no white dock), a soft top hairline only,
+          so the orb reads as part of the room, not a chat input bar. */}
+      <div className="flex flex-col items-center gap-4 border-t border-clinical-border/60 px-6 pb-8 pt-6">
         <VoiceOrb state={orbState} onPress={handlePressOrb} onRelease={handleReleaseOrb} />
         <p className="font-bangla text-sm text-clinical-muted">
           {orbState === "idle" && "কথা বলতে চাপ দিয়ে ধরুন"}
@@ -184,7 +204,7 @@ export default function IntakeConversationPage() {
           {orbState === "processing" && "ভাবছি…"}
         </p>
 
-        {/* Typed fallback */}
+        {/* Typed fallback — quiet, secondary to the voice */}
         <form onSubmit={handleTypedSubmit} className="flex w-full max-w-md gap-2">
           <Input
             value={typed}
@@ -202,7 +222,6 @@ export default function IntakeConversationPage() {
         {messages.length >= 3 && (
           <Button
             variant="ghost"
-            className="text-glyph-700"
             disabled={isProcessing || isStreaming}
             onClick={() => router.push("/intake/summary")}
           >

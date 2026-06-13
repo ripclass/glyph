@@ -270,11 +270,11 @@ export default function IntakeHistoryPage() {
               type="button"
               onClick={() => requestCapture("lab_report")}
               className={cn(
-                "flex items-center gap-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-5 py-5 transition",
-                "hover:border-blue-400 hover:bg-blue-100 active:scale-[0.98]"
+                "flex items-center gap-4 rounded-xl border-2 border-dashed border-clinical-border bg-clinical-bg px-5 py-5 transition",
+                "hover:border-clinical-muted/50 hover:bg-clinical-surface active:scale-[0.98]"
               )}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-200 text-blue-700">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-clinical-border text-clinical-muted">
                 <svg
                   width="24"
                   height="24"
@@ -447,7 +447,7 @@ function DocTile({ type, thumb, status, onRemove, onRetry }: DocTileProps) {
       <span
         className={cn(
           "absolute bottom-0 left-0 right-0 truncate px-1 py-0.5 text-center text-[10px] font-medium text-white",
-          type === "prescription" ? "bg-glyph-600/80" : "bg-blue-600/80"
+          type === "prescription" ? "bg-glyph-600/80" : "bg-clinical-muted/85"
         )}
       >
         {type === "prescription" ? "Rx" : "Lab"}
