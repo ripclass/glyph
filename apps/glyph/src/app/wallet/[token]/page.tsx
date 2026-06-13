@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ShieldCheck, Loader2, Lock, Pill } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck, Loader2, Lock, Pill, MessageCircleQuestion, ChevronRight } from "lucide-react";
 
 /**
  * Pocket — the patient's wallet. Public, reached by a bearer token (no login).
@@ -154,6 +155,28 @@ export default function WalletPage() {
         <p className="mt-1 text-sm text-ink-soft">
           {[patient.age && `${patient.age} বছর`, patient.gender].filter(Boolean).join(" · ")}
         </p>
+
+        {/* Ask about a symptom — the triage entry */}
+        <Link
+          href={`/wallet/${token}/ask${pin ? `?pin=${encodeURIComponent(pin)}` : ""}`}
+          className="group mt-7 flex items-center gap-4 rounded-2xl border border-glyph-300 bg-glyph-50 px-5 py-4 transition hover:border-glyph-400"
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-glyph-100">
+            <MessageCircleQuestion className="h-5 w-5 text-lime-deep" strokeWidth={1.8} />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-bangla text-[15px] font-semibold text-ink">
+              একটা সমস্যা জিজ্ঞেস করুন
+            </span>
+            <span className="block text-[13px] text-ink-soft">
+              ওষুধের দোকানে যাওয়ার আগে — Ask about a symptom
+            </span>
+          </span>
+          <ChevronRight
+            className="ml-auto h-5 w-5 shrink-0 text-ink-faint transition group-hover:translate-x-0.5 group-hover:text-ink"
+            strokeWidth={1.8}
+          />
+        </Link>
 
         {/* Visits */}
         <div className="mt-8 space-y-4">

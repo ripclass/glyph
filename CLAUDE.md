@@ -112,7 +112,8 @@ Glyph/
 │   │   ├── 003_egress_log.sql      # append-only egress evidence (the M4 gate's audit trail)
 │   │   ├── 004_document_storage.sql # private `documents` bucket + clinic-scoped storage RLS
 │   │   ├── 005_waitlist.sql        # waitlist_signups: RLS deny-all (service-role only via /api/waitlist)
-│   │   └── 006_wallet_tokens.sql   # wallet_access_tokens: Pocket bearer tokens, RLS deny-all (service-role only)
+│   │   ├── 006_wallet_tokens.sql   # wallet_access_tokens: Pocket bearer tokens, RLS deny-all (service-role only)
+│   │   └── 007_triage_sessions.sql # triage_sessions: Pocket v2 triage exchanges, RLS deny-all (service-role only)
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -130,7 +131,8 @@ Glyph/
 │       ├── consult-uptodate/
 │       ├── generate-note/
 │       ├── generate-patient-summary/
-│       └── send-followup/
+│       ├── send-followup/
+│       └── triage/                   # POCKET v2: patient symptom triage; service-role-only auth, Tier B egress (consentId required)
 ├── packages/
 │   ├── identity/                   # @kham/identity — src/{crypto,credentials,did}, test/trust-root.test.ts (7 tests = CI gate)
 │   └── schemas-clinical/           # @kham/schemas-clinical — src/{common,registry,*-schemas}, test/schemas.test.ts (11 tests)
@@ -170,7 +172,9 @@ Glyph/
         │   ├── api/waitlist/route.ts    # public (unauthenticated) waitlist signup: honeypot, phone-dedupe, service-role insert
         │   ├── api/wallet/issue/route.ts # POCKET: doctor-session, find-or-create patient wallet bearer token (+optional PIN)
         │   ├── api/wallet/[token]/route.ts # POCKET: public, service-role read of one patient's record by bearer token (PIN-gated)
-        │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). v2 = triage.
+        │   ├── api/wallet/[token]/triage/route.ts # POCKET v2: token-gated symptom triage. Validates token (wallet-logic) → deterministic screenRedFlags pre-screen → resolves/creates patient ai_processing consent (device_info='pocket_triage') → calls triage edge fn (service-role) → validateOutcome clamp → persists triage_sessions on final answer
+        │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
+        │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
         │   │   ├── layout.tsx
         │   │   ├── page.tsx             # role selection + patient registration (registerAndStartVisit)
@@ -198,7 +202,7 @@ Glyph/
         │   │                        # useConsultChat, usePatientHistory, useRealtimeQueue
         │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), projections
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
-        │   │                        # consents, documents-logic(+test)
+        │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test)
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
         │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
@@ -226,6 +230,7 @@ Glyph/
 | Clinical note generation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-note` | **Yes (SSE)** | MedGemma demoted until Vertex OAuth; BD format default, SOAP optional |
 | Patient WhatsApp summary | `gemini-2.0-flash` | `gemini-1.5-flash` | `generate-patient-summary` | No | Entirely in Bangla, no emoji |
 | WhatsApp delivery | WhatsApp Business Cloud API v19 | — | `send-followup` | No | Requires `whatsapp_followup` consent row |
+| Pocket symptom triage | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `triage` | No | Temp 0.2. **Tier B egress — requires `consentId`** (patient's `ai_processing` consent, `device_info='pocket_triage'`). Deterministic `screenRedFlags` pre-screen in the Next route forces urgent before the model. Never diagnoses/prescribes. |
 
 **Routing inside `consult-query`** is regex-driven (`detectQueryType`) — see `supabase/functions/consult-query/index.ts`. Every external call is preceded by `deidentify()` and the response is passed through `reidentify()` before returning.
 
