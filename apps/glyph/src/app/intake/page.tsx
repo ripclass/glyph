@@ -92,15 +92,22 @@ export default function IntakeStartPage() {
     setAttendant,
   ]);
 
-  // ── Step 1: role choice ─────────────────────────────────────────
+  // ── Step 1: warm welcome + role choice ──────────────────────────
   if (!role) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-        <div className="mb-10 text-center">
-          <h1 className="font-bangla text-3xl font-bold leading-snug text-clinical-text">
-            আপনি কে?
+        <div className="mb-12 max-w-lg text-center">
+          <p className="mb-3 flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-clinical-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-glyph-400" />
+            স্বাগতম
+          </p>
+          <h1 className="font-bangla text-3xl font-bold leading-[1.5] text-clinical-text md:text-4xl">
+            একটু সময় নিয়ে আপনার কথা শুনব।
           </h1>
-          <p className="mt-2 text-base text-clinical-muted">Who are you?</p>
+          <p className="mt-4 font-bangla text-lg leading-relaxed text-clinical-muted">
+            ডাক্তার দেখার আগে কয়েকটা কথা জেনে নিই। শুরু করার আগে বলুন —
+            আপনি কে?
+          </p>
         </div>
 
         <div className="flex w-full max-w-md flex-col gap-5">
@@ -112,7 +119,7 @@ export default function IntakeStartPage() {
           />
           <RoleButton
             primary="আমি সাথে এসেছি"
-            secondary="I am the attendant"
+            secondary="I am with the patient"
             tone="amber"
             onClick={() => setRole("attendant")}
           />
@@ -124,11 +131,13 @@ export default function IntakeStartPage() {
   // ── Step 2: registration ────────────────────────────────────────
   return (
     <div className="flex flex-1 flex-col items-center overflow-y-auto px-6 py-8">
-      <div className="w-full max-w-md">
-        <h1 className="font-bangla text-2xl font-bold text-clinical-text">
-          রোগীর তথ্য দিন
+      <div className="w-full max-w-md pt-8">
+        <h1 className="font-bangla text-2xl font-bold leading-snug text-clinical-text">
+          কয়েকটা তথ্য দিন
         </h1>
-        <p className="mb-6 mt-1 text-sm text-clinical-muted">Patient registration</p>
+        <p className="mb-7 mt-1.5 font-bangla text-sm text-clinical-muted">
+          A few details, so we can keep your record.
+        </p>
 
         <div className="space-y-4">
           <Field label="রোগীর নাম *" hint="Patient name">
