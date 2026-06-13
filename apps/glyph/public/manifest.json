@@ -4,8 +4,8 @@
   "description": "Clinical AI workflow for doctors",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#16a34a",
+  "background_color": "#f4f5f3",
+  "theme_color": "#171a19",
   "orientation": "any",
   "icons": [
     {

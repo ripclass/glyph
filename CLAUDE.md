@@ -54,7 +54,7 @@ Both packages are TS-source packages (`main: ./src/index.ts`) consumed via `tran
 | Tests | Vitest, React Testing Library, jsdom | ^1.6 / ^16 / ^24 |
 | Lint/Format | ESLint (`eslint-config-next`), Prettier | ^8.57 / ^3.3 |
 
-**Fonts:** Inter, Noto Sans Bengali, JetBrains Mono. **Theme colors:** `glyph-*` (green scale) and `clinical-*` (slate neutrals), `red_flag` for alerts (see `apps/glyph/tailwind.config.ts`).
+**Fonts:** Inter, Noto Sans Bengali, JetBrains Mono (+ Instrument Sans as `font-display` for landing/display use). **Theme colors — ANCHORED DESIGN (2026-06-13):** the whole app inherits the marketing site's "quiet clinical" system at token level (`apps/glyph/tailwind.config.ts`). The `glyph-*` scale is REMAPPED: 50-500 = lime accent family (#dff258 at 400), 600-950 = ink darks (#171a19 at 600) — so `bg-glyph-600 text-white` renders as an ink pill and `bg-glyph-50` as pale lime. `clinical-*` and the raw `slate-*` scale are remapped to warm bone/ink neutrals (bone #f4f5f3, line #e2e4e0, ink #171a19). shadcn CSS vars in globals.css carry the same system (--primary=ink, --ring=lime). Buttons are pill-shaped; `accent` variant = lime. `red_flag` unchanged. Do NOT reintroduce green or cool slate values.
 
 **LLM providers wired in `supabase/functions/_shared/llm-router.ts`:** Gemini, MedGemma (via Vertex AI), Claude, OpenAI, Perplexity. Streaming is supported for Gemini and Claude.
 
