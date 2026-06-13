@@ -57,12 +57,15 @@ function toBriefingData(b: ServerBriefing, attendantPresent: boolean): BriefingD
       ...(b.relevantHistory?.pastMedical ?? []),
       ...(b.relevantHistory?.surgicalHistory ?? []),
     ].map((t) => claim(t, personSource)),
+    // The server briefing carries no per-med provenance, so we cannot claim
+    // "From Rx photo" — that would fabricate a source for meds the patient
+    // simply named during intake. Attribute to whoever reported the history.
     currentMedications: (b.currentMedications ?? [])
       .filter((m) => m.name)
       .map((m) => ({
         name: m.name!,
         dosage: [m.dose, m.frequency].filter(Boolean).join(" ") || "—",
-        sourceType: "rx_photo" as const,
+        sourceType: personSource,
       })),
     recentLabs: (b.recentLabs ?? [])
       .filter((l) => l.testName)
