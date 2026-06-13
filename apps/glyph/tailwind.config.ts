@@ -5,25 +5,48 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        /* ANCHORED DESIGN (2026-06-13): the app inherits the marketing
+           site's "quiet clinical" system at token level. The glyph scale
+           is remapped — light end is the lime accent family, dark end is
+           ink — so existing `bg-glyph-600 text-white` buttons become ink
+           pills and `bg-glyph-50` tints become pale lime, everywhere,
+           without touching screens. Usage pattern preserved:
+           600 = primary action (dark), 700 = hover (softer), 800 = active. */
         glyph: {
-          50: "#f0fdf4",
-          100: "#dcfce7",
-          200: "#bbf7d0",
-          300: "#86efac",
-          400: "#4ade80",
-          500: "#22c55e",
-          600: "#16a34a",
-          700: "#15803d",
-          800: "#166534",
-          900: "#14532d",
-          950: "#052e16",
+          50: "#fafce8",
+          100: "#f4f8d0",
+          200: "#ecf3ab",
+          300: "#e7f280",
+          400: "#dff258",
+          500: "#d3e83f",
+          600: "#171a19",
+          700: "#3a423f",
+          800: "#0e1110",
+          900: "#090b0a",
+          950: "#050606",
         },
         clinical: {
-          bg: "#f8fafc",
+          bg: "#f4f5f3",
           surface: "#ffffff",
-          border: "#e2e8f0",
-          text: "#0f172a",
-          muted: "#64748b",
+          border: "#e2e4e0",
+          text: "#171a19",
+          muted: "#4e5755",
+        },
+        /* Raw slate-* usages across app screens are remapped to the
+           anchored warm-neutral ramp (bone → ink) so the whole app
+           re-skins at the engine, not per screen. */
+        slate: {
+          50: "#f4f5f3",
+          100: "#edefec",
+          200: "#e2e4e0",
+          300: "#cdd1cc",
+          400: "#7e8784",
+          500: "#5d6663",
+          600: "#4e5755",
+          700: "#353c3a",
+          800: "#232826",
+          900: "#171a19",
+          950: "#0e1110",
         },
         red_flag: "#dc2626",
         /* Landing palette — sampled from the founder's reference image:
@@ -87,8 +110,8 @@ const config: Config = {
       },
       keyframes: {
         "orb-glow": {
-          "0%": { boxShadow: "0 0 20px rgba(34, 197, 94, 0.3)" },
-          "100%": { boxShadow: "0 0 40px rgba(34, 197, 94, 0.6)" },
+          "0%": { boxShadow: "0 0 20px rgba(223, 242, 88, 0.45)" },
+          "100%": { boxShadow: "0 0 44px rgba(211, 232, 63, 0.8)" },
         },
         shimmer: {
           "100%": { transform: "translateX(100%)" },

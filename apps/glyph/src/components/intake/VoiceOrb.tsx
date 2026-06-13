@@ -43,20 +43,20 @@ export function VoiceOrb({ state, onPress, onRelease }: VoiceOrbProps) {
         }
         className={cn(
           "relative flex h-[120px] w-[120px] items-center justify-center rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-glyph-300",
-          // idle
+          // idle — the lime accent at rest, ink glyph
           state === "idle" && [
-            "bg-glyph-500 text-white shadow-lg",
-            "hover:bg-glyph-600 active:scale-95",
+            "bg-glyph-400 text-glyph-600 shadow-lg",
+            "hover:bg-glyph-500 active:scale-95",
             "animate-orb-glow",
           ],
-          // listening
+          // listening — inverts to ink, lime glyph: recording is the serious state
           state === "listening" && [
-            "bg-glyph-400 text-white shadow-xl",
+            "bg-glyph-600 text-glyph-400 shadow-xl",
             "scale-110",
           ],
           // processing
           state === "processing" && [
-            "bg-glyph-300 text-white shadow-md",
+            "bg-glyph-200 text-glyph-700 shadow-md",
             "cursor-wait",
           ]
         )}

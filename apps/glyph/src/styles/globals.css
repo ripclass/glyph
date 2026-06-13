@@ -7,22 +7,25 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @layer base {
+  /* ANCHORED DESIGN (2026-06-13): semantic vars carry the marketing
+     site's system — bone canvas, ink actions, lime ring/accents. Every
+     shadcn primitive inherits from here. */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 80 8% 96%; /* bone #f4f5f3 */
+    --foreground: 160 6% 9%; /* ink #171a19 */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
-    --radius: 0.75rem;
+    --card-foreground: 160 6% 9%;
+    --primary: 160 6% 9%; /* ink — actions are dark pills */
+    --primary-foreground: 60 14% 98%;
+    --secondary: 75 10% 93%; /* bone-deep */
+    --secondary-foreground: 160 6% 9%;
+    --muted: 75 10% 93%;
+    --muted-foreground: 168 4% 32%; /* ink-soft */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 80 7% 89%; /* bone-line #e2e4e0 */
+    --ring: 68 79% 55%; /* lime-deep — focus is the accent */
+    --radius: 1rem;
   }
 }
 
