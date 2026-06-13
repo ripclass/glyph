@@ -75,10 +75,13 @@ function toBriefingData(b: ServerBriefing, attendantPresent: boolean): BriefingD
       })),
     allergies: (b.allergies ?? []).map((t) => claim(t, personSource)),
     socialHistory: [],
+    // These are KhaM-Med's own suggestions, not citations. Tagging them as
+    // "uptodate" fabricated a source (and, post-redesign, lent them the lime
+    // trust accent). They are honestly the model's decision support.
     assessment: [
       ...(b.suggestedFocus ?? []),
       ...(b.differentialConsiderations ?? []),
-    ].map((t) => claim(t, "uptodate")),
+    ].map((t) => claim(t, "ai_assessment")),
   };
 }
 
