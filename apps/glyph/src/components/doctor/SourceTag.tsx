@@ -10,7 +10,8 @@ export type SourceType =
   | "rx_photo"
   | "lab_report"
   | "uptodate"
-  | "pubmed";
+  | "pubmed"
+  | "ai_assessment";
 
 /** Props for the SourceTag component. */
 export interface SourceTagProps {
@@ -34,13 +35,16 @@ export interface SourceTagProps {
  *   evidence  — the literature says this (UpToDate / PubMed). Lime, the
  *               trust accent: cited evidence is the thing Glyph makes visible.
  */
-type Group = "reported-self" | "reported-other" | "document" | "evidence";
+type Group = "reported-self" | "reported-other" | "document" | "evidence" | "ai";
 
 const GROUP_CLASS: Record<Group, string> = {
   "reported-self": "bg-clinical-bg text-ink-soft border-clinical-border",
   "reported-other": "bg-amber-50 text-amber-800 border-amber-200",
   document: "bg-clinical-bg text-ink-soft border-clinical-border",
   evidence: "bg-glyph-100 text-glyph-800 border-glyph-300",
+  // AI's own reasoning is NOT a citation — neutral and dashed, never lime,
+  // so it can never be mistaken for cited evidence.
+  ai: "bg-clinical-bg text-ink-faint border-dashed border-clinical-border",
 };
 
 const SOURCE_CONFIG: Record<
@@ -53,6 +57,7 @@ const SOURCE_CONFIG: Record<
   lab_report: { label: "From lab report", group: "document", icon: <FlaskIcon /> },
   uptodate: { label: "UpToDate", group: "evidence", icon: <BookIcon /> },
   pubmed: { label: "PubMed", group: "evidence", icon: <BookIcon /> },
+  ai_assessment: { label: "AI assessment", group: "ai", icon: <SparkIcon /> },
 };
 
 /**
@@ -147,6 +152,13 @@ function BookIcon() {
     <svg {...iconProps()}>
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+function SparkIcon() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
     </svg>
   );
 }

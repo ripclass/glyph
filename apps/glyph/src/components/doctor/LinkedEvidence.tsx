@@ -54,6 +54,7 @@ const SOURCE_COLORS: Record<SourceType, string> = {
   lab_report: "border-clinical-border bg-clinical-bg",
   uptodate: "border-glyph-300 bg-glyph-100/60",
   pubmed: "border-glyph-300 bg-glyph-100/60",
+  ai_assessment: "border-dashed border-clinical-border bg-clinical-bg",
 };
 
 /**
