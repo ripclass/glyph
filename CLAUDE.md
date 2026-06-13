@@ -82,6 +82,7 @@ Glyph/
 │   ├── smoke-issuance.mjs          # credential issuance E2E incl. tamper rejection
 │   ├── smoke-egress.mjs            # Tier A/B gate: scrub round-trip, consent withdrawal, log tamper
 │   ├── smoke-documents.mjs         # document pipeline: storage RLS, Tier B consent, real extraction
+│   ├── smoke-triage.mjs            # Pocket v2 triage E2E (hits the live Next route): red-flag escalation, Tier B consent fail-closed, real LLM exchange, session persistence. usage: node scripts/smoke-triage.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
 │   ├── dev-doctor.mjs              # recreate doctor@glyph.dev/glyph-dev-2026 after local db reset (refuses prod)
 │   ├── create-doctor.mjs           # REAL doctor onboarding (works on prod; safety rails, no self-signup yet)
 │   └── fixtures/rx-napa.jpg        # synthetic BD prescription (Napa/Seclo, 1+0+1) for extraction smoke
@@ -132,7 +133,7 @@ Glyph/
 │       ├── generate-note/
 │       ├── generate-patient-summary/
 │       ├── send-followup/
-│       └── triage/                   # POCKET v2: patient symptom triage; service-role-only auth, Tier B egress (consentId required)
+│       └── triage/                   # POCKET v2: patient symptom triage; deployed --no-verify-jwt, auth via TRIAGE_SHARED_SECRET (server-to-server), Tier B egress (consentId required)
 ├── packages/
 │   ├── identity/                   # @kham/identity — src/{crypto,credentials,did}, test/trust-root.test.ts (7 tests = CI gate)
 │   └── schemas-clinical/           # @kham/schemas-clinical — src/{common,registry,*-schemas}, test/schemas.test.ts (11 tests)
@@ -339,6 +340,7 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `UPTODATE_BASE_URL` | UpToDate endpoint | Optional — defaults to `https://connect.uptodate.com` |
 | `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API (`send-followup`) | Renamed from `WHATSAPP_BUSINESS_TOKEN` in M4 |
 | `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business API | Matches code |
+| `TRIAGE_SHARED_SECRET` | Pocket v2 triage (server-to-server) | **Must be set with the SAME value in BOTH the Vercel env AND Supabase function secrets.** The `triage` edge fn is deployed `--no-verify-jwt` and authenticates only on this secret (a dedicated secret — NOT the service-role key, which differs between Vercel and the function's auto-injected env on this project). Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
 | `NEXT_PUBLIC_APP_NAME` | App | `Glyph` |
