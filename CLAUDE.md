@@ -111,7 +111,8 @@ Glyph/
 │   │   ├── 002_identity_layer.sql  # INSERT-only credentials, versioned did_documents, status log, projection freeze
 │   │   ├── 003_egress_log.sql      # append-only egress evidence (the M4 gate's audit trail)
 │   │   ├── 004_document_storage.sql # private `documents` bucket + clinic-scoped storage RLS
-│   │   └── 005_waitlist.sql        # waitlist_signups: RLS deny-all (service-role only via /api/waitlist)
+│   │   ├── 005_waitlist.sql        # waitlist_signups: RLS deny-all (service-role only via /api/waitlist)
+│   │   └── 006_wallet_tokens.sql   # wallet_access_tokens: Pocket bearer tokens, RLS deny-all (service-role only)
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -167,6 +168,9 @@ Glyph/
         │   ├── api/verify/route.ts      # credential verification (local fast-path + status overlay)
         │   ├── api/visits/approve-note/route.ts  # note approval → Rx + VisitNote credentials (one-shot)
         │   ├── api/waitlist/route.ts    # public (unauthenticated) waitlist signup: honeypot, phone-dedupe, service-role insert
+        │   ├── api/wallet/issue/route.ts # POCKET: doctor-session, find-or-create patient wallet bearer token (+optional PIN)
+        │   ├── api/wallet/[token]/route.ts # POCKET: public, service-role read of one patient's record by bearer token (PIN-gated)
+        │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). v2 = triage.
         │   ├── intake/
         │   │   ├── layout.tsx
         │   │   ├── page.tsx             # role selection + patient registration (registerAndStartVisit)

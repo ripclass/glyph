@@ -15,6 +15,7 @@ import { generateNote } from "@/lib/services/ai";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { getVisit, type VisitWithRelations } from "@/lib/services/visits";
 import { createClient } from "@/lib/supabase/client";
+import { WalletHandoff } from "@/components/doctor/WalletHandoff";
 
 /** Server note JSON shape (generate-note edge function, BD format) */
 interface ServerNote {
@@ -234,6 +235,11 @@ export default function NotePage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Patient wallet handoff — the record is now worth holding */}
+      {(credentials || isApproved) && visit.patient_id && (
+        <WalletHandoff patientId={visit.patient_id} />
       )}
 
       {serverNote ? (
