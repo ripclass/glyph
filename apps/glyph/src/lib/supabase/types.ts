@@ -817,6 +817,51 @@ export type Database = {
         }
         Relationships: []
       }
+      triage_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          outcome: Json | null
+          patient_id: string
+          red_flag_screened: boolean
+          wallet_token_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          outcome?: Json | null
+          patient_id: string
+          red_flag_screened?: boolean
+          wallet_token_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          outcome?: Json | null
+          patient_id?: string
+          red_flag_screened?: boolean
+          wallet_token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "triage_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "triage_sessions_wallet_token_id_fkey"
+            columns: ["wallet_token_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_access_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_access_tokens: {
         Row: {
           created_at: string
@@ -1071,3 +1116,5 @@ export type WaitlistSignup = Database['public']['Tables']['waitlist_signups']['R
 export type WaitlistSignupInsert = Database['public']['Tables']['waitlist_signups']['Insert'];
 export type WalletAccessToken = Database['public']['Tables']['wallet_access_tokens']['Row'];
 export type WalletAccessTokenInsert = Database['public']['Tables']['wallet_access_tokens']['Insert'];
+export type TriageSession = Database['public']['Tables']['triage_sessions']['Row'];
+export type TriageSessionInsert = Database['public']['Tables']['triage_sessions']['Insert'];
