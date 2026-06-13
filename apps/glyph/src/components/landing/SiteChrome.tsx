@@ -25,9 +25,9 @@ export function SiteNav() {
           <a href="/#why" className="transition hover:text-ink">
             Why
           </a>
-          <a href="/#trust" className="transition hover:text-ink">
-            Trust
-          </a>
+          <Link href="/partners" className="transition hover:text-ink">
+            Partners
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">

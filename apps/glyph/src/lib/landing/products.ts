@@ -320,6 +320,7 @@ export const PRODUCTS: ProductContent[] = [
         heading: "What Karigor does",
         body: [
           "In each participating factory, the medical room is staffed by a Glyph-trained health assistant, in most factories a woman recruited the HERhealth way, equipped with a tablet, a BP cuff, a glucometer, and KhaM-Med guidance in Bangla. She captures structured vitals and complaints in minutes, between production targets. KhaM-Med routes what she captures: self-care guidance relayed in plain Bangla, escalation to a remote physician for asynchronous review, or urgent referral out. The mandated room finally has a function the worker has a reason to enter.",
+          "Workforce nutrition rides the same encounter. Anaemia screening for a majority-female workforce, where anaemia affects 36.7% of Bangladeshi women of reproductive age, becomes a routine part of the visit, and the precedent is proven: the same peer channel evaluated in Bangladeshi factories has carried buyer-funded nutrition programming before.",
           "Every encounter writes to the worker's own wallet. Management never sees clinical content. This line is absolute because the evidence demands it: in a sector where pregnancy discrimination drives exits, a factory-readable health record would be a weapon against the women it claims to serve. The early-pregnancy consultation and the reproductive-health question are shielded categories, visible to the worker and her chosen clinicians only.",
           "What management receives instead is what it actually needs and the buyer actually audits: compliance documentation as signed credentials, the staffed room, the encounters happening, occupational injuries tracked to resolution, plus de-identified aggregate trends with small-count suppression. Individual records, never. And when she leaves at 35, her decade of occupational health history leaves with her: the documented back injury that becomes a disability claim, the respiratory baseline a future doctor needs. Today that history evaporates at the factory gate. Under Karigor it is hers.",
         ],
@@ -374,6 +375,16 @@ export const PRODUCTS: ProductContent[] = [
       },
       {
         index: "03",
+        heading: "The nutrition spine",
+        body: [
+          "Bangladesh is off course on every maternal and child nutrition target it has set. Stunting affects 28% of children under five, above the regional average. Low birth weight affects 27.8% of infants. Anaemia affects 36.7% of women of reproductive age, and the global monitoring records no progress on it at all. The national nutrition plan, NPAN2, has just reached the end of its 2016 to 2025 term, and its successor is being written now.",
+          "The argument is the same one the blood pressure made. Stunting announces itself in a growth curve that nobody plots, because the weights are taken at scattered contacts and recorded nowhere. Anaemia in pregnancy is a screen and a trend. A MUAC tape costs pennies and the community health worker already knows how to use it. So Maa's surveillance spine carries nutrition alongside pressure: gestational weight and anaemia screening through pregnancy, iron and folate adherence on the same WhatsApp rails as everything else, and growth monitoring at every immunization contact after birth, plotted automatically, with faltering growth escalated the way a climbing pressure is. The child who is becoming stunted is visible eighteen months before the statistic records it.",
+          "For nutrition funders this solves the sector's oldest complaint: data that arrives years late through surveys. A network that produces consented, real-time, longitudinal growth and anaemia data as a side effect of care is measurement infrastructure no campaign can match.",
+        ],
+        pullQuote: "Stunting announces itself in a growth curve nobody plots.",
+      },
+      {
+        index: "04",
         heading: "For funders, with the arithmetic shown",
         body: [
           "Maa is free to mothers, permanently. The wealth gradient in skilled birth attendance means any paywall is a death gradient. The funder map is the densest in global health: UNICEF and UNFPA, whose own disparity data documents the gap Maa targets, the Gates Foundation, WHO Bangladesh, and DGHS and DGFP themselves.",
@@ -381,10 +392,10 @@ export const PRODUCTS: ProductContent[] = [
         ],
       },
       {
-        index: "04",
+        index: "05",
         heading: "Where it stands",
         body: [
-          "Designed, not built. Maa inherits the wallet, family circles, the assisted-capture flow, and the WhatsApp rails that already run in production. The fundable pilot is sharply defined: one upazila, every identified pregnancy enrolled, CHW-run BP surveillance, escalation routing to a facility verified ready, measured against the district's baseline. Maa detects and routes; it does not treat. Its ceiling is set by facility quality it does not control, and the pilot design says so.",
+          "Designed, not built. Maa inherits the wallet, family circles, the assisted-capture flow, and the WhatsApp rails that already run in production. The fundable pilot is sharply defined: one upazila, every identified pregnancy enrolled, CHW-run BP and nutrition surveillance, escalation routing to a facility verified ready, measured against the district's baseline. Maa detects and routes; it does not treat. Its ceiling is set by facility quality it does not control, and the pilot design says so.",
         ],
       },
     ],
@@ -521,13 +532,21 @@ export const PRODUCTS: ProductContent[] = [
       },
       {
         index: "04",
+        heading: "The accountability layer",
+        body: [
+          "Bangladesh's health ministry already operates a national Grievance Redress System, and a 2025 PLOS Digital Health analysis of 11,604 messages submitted to it tells the familiar story: 67% forwarded to another department, 30% closed, 2.55% resolved. The channel exists. The accountability does not.",
+          "In this network a grievance is a credential. It is filed by an identified patient, or through anonymous mode for the complaints people are afraid to sign. It is bound to the encounter it concerns. It is tracked to a resolution that is attested rather than self-reported, and it cannot be quietly forwarded into oblivion. Aggregate resolution rates are visible to funders and regulators through selective disclosure, with no complainant exposed. For donor-funded programs a functioning grievance mechanism is a standing requirement; here it is a property of the record architecture itself.",
+        ],
+      },
+      {
+        index: "05",
         heading: "The honest position on decentralization",
         body: [
           "An earlier draft of this vision overclaimed and was corrected, and the correction is now doctrine. Glyph is a single-operator system built on portable open standards, not a decentralized network. The honest claims are exactly three. Portability: every wallet exports in W3C-standard form, and credentials verify with or without KhaM Health's cooperation. No lock-in: a future operator, including the government, can assume the namespace, and signed credentials remain valid. Succession: KhaM Labs' governing documents oblige transfer of keys and infrastructure to a designated successor if the operator fails, in preference order a Bangladeshi public authority, a consortium of participating institutions, or an international digital-public-goods custodian.",
         ],
       },
       {
-        index: "05",
+        index: "06",
         heading: "Where it stands",
         body: [
           "The cryptographic core runs in production today: physician identities, signed visit notes and prescriptions, and pharmacy-counter verification with revocation. The eight enrollment paths, wallet custody modes, selective disclosure, recovery, and break-glass protocols are specified and under build, adapted from identity infrastructure already serving supply-chain credentials in production. This layer is the single critical-path dependency for Pharmacy, Lens results, Hospital, and Bridge.",
