@@ -11,11 +11,6 @@ const AFFIRMATIVE = ["হ্যাঁ", "হ্যা", "জি", "জ্বি"
 const STOP = ["stop", "unsubscribe", "বন্ধ", "আনসাবস্ক্রাইব", "বন্ধ করুন", "remove", "cancel"];
 const RECORD = ["record", "records", "রেকর্ড", "my record", "আমার রেকর্ড", "রিপোর্ট", "report", "history", "ইতিহাস", "প্রেসক্রিপশন"];
 
-function matchesAny(text: string, list: string[]): boolean {
-  const t = norm(text);
-  return list.some((w) => t === w || t.includes(w));
-}
-
 /** A short affirmative ("yes"/"হ্যাঁ"/👍). Only matches SHORT replies to avoid a symptom that contains "ok". */
 export function isAffirmative(text: string): boolean {
   const t = norm(text);
@@ -23,10 +18,18 @@ export function isAffirmative(text: string): boolean {
   return AFFIRMATIVE.some((w) => t === w || t.startsWith(w + " ") || t === w + "।");
 }
 
+/** Whole-message match (after trimming trailing punctuation). High-precision:
+ *  a command only fires when the entire message IS the command, so symptom
+ *  text that merely contains a word like "বন্ধ" is NOT a command. */
+function isWholeMessage(text: string, list: string[]): boolean {
+  const t = norm(text).replace(/[।.!?]+$/u, "").trim();
+  return list.includes(t);
+}
+
 export function isStopWord(text: string): boolean {
-  return matchesAny(text, STOP);
+  return isWholeMessage(text, STOP);
 }
 
 export function isRecordRequest(text: string): boolean {
-  return matchesAny(text, RECORD);
+  return isWholeMessage(text, RECORD);
 }

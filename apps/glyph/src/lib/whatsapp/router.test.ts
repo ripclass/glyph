@@ -47,4 +47,10 @@ describe("decideRoute", () => {
   it("bound mid-triage + non-text → help", () => {
     expect(decideRoute(inbound({ kind: "image" }), { bound: true, activeFlow: "triage" }).kind).toBe("help");
   });
+  it("bound idle + non-text → help", () => {
+    expect(decideRoute(inbound({ kind: "image" }), idle).kind).toBe("help");
+  });
+  it("bound awaiting consent + non-text → help", () => {
+    expect(decideRoute(inbound({ kind: "image" }), { bound: true, activeFlow: "awaiting_triage_consent" }).kind).toBe("help");
+  });
 });

@@ -13,7 +13,7 @@ export function formatOutcome(outcome: TriageOutcome): string {
   if (outcome.route === "urgent" && outcome.redFlag) {
     lines.push("⚠️ " + outcome.redFlag);
   }
-  if (outcome.text) lines.push(outcome.text);
+  if (outcome.text && outcome.text !== outcome.redFlag) lines.push(outcome.text);
   if (outcome.route === "doctor" && outcome.specialty) {
     lines.push(`কোন ডাক্তার: ${outcome.specialty}`);
   }
