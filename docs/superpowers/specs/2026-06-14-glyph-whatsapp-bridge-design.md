@@ -141,8 +141,11 @@ reality (replies hours later, out of order, concurrent threads).
   jsonb`. Drained by the reminder cron (idempotent, race-safe claim — copied
   from Juugadu).
 
-No existing tables change shape. `consent_records` already has the
-`whatsapp_followup` and `ai_processing` / `image_capture` types we need.
+One small column added: **`visits.next_appointment_at`** (nullable
+`timestamptz`, set by the doctor) — the seed for appointment reminders (a row
+in `scheduled_messages` is created from it). Otherwise no existing tables change
+shape. `consent_records` already has the `whatsapp_followup` and `ai_processing`
+/ `image_capture` types we need.
 
 ## Key flows
 
@@ -230,24 +233,33 @@ by the existing egress smokes.
 
 ## Dependencies / founder actions
 
-- **New 360dialog number + channel + API key** for Glyph (Hub) — founder.
+- **New BD WhatsApp sender number** — a fresh SIM (any operator; coverage is
+  irrelevant, the number lives in 360dialog's cloud after one OTP). **No
+  registered BD business is needed to start:** create a Meta Business Portfolio
+  as yourself and run the number in the **unverified tier** (~250
+  business-initiated conversations/24h, unlimited patient-initiated within the
+  24h window) — ample for the pilot. Meta **business verification** + the
+  green-tick display name (needs a legal entity) gate *scale and trust*, not
+  getting started, and proceed **in parallel**. The number's country and the
+  legal entity's country need not match.
+- **Engineering is never blocked on the paperwork.** Build and test the whole
+  bridge against the **360dialog sandbox / a test number**; swap in the
+  production BD number + API key once it clears. The legal-entity track and the
+  code track are independent.
 - **Template drafting + Meta approval** (follow-up, appointment reminder, doctor
-  nudge) — a few business days lead time — founder + me.
-- **Appointment source for reminders:** the scheduling model is still a stub
-  (CLAUDE.md §8). v1 reminders fire from `scheduled_messages` rows; *who creates
-  those rows* (a minimal "next appointment" field on the visit, set by the
-  doctor) is the smallest viable source — confirm scope before Leg D.
+  nudge — all *utility* category) — a few business days lead time — founder + me.
+- **Appointment source:** the doctor sets `visits.next_appointment_at`; that
+  seeds the reminder. No full scheduling product in v1.
 - Env: `WHATSAPP_PROVIDER`, `DIALOG360_API_KEY`, `DIALOG360_API_BASE`,
   `DIALOG360_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `DIALOG360_WEBHOOK_SECRET`
   (names match Juugadu) + a `WHATSAPP_BRIDGE_SECRET` for the bridge→edge-fn hop.
 
-## Open questions
+## Resolved decisions (locked)
 
-1. **Binding UX:** QR-with-one-time-code at the visit (recommended) vs the
-   patient texting first and us matching by `patients.phone`. The QR is more
-   robust against family-phone mismatches.
-2. **Voice-out default:** voice replies for voice-in (Juugadu default) vs
-   text-first for clinical clarity. Lean text-first for anything clinical, voice
-   only for warm/non-clinical turns.
-3. **Reminder source (Leg D):** minimal "next appointment" field on the visit,
-   or wait for a real scheduling model.
+1. **Binding UX:** QR-with-one-time-code at the visit. Robust against
+   family-phone mismatches — it binds the patient who was in the room, not
+   "whoever owns the number."
+2. **Voice-out:** text-first for anything clinical (a TTS mishearing a dose is
+   unacceptable); voice replies only for warm, non-clinical turns.
+3. **Reminder source:** a minimal `visits.next_appointment_at` datetime the
+   doctor sets seeds the reminder — no full scheduling product needed for v1.
