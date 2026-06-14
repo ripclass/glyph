@@ -80,6 +80,24 @@ try {
   const { data: triageRow } = await admin
     .from("triage_sessions").select("red_flag_screened, outcome").eq("patient_id", patient.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
   check("red-flag triage session persisted as urgent", triageRow?.red_flag_screened === true && triageRow?.outcome?.route === "urgent", JSON.stringify(triageRow?.outcome?.route));
+
+  // 7. Bound patient sends an image → one-time doc consent notice, then type question.
+  const r7 = await post({ entry: [{ changes: [{ value: {
+    contacts: [{ wa_id: waId, profile: { name: "Smoke" } }],
+    messages: [{ id: `wamid.${code}.img`, from: waId, timestamp: "1700000000", type: "image", image: { id: "fake-media-1", mime_type: "image/jpeg" } }],
+  } }] }] });
+  check("webhook 200 for image", r7.status === 200, r7.status);
+  await new Promise((r) => setTimeout(r, 2500));
+  let { data: convo7 } = await admin.from("wa_conversations").select("active_flow").eq("wa_id", waId).maybeSingle();
+  check("image → awaiting_document_consent", convo7?.active_flow === "awaiting_document_consent", convo7?.active_flow);
+
+  const r8 = await post(inboundPayload("হ্যাঁ", `wamid.${code}.docyes`));
+  check("webhook 200 for doc consent yes", r8.status === 200, r8.status);
+  await new Promise((r) => setTimeout(r, 2500));
+  ({ data: convo7 } = await admin.from("wa_conversations").select("active_flow").eq("wa_id", waId).maybeSingle());
+  check("doc consent agreed → awaiting_document_type", convo7?.active_flow === "awaiting_document_type", convo7?.active_flow);
+  const { data: docConsent } = await admin.from("consent_records").select("device_info").eq("patient_id", patient.id).eq("device_info", "whatsapp_document").maybeSingle();
+  check("whatsapp_document consent recorded", !!docConsent);
 } finally {
   await admin.from("triage_sessions").delete().eq("patient_id", patient.id);
   await admin.from("consent_records").delete().eq("patient_id", patient.id);
