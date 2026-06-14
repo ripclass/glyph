@@ -46,6 +46,7 @@ export function decideRoute(inbound: NormalizedInbound, ctx: RouteContext): Rout
   // Idle.
   if (inbound.kind !== "text") return { kind: "help" };
   const text = inbound.text.trim();
+  if (!text) return { kind: "help" };
   if (isStopWord(text)) return { kind: "revoke" };
   if (isRecordRequest(text)) return { kind: "wallet" };
   return { kind: "triage_start", symptom: text };

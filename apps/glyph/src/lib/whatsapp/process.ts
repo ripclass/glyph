@@ -4,7 +4,7 @@ import { decideRoute } from "./router";
 import { resolveLinkByWaId, redeemBindCode } from "./binding";
 import { sendText } from "./send";
 import { isWindowOpen, nextWindowExpiry } from "./window";
-import { readFlow, writeFlow, type WaFlowState } from "./flow";
+import { readFlow, writeFlow } from "./flow";
 import { formatOutcome } from "./reply";
 import { findOrCreateWalletToken } from "./wallet-link";
 import { runTriageTurn, type TriageMsg } from "@/lib/services/triage-runner";
