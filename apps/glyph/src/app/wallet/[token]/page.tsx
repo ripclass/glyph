@@ -22,7 +22,7 @@ interface Visit {
   id: string;
   visit_date: string | null;
   visit_number: number | null;
-  approved_note: { cc?: string; rx?: string; advice?: string } | null;
+  approved_note: { chiefComplaint?: string; advice?: string } | null;
   intake_summary: unknown;
   note_credential_id: string | null;
   doctors: { name?: string; name_bn?: string } | null;
@@ -203,8 +203,8 @@ export default function WalletPage() {
                   )}
                 </div>
 
-                {v.approved_note?.cc && (
-                  <p className="mt-3 font-bangla text-[15px] leading-relaxed text-ink">{v.approved_note.cc}</p>
+                {v.approved_note?.chiefComplaint && (
+                  <p className="mt-3 font-bangla text-[15px] leading-relaxed text-ink">{v.approved_note.chiefComplaint}</p>
                 )}
 
                 {meds.length > 0 && (
