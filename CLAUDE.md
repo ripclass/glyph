@@ -83,7 +83,7 @@ Glyph/
 │   ├── smoke-egress.mjs            # Tier A/B gate: scrub round-trip, consent withdrawal, log tamper
 │   ├── smoke-documents.mjs         # document pipeline: storage RLS, Tier B consent, real extraction
 │   ├── smoke-triage.mjs            # Pocket v2 triage E2E (hits the live Next route): red-flag escalation, Tier B consent fail-closed, real LLM exchange, session persistence. usage: node scripts/smoke-triage.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
-│   ├── smoke-whatsapp.mjs          # WhatsApp bridge Leg A–C E2E: drives the webhook, asserts bind→conversation→dedupe (Leg A), triage/wallet/revoke (Leg B), image→consent→type-question + whatsapp_document consent recorded (Leg C). usage: node scripts/smoke-whatsapp.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
+│   ├── smoke-whatsapp.mjs          # WhatsApp bridge Leg A–D E2E: drives the webhook, asserts bind→conversation→dedupe (Leg A), triage/wallet/revoke (Leg B), image→consent→type-question + whatsapp_document consent recorded (Leg C), scheduled_messages enqueue (Leg D — deterministic queue state; real template delivery needs Meta-approved templates + live number). usage: node scripts/smoke-whatsapp.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
 │   ├── dev-doctor.mjs              # recreate doctor@glyph.dev/glyph-dev-2026 after local db reset (refuses prod)
 │   ├── create-doctor.mjs           # REAL doctor onboarding (works on prod; safety rails, no self-signup yet)
 │   └── fixtures/rx-napa.jpg        # synthetic BD prescription (Napa/Seclo, 1+0+1) for extraction smoke
@@ -116,7 +116,8 @@ Glyph/
 │   │   ├── 005_waitlist.sql        # waitlist_signups: RLS deny-all (service-role only via /api/waitlist)
 │   │   ├── 006_wallet_tokens.sql   # wallet_access_tokens: Pocket bearer tokens, RLS deny-all (service-role only)
 │   │   ├── 007_triage_sessions.sql # triage_sessions: Pocket v2 triage exchanges, RLS deny-all (service-role only)
-│   │   └── 008_whatsapp_bridge.sql # whatsapp_links + wa_conversations + wa_messages: WhatsApp bridge Leg A, RLS deny-all (service-role only)
+│   │   ├── 008_whatsapp_bridge.sql # whatsapp_links + wa_conversations + wa_messages: WhatsApp bridge Leg A, RLS deny-all (service-role only)
+│   │   └── 009_scheduled_messages.sql # scheduled_messages: Leg D proactive send queue + visits.next_appointment_at, RLS deny-all
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -171,7 +172,7 @@ Glyph/
         │   ├── .well-known/did/[...slug]/route.ts  # public did:web resolution
         │   ├── api/[...path]/route.ts   # Catch-all proxy → Supabase Edge Functions
         │   ├── api/verify/route.ts      # credential verification (local fast-path + status overlay)
-        │   ├── api/visits/approve-note/route.ts  # note approval → Rx + VisitNote credentials (one-shot)
+        │   ├── api/visits/approve-note/route.ts  # note approval → Rx + VisitNote credentials (one-shot); Leg D: also enqueues a followup (+2d fire_at) and, if visits.next_appointment_at is set, an appointment reminder into scheduled_messages
         │   ├── api/waitlist/route.ts    # public (unauthenticated) waitlist signup: honeypot, phone-dedupe, service-role insert
         │   ├── api/wallet/issue/route.ts # POCKET: doctor-session, find-or-create patient wallet bearer token (+optional PIN)
         │   ├── api/wallet/[token]/route.ts # POCKET: public, service-role read of one patient's record by bearer token (PIN-gated)
@@ -179,6 +180,7 @@ Glyph/
         │   ├── api/whatsapp/webhook/route.ts # WHATSAPP BRIDGE: inbound webhook (GET challenge + POST: signature-verify → dedupe on provider_message_id → processInbound inline). Next 14.2 has no stable after(), so processing is inline + sweeper-recovered. Leg B: processInbound runs the intent router + in-thread triage/wallet/revoke state machine.
         │   ├── api/whatsapp/bind-code/route.ts # WHATSAPP BRIDGE: doctor-session issues a one-time bind code + wa.me QR link (RLS patient scope-check via user client; service-role insert into whatsapp_links).
         │   ├── api/cron/whatsapp-sweeper/route.ts # WHATSAPP BRIDGE: every-minute cron (Vercel Pro) retrying inbound wa_messages stuck in 'received'. (Leg A skeleton + Leg B patient core + Leg C pre-chamber photo capture built; voice deferred. specs/plans in docs/superpowers/{specs,plans}/2026-06-14-glyph-whatsapp-bridge-*.md. Leg C plan: docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-c.md)
+        │   ├── api/cron/whatsapp-scheduler/route.ts # WHATSAPP BRIDGE Leg D: every-5-min cron (Vercel Pro); enqueues doctor nudges for overdue visits + drains scheduled_messages (followup/appointment_reminder/doctor_nudge) past fire_at via sendTemplate. Delivery gated on 3 Meta-approved utility templates (glyph_followup, glyph_appointment_reminder, glyph_doctor_nudge). Plan: docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-d.md
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
@@ -210,7 +212,7 @@ Glyph/
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
         │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test),
         │   │                        # triage-runner (shared symptom-triage engine: red-flag screen → consent → egress-gated `triage` edge fn → clamp → persist; called by BOTH the wallet triage route and the WhatsApp bridge)
-        │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Leg C adds media (360dialog download), documents (bucket upload), doc-type (flow: image → consent → type question → extract-document service path). Routes call into this; clinical thinking stays in edge fns.
+        │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Leg C adds media (360dialog download), documents (bucket upload), doc-type (flow: image → consent → type question → extract-document service path). Leg D adds templates (glyph_followup/glyph_appointment_reminder/glyph_doctor_nudge template definitions), schedule (enqueue/drain helpers for scheduled_messages), and sendTemplate (360dialog template send). Routes call into this; clinical thinking stays in edge fns.
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
         │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
