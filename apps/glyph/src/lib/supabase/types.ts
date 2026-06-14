@@ -910,6 +910,142 @@ export type Database = {
           },
         ]
       }
+      wa_conversations: {
+        Row: {
+          id: string
+          wa_id: string
+          patient_id: string | null
+          active_flow: string
+          flow_state: Json
+          window_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          wa_id: string
+          patient_id?: string | null
+          active_flow?: string
+          flow_state?: Json
+          window_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          wa_id?: string
+          patient_id?: string | null
+          active_flow?: string
+          flow_state?: Json
+          window_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_messages: {
+        Row: {
+          id: string
+          created_at: string
+          provider_message_id: string | null
+          direction: string
+          wa_id: string
+          patient_id: string | null
+          kind: string
+          status: string
+          payload: Json | null
+          error: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          provider_message_id?: string | null
+          direction: string
+          wa_id: string
+          patient_id?: string | null
+          kind: string
+          status: string
+          payload?: Json | null
+          error?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          provider_message_id?: string | null
+          direction?: string
+          wa_id?: string
+          patient_id?: string | null
+          kind?: string
+          status?: string
+          payload?: Json | null
+          error?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_messages_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_links: {
+        Row: {
+          id: string
+          created_at: string
+          patient_id: string
+          wa_id: string | null
+          bind_code: string | null
+          bind_code_expires_at: string | null
+          verified_at: string | null
+          revoked: boolean
+          created_by_doctor_id: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          patient_id: string
+          wa_id?: string | null
+          bind_code?: string | null
+          bind_code_expires_at?: string | null
+          verified_at?: string | null
+          revoked?: boolean
+          created_by_doctor_id?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          patient_id?: string
+          wa_id?: string | null
+          bind_code?: string | null
+          bind_code_expires_at?: string | null
+          verified_at?: string | null
+          revoked?: boolean
+          created_by_doctor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_links_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_links_created_by_doctor_id_fkey"
+            columns: ["created_by_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1118,3 +1254,9 @@ export type WalletAccessToken = Database['public']['Tables']['wallet_access_toke
 export type WalletAccessTokenInsert = Database['public']['Tables']['wallet_access_tokens']['Insert'];
 export type TriageSession = Database['public']['Tables']['triage_sessions']['Row'];
 export type TriageSessionInsert = Database['public']['Tables']['triage_sessions']['Insert'];
+export type WaConversation = Database['public']['Tables']['wa_conversations']['Row'];
+export type WaConversationInsert = Database['public']['Tables']['wa_conversations']['Insert'];
+export type WaMessage = Database['public']['Tables']['wa_messages']['Row'];
+export type WaMessageInsert = Database['public']['Tables']['wa_messages']['Insert'];
+export type WhatsappLink = Database['public']['Tables']['whatsapp_links']['Row'];
+export type WhatsappLinkInsert = Database['public']['Tables']['whatsapp_links']['Insert'];
