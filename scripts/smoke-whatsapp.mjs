@@ -62,7 +62,28 @@ try {
   await new Promise((r) => setTimeout(r, 1500));
   const { count } = await admin.from("wa_messages").select("*", { count: "exact", head: true }).eq("provider_message_id", `wamid.${code}.b`);
   check("redelivery deduped (1 inbound row)", count === 1, `count=${count}`);
+
+  // 5. Bound patient asks for their record → wallet link reply logged.
+  const r5 = await post(inboundPayload("রেকর্ড", `wamid.${code}.rec`));
+  check("webhook 200 for record request", r5.status === 200, r5.status);
+  await new Promise((r) => setTimeout(r, 2500));
+  const { data: walletOut } = await admin
+    .from("wa_messages").select("status").eq("wa_id", waId).eq("direction", "outbound").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  check("record request produced an outbound reply", !!walletOut, JSON.stringify(walletOut));
+  const { data: tok } = await admin.from("wallet_access_tokens").select("token").eq("patient_id", patient.id).maybeSingle();
+  check("wallet token minted for the patient", !!tok?.token);
+
+  // 6. Bound patient sends a RED-FLAG symptom → deterministic urgent (no LLM/consent needed).
+  const r6 = await post(inboundPayload("আমার বুকে প্রচণ্ড ব্যথা আর শ্বাসকষ্ট হচ্ছে", `wamid.${code}.rf`));
+  check("webhook 200 for red-flag symptom", r6.status === 200, r6.status);
+  await new Promise((r) => setTimeout(r, 3000));
+  const { data: triageRow } = await admin
+    .from("triage_sessions").select("red_flag_screened, outcome").eq("patient_id", patient.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  check("red-flag triage session persisted as urgent", triageRow?.red_flag_screened === true && triageRow?.outcome?.route === "urgent", JSON.stringify(triageRow?.outcome?.route));
 } finally {
+  await admin.from("triage_sessions").delete().eq("patient_id", patient.id);
+  await admin.from("consent_records").delete().eq("patient_id", patient.id);
+  await admin.from("wallet_access_tokens").delete().eq("patient_id", patient.id);
   await admin.from("wa_messages").delete().eq("wa_id", waId);
   await admin.from("wa_conversations").delete().eq("wa_id", waId);
   await admin.from("whatsapp_links").delete().eq("patient_id", patient.id);
