@@ -47,13 +47,32 @@ describe("decideRoute", () => {
   it("bound mid-triage + non-text → help", () => {
     expect(decideRoute(inbound({ kind: "image" }), { bound: true, activeFlow: "triage" }).kind).toBe("help");
   });
-  it("bound idle + non-text → help", () => {
-    expect(decideRoute(inbound({ kind: "image" }), idle).kind).toBe("help");
+  it("bound idle + audio (non-image/doc non-text) → help", () => {
+    expect(decideRoute(inbound({ kind: "audio" }), idle).kind).toBe("help");
   });
   it("bound awaiting consent + non-text → help", () => {
     expect(decideRoute(inbound({ kind: "image" }), { bound: true, activeFlow: "awaiting_triage_consent" }).kind).toBe("help");
   });
   it("bound idle + empty/whitespace text → help", () => {
     expect(decideRoute(inbound({ text: "   " }), idle).kind).toBe("help");
+  });
+  it("bound idle + image → document_received", () => {
+    const a = decideRoute(inbound({ kind: "image", mediaId: "m-1", mediaMimeType: "image/jpeg" }), idle);
+    expect(a).toEqual({ kind: "document_received", mediaId: "m-1", mimeType: "image/jpeg" });
+  });
+  it("bound idle + document → document_received", () => {
+    expect(decideRoute(inbound({ kind: "document", mediaId: "d-1", mediaMimeType: "application/pdf" }), idle).kind).toBe("document_received");
+  });
+  it("awaiting doc consent + yes → document_consent_reply agreed", () => {
+    expect(decideRoute(inbound({ text: "হ্যাঁ" }), { bound: true, activeFlow: "awaiting_document_consent" })).toEqual({ kind: "document_consent_reply", agreed: true });
+  });
+  it("awaiting doc type + '১' → document_type_reply prescription", () => {
+    expect(decideRoute(inbound({ text: "১" }), { bound: true, activeFlow: "awaiting_document_type" })).toEqual({ kind: "document_type_reply", docType: "prescription" });
+  });
+  it("awaiting doc type + junk → document_type_reply null", () => {
+    expect(decideRoute(inbound({ text: "asdf" }), { bound: true, activeFlow: "awaiting_document_type" })).toEqual({ kind: "document_type_reply", docType: null });
+  });
+  it("mid-triage + image → help (don't interrupt triage)", () => {
+    expect(decideRoute(inbound({ kind: "image", mediaId: "m" }), { bound: true, activeFlow: "triage" }).kind).toBe("help");
   });
 });

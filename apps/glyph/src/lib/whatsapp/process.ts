@@ -8,6 +8,7 @@ import { readFlow, writeFlow } from "./flow";
 import { formatOutcome } from "./reply";
 import { findOrCreateWalletToken } from "./wallet-link";
 import { runTriageTurn, type TriageMsg } from "@/lib/services/triage-runner";
+import { captureDocument, resolveDocConsent, createDocConsent } from "./documents";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -21,6 +22,11 @@ const CONSENT_NOTICE =
 const CONSENT_DECLINED_MSG = "ঠিক আছে, কোনো সমস্যা নেই। প্রয়োজনে ডাক্তার দেখান।";
 const REVOKED_MSG = "আপনার নম্বর সরিয়ে নেওয়া হয়েছে। আর কোনো বার্তা পাবেন না। আবার যুক্ত হতে ক্লিনিকের কোড পাঠান।";
 const TRIAGE_TAG = "whatsapp_triage";
+const DOC_CONSENT_NOTICE =
+  "ছবিতে নাম-পরিচয় থাকতে পারে; এটি একটি AI পড়বে, পরিচয় গোপন রাখা হয়। ডাক্তার দেখার আগে আপনার তথ্য প্রস্তুত হবে। রাজি থাকলে 'হ্যাঁ' লিখুন।";
+const DOC_TYPE_QUESTION = "এটা কি প্রেসক্রিপশন না ল্যাব রিপোর্ট? প্রেসক্রিপশন হলে '১', রিপোর্ট হলে '২' লিখুন।";
+const DOC_OK_MSG = "পেয়েছি ✓ ডাক্তার দেখার আগে এটি প্রস্তুত থাকবে।";
+const DOC_FAIL_MSG = "দুঃখিত, ছবিটি পড়া গেল না। আবার একটি পরিষ্কার ছবি পাঠান, অথবা ক্লিনিকে দেখান।";
 
 export async function processInbound(admin: Admin, inbound: NormalizedInbound, now: Date): Promise<void> {
   const waId = inbound.fromWaId;
@@ -76,6 +82,54 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
     } else {
       await writeFlow(admin, waId, "idle", {});
       replyText = CONSENT_DECLINED_MSG;
+    }
+  } else if (action.kind === "document_received") {
+    if (patientId && action.mediaId) {
+      const consentId = await resolveDocConsent(admin, patientId);
+      if (consentId) {
+        await writeFlow(admin, waId, "awaiting_document_type", { pendingMediaId: action.mediaId, pendingMimeType: action.mimeType });
+        replyText = DOC_TYPE_QUESTION;
+      } else {
+        await writeFlow(admin, waId, "awaiting_document_consent", { pendingMediaId: action.mediaId, pendingMimeType: action.mimeType });
+        replyText = DOC_CONSENT_NOTICE;
+      }
+    } else if (patientId) {
+      replyText = DOC_FAIL_MSG; // malformed media (no id) — fail fast
+    }
+  } else if (action.kind === "document_consent_reply") {
+    if (action.agreed && patientId) {
+      const cid = await createDocConsent(admin, patientId);
+      if (cid) {
+        await writeFlow(admin, waId, "awaiting_document_type", state); // keep the stashed media
+        replyText = DOC_TYPE_QUESTION;
+      } else {
+        await writeFlow(admin, waId, "idle", {});
+        replyText = DOC_FAIL_MSG;
+      }
+    } else {
+      await writeFlow(admin, waId, "idle", {});
+      replyText = CONSENT_DECLINED_MSG;
+    }
+  } else if (action.kind === "document_type_reply") {
+    if (!action.docType) {
+      replyText = DOC_TYPE_QUESTION; // unrecognised → re-ask, stay in the state
+    } else if (patientId && state.pendingMediaId) {
+      const consentId = await resolveDocConsent(admin, patientId);
+      const result = consentId
+        ? await captureDocument(admin, {
+            patientId,
+            mediaId: state.pendingMediaId,
+            mimeType: state.pendingMimeType ?? "image/jpeg",
+            type: action.docType,
+            consentId,
+          })
+        : { ok: false, error: "no consent" };
+      await writeFlow(admin, waId, "idle", {});
+      replyText = result.ok ? DOC_OK_MSG : DOC_FAIL_MSG;
+      if (!result.ok) console.error("[wa/process] document capture failed:", result.error);
+    } else {
+      await writeFlow(admin, waId, "idle", {});
+      replyText = DOC_FAIL_MSG;
     }
   }
 

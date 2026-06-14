@@ -1,6 +1,7 @@
 import type { NormalizedInbound } from "./types";
 import { extractBindCode } from "./binding";
 import { isAffirmative, isStopWord, isRecordRequest } from "./intents";
+import { parseDocType, type DocType } from "./doc-type";
 
 export type RouteAction =
   | { kind: "ignore"; reason: string }
@@ -9,13 +10,16 @@ export type RouteAction =
   | { kind: "triage_start"; symptom: string }
   | { kind: "triage_continue"; answer: string }
   | { kind: "triage_consent_reply"; agreed: boolean }
+  | { kind: "document_received"; mediaId: string; mimeType: string }
+  | { kind: "document_consent_reply"; agreed: boolean }
+  | { kind: "document_type_reply"; docType: DocType | null }
   | { kind: "wallet" }
   | { kind: "revoke" }
   | { kind: "help" };
 
 export interface RouteContext {
   bound: boolean;
-  /** wa_conversations.active_flow: "idle" | "triage" | "awaiting_triage_consent" */
+  /** wa_conversations.active_flow: idle | triage | awaiting_triage_consent | awaiting_document_consent | awaiting_document_type */
   activeFlow: string;
 }
 
@@ -38,12 +42,23 @@ export function decideRoute(inbound: NormalizedInbound, ctx: RouteContext): Rout
     if (inbound.kind !== "text") return { kind: "help" };
     return { kind: "triage_consent_reply", agreed: isAffirmative(inbound.text) };
   }
+  if (ctx.activeFlow === "awaiting_document_consent") {
+    if (inbound.kind !== "text") return { kind: "help" };
+    return { kind: "document_consent_reply", agreed: isAffirmative(inbound.text) };
+  }
+  if (ctx.activeFlow === "awaiting_document_type") {
+    if (inbound.kind !== "text") return { kind: "help" };
+    return { kind: "document_type_reply", docType: parseDocType(inbound.text) };
+  }
   if (ctx.activeFlow === "triage") {
     if (inbound.kind !== "text") return { kind: "help" };
     return { kind: "triage_continue", answer: inbound.text };
   }
 
   // Idle.
+  if (inbound.kind === "image" || inbound.kind === "document") {
+    return { kind: "document_received", mediaId: inbound.mediaId ?? "", mimeType: inbound.mediaMimeType ?? "" };
+  }
   if (inbound.kind !== "text") return { kind: "help" };
   const text = inbound.text.trim();
   if (!text) return { kind: "help" };

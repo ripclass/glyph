@@ -4,13 +4,16 @@ import type { TriageMsg } from "@/lib/services/triage-runner";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-export type ActiveFlow = "idle" | "triage" | "awaiting_triage_consent";
+export type ActiveFlow = "idle" | "triage" | "awaiting_triage_consent" | "awaiting_document_consent" | "awaiting_document_type";
 
 export interface WaFlowState {
   /** The triage exchange so far (patient + glyph turns). */
   triageMessages?: TriageMsg[];
   /** The first symptom, stashed while awaiting the consent reply. */
   pendingSymptom?: string;
+  /** A WhatsApp media id stashed while awaiting photo consent / type. */
+  pendingMediaId?: string;
+  pendingMimeType?: string;
 }
 
 /** Read the conversation's flow for a wa_id (defaults to idle/empty). */

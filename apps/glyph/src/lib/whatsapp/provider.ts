@@ -7,6 +7,10 @@ export interface ProviderConfig {
   messageBaseUrl(): string;
   authHeaders(): Record<string, string>;
   webhookSecret(): string | undefined;
+  /** Metadata URL for a media id (returns a JSON envelope with a signed url). */
+  mediaMetadataUrl(mediaId: string): string;
+  /** Headers to download the signed media url (Meta: Bearer; 360dialog: D360 key). */
+  mediaDownloadHeaders(): Record<string, string>;
 }
 
 function req(name: string): string {
@@ -22,6 +26,8 @@ export function getProvider(): ProviderConfig {
       messageBaseUrl: () => `${apiBase}/${req("META_PHONE_NUMBER_ID")}`,
       authHeaders: () => ({ Authorization: `Bearer ${req("META_ACCESS_TOKEN")}` }),
       webhookSecret: () => process.env.META_APP_SECRET,
+      mediaMetadataUrl: (mediaId) => `${apiBase}/${mediaId}`,
+      mediaDownloadHeaders: () => ({ Authorization: `Bearer ${req("META_ACCESS_TOKEN")}` }),
     };
   }
   // default: 360dialog
@@ -29,5 +35,7 @@ export function getProvider(): ProviderConfig {
     messageBaseUrl: () => process.env.DIALOG360_API_BASE ?? "https://waba-v2.360dialog.io",
     authHeaders: () => ({ "D360-API-KEY": req("DIALOG360_API_KEY") }),
     webhookSecret: () => process.env.DIALOG360_WEBHOOK_SECRET,
+    mediaMetadataUrl: (mediaId) => `${process.env.DIALOG360_API_BASE ?? "https://waba-v2.360dialog.io"}/${mediaId}`,
+    mediaDownloadHeaders: () => ({ "D360-API-KEY": req("DIALOG360_API_KEY") }),
   };
 }
