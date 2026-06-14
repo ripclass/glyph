@@ -1,0 +1,75 @@
+/**
+ * Pocket WhatsApp bridge (Leg A) smoke. Drives the webhook the way 360dialog
+ * would, asserting the binding + conversation + message-log state. No real WA
+ * delivery (outbound send will fail without DIALOG360_API_KEY and is logged
+ * 'failed' — that is expected in this DB-only smoke; the bind/route/persist
+ * path is what we assert).
+ *
+ * usage: node scripts/smoke-whatsapp.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
+ */
+import { randomInt } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
+
+const [appUrl, supaUrl, serviceKey] = process.argv.slice(2);
+if (!appUrl || !supaUrl || !serviceKey) {
+  console.error("usage: node scripts/smoke-whatsapp.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>");
+  process.exit(2);
+}
+const base = appUrl.replace(/\/$/, "");
+const admin = createClient(supaUrl, serviceKey, { auth: { persistSession: false } });
+let failures = 0;
+const check = (label, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${detail ? ` — ${String(detail).slice(0, 160)}` : ""}`); if (!ok) failures++; };
+
+const waId = `8801${randomInt(100000000, 999999999)}`;
+const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+
+function inboundPayload(text, id) {
+  return { entry: [{ changes: [{ value: {
+    contacts: [{ wa_id: waId, profile: { name: "Smoke" } }],
+    messages: [{ id, from: waId, timestamp: "1700000000", type: "text", text: { body: text } }],
+  } }] }] };
+}
+async function post(payload) {
+  return fetch(`${base}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+}
+
+// Provision a throwaway clinic + patient + a pending bind code.
+const { data: clinic } = await admin.from("clinics").insert({ name: "WA Smoke Clinic" }).select().single();
+const { data: patient } = await admin.from("patients").insert({ clinic_id: clinic.id, name: "WA Smoke", phone: `019${randomInt(10000000, 99999999)}`, age: 40, gender: "male" }).select().single();
+await admin.from("whatsapp_links").insert({ patient_id: patient.id, bind_code: code, bind_code_expires_at: new Date(Date.now() + 600000).toISOString() });
+
+try {
+  // 1. Unknown number, no code → onboard (no link created).
+  const r1 = await post(inboundPayload("hello", `wamid.${code}.a`));
+  check("webhook 200 for onboarding message", r1.status === 200, r1.status);
+  await new Promise((r) => setTimeout(r, 2500)); // let processing run
+  const { data: l0 } = await admin.from("whatsapp_links").select("verified_at").eq("patient_id", patient.id).maybeSingle();
+  check("no binding yet (onboard only)", !l0?.verified_at);
+
+  // 2. Send the code → binds.
+  const r2 = await post(inboundPayload(`Glyph কোড: ${code}`, `wamid.${code}.b`));
+  check("webhook 200 for bind message", r2.status === 200, r2.status);
+  await new Promise((r) => setTimeout(r, 2500));
+  const { data: link } = await admin.from("whatsapp_links").select("wa_id, verified_at, revoked").eq("patient_id", patient.id).maybeSingle();
+  check("link verified + bound to wa_id", link?.wa_id === waId && !!link?.verified_at && !link?.revoked, JSON.stringify(link));
+
+  // 3. Conversation row + window set.
+  const { data: convo } = await admin.from("wa_conversations").select("patient_id, window_expires_at").eq("wa_id", waId).maybeSingle();
+  check("conversation bound + window open", convo?.patient_id === patient.id && new Date(convo.window_expires_at) > new Date(), JSON.stringify(convo));
+
+  // 4. Idempotency: replay the bind message → no duplicate inbound row.
+  await post(inboundPayload(`Glyph কোড: ${code}`, `wamid.${code}.b`));
+  await new Promise((r) => setTimeout(r, 1500));
+  const { count } = await admin.from("wa_messages").select("*", { count: "exact", head: true }).eq("provider_message_id", `wamid.${code}.b`);
+  check("redelivery deduped (1 inbound row)", count === 1, `count=${count}`);
+} finally {
+  await admin.from("wa_messages").delete().eq("wa_id", waId);
+  await admin.from("wa_conversations").delete().eq("wa_id", waId);
+  await admin.from("whatsapp_links").delete().eq("patient_id", patient.id);
+  await admin.from("patients").delete().eq("id", patient.id);
+  await admin.from("clinics").delete().eq("id", clinic.id);
+  console.log("cleanup done");
+}
+
+console.log(failures === 0 ? "\nALL CHECKS PASSED — WhatsApp bridge Leg A wired" : `\n${failures} CHECK(S) FAILED`);
+process.exit(failures === 0 ? 0 : 1);
