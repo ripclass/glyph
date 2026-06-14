@@ -98,7 +98,18 @@ try {
   check("doc consent agreed → awaiting_document_type", convo7?.active_flow === "awaiting_document_type", convo7?.active_flow);
   const { data: docConsent } = await admin.from("consent_records").select("device_info").eq("patient_id", patient.id).eq("device_info", "whatsapp_document").maybeSingle();
   check("whatsapp_document consent recorded", !!docConsent);
+
+  // 9. Proactive queue: enqueue a followup directly, assert it lands as pending
+  // (the deterministic part — real template delivery needs an approved template + live number).
+  await admin.from("scheduled_messages").insert({
+    kind: "followup", patient_id: patient.id, to_wa_id: waId,
+    template_name: "glyph_followup", template_lang: "bn", template_vars: ["Smoke"],
+    fire_at: new Date(Date.now() - 1000).toISOString(),
+  });
+  const { data: sched } = await admin.from("scheduled_messages").select("state, template_name").eq("patient_id", patient.id).eq("kind", "followup").maybeSingle();
+  check("followup enqueued (pending)", sched?.state === "pending" && sched?.template_name === "glyph_followup", JSON.stringify(sched));
 } finally {
+  await admin.from("scheduled_messages").delete().eq("patient_id", patient.id);
   await admin.from("triage_sessions").delete().eq("patient_id", patient.id);
   await admin.from("consent_records").delete().eq("patient_id", patient.id);
   await admin.from("wallet_access_tokens").delete().eq("patient_id", patient.id);

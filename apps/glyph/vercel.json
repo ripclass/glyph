@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/whatsapp-sweeper", "schedule": "* * * * *" }
+    { "path": "/api/cron/whatsapp-sweeper", "schedule": "* * * * *" },
+    { "path": "/api/cron/whatsapp-scheduler", "schedule": "*/5 * * * *" }
   ]
 }
