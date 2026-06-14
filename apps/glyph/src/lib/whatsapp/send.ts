@@ -27,9 +27,10 @@ export async function sendText(opts: SendTextOptions): Promise<SendResult> {
     method: "POST",
     headers: { "Content-Type": "application/json", ...provider.authHeaders() },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
-    const body = await res.text();
+    const body = await res.text().catch(() => "<unreadable>");
     throw new Error(`WA send failed: ${res.status} ${res.statusText} — ${body}`);
   }
   const json = (await res.json()) as { messages?: { id: string }[] };

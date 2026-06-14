@@ -31,7 +31,9 @@ export function verifySignature(rawBody: string, signatureHeader: string | null)
   if (!signatureHeader) return { ok: false, reason: "missing X-Hub-Signature-256 header" };
   const expected = signatureHeader.startsWith("sha256=") ? signatureHeader.slice(7) : signatureHeader;
   const computed = createHmac("sha256", secret).update(rawBody, "utf-8").digest("hex");
-  if (expected.length !== computed.length) return { ok: false, reason: "signature length mismatch" };
-  const equal = timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(computed, "hex"));
+  const expectedBuf = Buffer.from(expected, "hex");
+  const computedBuf = Buffer.from(computed, "hex");
+  if (expectedBuf.length !== computedBuf.length) return { ok: false, reason: "signature length mismatch" };
+  const equal = timingSafeEqual(expectedBuf, computedBuf);
   return equal ? { ok: true } : { ok: false, reason: "signature mismatch" };
 }
