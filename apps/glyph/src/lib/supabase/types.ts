@@ -673,6 +673,7 @@ export type Database = {
           updated_at: string | null
           visit_date: string | null
           visit_number: number | null
+          next_appointment_at: string | null
         }
         Insert: {
           api_costs?: Json | null
@@ -711,6 +712,7 @@ export type Database = {
           updated_at?: string | null
           visit_date?: string | null
           visit_number?: number | null
+          next_appointment_at?: string | null
         }
         Update: {
           api_costs?: Json | null
@@ -749,6 +751,7 @@ export type Database = {
           updated_at?: string | null
           visit_date?: string | null
           visit_number?: number | null
+          next_appointment_at?: string | null
         }
         Relationships: [
           {
@@ -816,6 +819,79 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      scheduled_messages: {
+        Row: {
+          id: string
+          created_at: string
+          kind: string
+          patient_id: string | null
+          doctor_id: string | null
+          visit_id: string | null
+          to_wa_id: string
+          template_name: string
+          template_lang: string
+          template_vars: Json
+          fire_at: string
+          state: string
+          result: Json | null
+          attempts: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          kind: string
+          patient_id?: string | null
+          doctor_id?: string | null
+          visit_id?: string | null
+          to_wa_id: string
+          template_name: string
+          template_lang?: string
+          template_vars?: Json
+          fire_at: string
+          state?: string
+          result?: Json | null
+          attempts?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          kind?: string
+          patient_id?: string | null
+          doctor_id?: string | null
+          visit_id?: string | null
+          to_wa_id?: string
+          template_name?: string
+          template_lang?: string
+          template_vars?: Json
+          fire_at?: string
+          state?: string
+          result?: Json | null
+          attempts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       triage_sessions: {
         Row: {
@@ -1260,3 +1336,5 @@ export type WaMessage = Database['public']['Tables']['wa_messages']['Row'];
 export type WaMessageInsert = Database['public']['Tables']['wa_messages']['Insert'];
 export type WhatsappLink = Database['public']['Tables']['whatsapp_links']['Row'];
 export type WhatsappLinkInsert = Database['public']['Tables']['whatsapp_links']['Insert'];
+export type ScheduledMessage = Database['public']['Tables']['scheduled_messages']['Row'];
+export type ScheduledMessageInsert = Database['public']['Tables']['scheduled_messages']['Insert'];
