@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     }
 
     // ── Input ─────────────────────────────────────────────────
-    const { visitId, doctorEdits } = await req.json().catch(() => ({}));
+    const { visitId, doctorEdits, nextAppointmentAt } = await req.json().catch(() => ({}));
     if (!visitId) {
       return NextResponse.json(
         { success: false, error: 'visitId is required' },
@@ -156,6 +156,33 @@ export async function POST(req: Request) {
         { success: false, error: `Credentials issued but visit update failed: ${approveErr.message}` },
         { status: 500 }
       );
+    }
+
+    // ── Leg D: proactive enqueues (best-effort; never block approval) ──
+    try {
+      const { resolveWaIdForPatient, enqueue } = await import("@/lib/whatsapp/schedule");
+      const { followupParams, appointmentReminderParams } = await import("@/lib/whatsapp/templates");
+      const waId = await resolveWaIdForPatient(admin, visit.patient_id);
+      if (waId) {
+        const { data: pat } = await admin.from("patients").select("name, name_bn").eq("id", visit.patient_id).maybeSingle();
+        const { data: doc } = await admin.from("doctors").select("name").eq("id", visit.doctor_id).maybeSingle();
+        const patientName = pat?.name_bn ?? pat?.name ?? "রোগী";
+
+        const followAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+        await enqueue(admin, { kind: "followup", patientId: visit.patient_id, visitId: visit.id, toWaId: waId, bodyParams: followupParams(patientName), fireAt: followAt });
+
+        if (typeof nextAppointmentAt === "string" && nextAppointmentAt) {
+          const apptDate = new Date(nextAppointmentAt);
+          if (!isNaN(apptDate.getTime()) && apptDate.getTime() > Date.now()) {
+            await admin.from("visits").update({ next_appointment_at: apptDate.toISOString() }).eq("id", visit.id);
+            const remindAt = new Date(apptDate.getTime() - 24 * 60 * 60 * 1000);
+            const dateText = apptDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+            await enqueue(admin, { kind: "appointment_reminder", patientId: visit.patient_id, visitId: visit.id, toWaId: waId, bodyParams: appointmentReminderParams(patientName, dateText, doc?.name ?? "ডাক্তার"), fireAt: remindAt });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[approve-note] proactive enqueue failed (non-fatal):", err instanceof Error ? err.message : err);
     }
 
     return NextResponse.json({

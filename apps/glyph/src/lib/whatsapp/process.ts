@@ -50,6 +50,12 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
     if (redeemed) {
       patientId = redeemed.patientId;
       replyText = BIND_OK_MSG;
+      // The patient opted into the channel by binding — record it for PDPO so
+      // proactive follow-ups (Leg D) have an auditable opt-in.
+      const { error: consentErr } = await admin.from("consent_records").insert({
+        patient_id: patientId, consent_type: "whatsapp_followup", granted: true, granted_by: "patient", device_info: "whatsapp_bind",
+      });
+      if (consentErr && consentErr.code !== "23505") console.error("[wa/process] followup consent insert:", consentErr.message);
     } else {
       replyText = BIND_FAIL_MSG;
     }
