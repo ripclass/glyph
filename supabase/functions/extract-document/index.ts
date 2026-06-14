@@ -84,17 +84,24 @@ serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Trusted server-to-server path: the WhatsApp bridge holds a shared secret
+    // and has no user JWT (no doctor session, no visit). Any other caller goes
+    // through the normal user-JWT validation (the intake document flow).
+    const bridgeSecret = Deno.env.get("WHATSAPP_BRIDGE_SECRET");
+    const isBridge = !!bridgeSecret && authHeader === `Bearer ${bridgeSecret}`;
 
-    const { data: { user }, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !user) {
-      return jsonResponse({ success: false, error: "Invalid token", code: "UNAUTHORIZED" }, 401);
+    if (!isBridge) {
+      const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) {
+        return jsonResponse({ success: false, error: "Invalid token", code: "UNAUTHORIZED" }, 401);
+      }
     }
 
     // ── Parse body ──────────────────────────────────────────
-    const { imageUrl, type, visitId, patientId } = await req.json();
+    const { imageUrl, type, visitId, patientId, consentId } = await req.json();
 
     if (!imageUrl || !type || !patientId) {
       return jsonResponse(
@@ -162,7 +169,7 @@ serve(async (req: Request) => {
       edgeFunction: "extract-document",
       egress: {
         tier: "B",
-        consentId: aiConsent?.id,
+        consentId: (typeof consentId === "string" ? consentId : undefined) ?? aiConsent?.id,
         containsUnredactable: true,
       },
     });
