@@ -59,7 +59,9 @@ export async function captureDocument(admin: Admin, input: CaptureInput): Promis
     const ext = media.mimeType.includes("png") ? "png" : media.mimeType.includes("pdf") ? "pdf" : "jpg";
     const path = `${input.patientId}/whatsapp/${input.type}-${randomUUID()}.${ext}`;
 
-    const blob = new Blob([media.bytes.buffer as ArrayBuffer], { type: media.mimeType });
+    // .slice() copies exactly the view's bytes into a fresh buffer, so the
+    // upload is always the exact image regardless of the source view's layout.
+    const blob = new Blob([media.bytes.slice().buffer as ArrayBuffer], { type: media.mimeType });
     const { error: upErr } = await admin.storage.from("documents").upload(path, blob, { contentType: media.mimeType, upsert: false });
     if (upErr) return { ok: false, error: `upload: ${upErr.message}` };
 
