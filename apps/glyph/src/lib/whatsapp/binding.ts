@@ -49,7 +49,13 @@ export async function redeemBindCode(
     .is("verified_at", null)
     .eq("revoked", false)
     .maybeSingle();
-  if (!pending || !pending.bind_code_expires_at || pending.bind_code_expires_at < nowIso) return null;
+  if (
+    !pending ||
+    !pending.bind_code_expires_at ||
+    new Date(pending.bind_code_expires_at).getTime() < new Date(nowIso).getTime()
+  ) {
+    return null;
+  }
 
   // Revoke any prior active link for this wa_id (re-bind to a new patient).
   await admin.from("whatsapp_links").update({ revoked: true }).eq("wa_id", waId).eq("revoked", false);
