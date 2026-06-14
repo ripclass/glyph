@@ -21,7 +21,16 @@ const BIND_FAIL_MSG =
  */
 export async function processInbound(admin: Admin, inbound: NormalizedInbound, now: Date): Promise<void> {
   const link = await resolveLinkByWaId(admin, inbound.fromWaId);
-  const action = decideRoute(inbound, { bound: !!link });
+
+  // Fetch the active_flow so the router can continue mid-flow exchanges (Leg B).
+  const { data: convoRow } = await admin
+    .from("wa_conversations")
+    .select("active_flow")
+    .eq("wa_id", inbound.fromWaId)
+    .maybeSingle();
+  const activeFlow: string = (convoRow as { active_flow?: string } | null)?.active_flow ?? "idle";
+
+  const action = decideRoute(inbound, { bound: !!link, activeFlow });
 
   let replyText: string | null = null;
   let patientId: string | null = link?.patientId ?? null;
@@ -43,9 +52,10 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
     } else {
       replyText = BIND_FAIL_MSG;
     }
-  } else if (action.kind === "reply") {
-    replyText = `Glyph (Leg A echo): ${action.text}`;
   }
+  // Leg B actions (triage_start, triage_continue, triage_consent_reply, wallet,
+  // revoke, help) are handled by the Leg B orchestrator — process.ts only covers
+  // the Leg A paths. A future Leg B processInbound will extend this switch.
 
   if (action.kind !== "ignore") {
     // Inbound refreshes the 24h window.
