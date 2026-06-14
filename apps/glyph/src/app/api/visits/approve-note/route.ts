@@ -165,7 +165,6 @@ export async function POST(req: Request) {
       const waId = await resolveWaIdForPatient(admin, visit.patient_id);
       if (waId) {
         const { data: pat } = await admin.from("patients").select("name, name_bn").eq("id", visit.patient_id).maybeSingle();
-        const { data: doc } = await admin.from("doctors").select("name").eq("id", visit.doctor_id).maybeSingle();
         const patientName = pat?.name_bn ?? pat?.name ?? "রোগী";
 
         const followAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
@@ -177,7 +176,7 @@ export async function POST(req: Request) {
             await admin.from("visits").update({ next_appointment_at: apptDate.toISOString() }).eq("id", visit.id);
             const remindAt = new Date(apptDate.getTime() - 24 * 60 * 60 * 1000);
             const dateText = apptDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-            await enqueue(admin, { kind: "appointment_reminder", patientId: visit.patient_id, visitId: visit.id, toWaId: waId, bodyParams: appointmentReminderParams(patientName, dateText, doc?.name ?? "ডাক্তার"), fireAt: remindAt });
+            await enqueue(admin, { kind: "appointment_reminder", patientId: visit.patient_id, visitId: visit.id, toWaId: waId, bodyParams: appointmentReminderParams(patientName, dateText, doctor?.name ?? "ডাক্তার"), fireAt: remindAt });
           }
         }
       }
