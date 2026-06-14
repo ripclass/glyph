@@ -179,6 +179,7 @@ Glyph/
 │   ├── api/whatsapp/webhook/route.ts      # WHATSAPP BRIDGE (Leg A): inbound webhook (GET challenge + POST: signature-verify → dedupe on provider_message_id → processInbound inline). Next 14.2 has no stable after(), so processing is inline + sweeper-recovered.
 │   ├── api/whatsapp/bind-code/route.ts   # WHATSAPP BRIDGE: doctor-session issues a one-time bind code + wa.me QR link (RLS patient scope-check via user client; service-role insert into whatsapp_links).
 │   ├── api/cron/whatsapp-sweeper/route.ts # WHATSAPP BRIDGE: every-minute cron (Vercel Pro) retrying inbound wa_messages stuck in 'received'.
+        │   │                       # WhatsApp bridge Leg B (in-thread triage + wallet reply + stop-word revoke) is built. Design doc: docs/superpowers/specs/2026-06-14-glyph-whatsapp-bridge-design.md; implementation plan: docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-b.md.
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
@@ -208,8 +209,9 @@ Glyph/
         │   │                        # useConsultChat, usePatientHistory, useRealtimeQueue
         │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), projections
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
-        │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test)
-        │   ├── whatsapp/            # WhatsApp bridge Leg A: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration). Routes call into this; clinical thinking stays in edge fns (Legs B+).
+        │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test),
+        │   │                        # triage-runner (shared symptom-triage engine: red-flag screen → consent → egress-gated `triage` edge fn → clamp → persist; called by BOTH the wallet triage route and the WhatsApp bridge)
+        │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Routes call into this; clinical thinking stays in edge fns.
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
         │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
@@ -354,6 +356,7 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `WHATSAPP_VERIFY_TOKEN` | WhatsApp bridge (Leg A) | Static string used for GET webhook challenge verification (set same value in 360dialog dashboard) |
 | `DIALOG360_WEBHOOK_SECRET` | WhatsApp bridge (Leg A) | HMAC-SHA256 secret 360dialog uses to sign inbound POST payloads; used by `lib/whatsapp/verify.ts` |
 | `GLYPH_WA_NUMBER` | WhatsApp bridge (Leg A) | The Glyph WhatsApp number for the QR bind flow, E.164 **without** `+` (e.g. `8801XXXXXXXXX`) — used verbatim in the `wa.me/<number>` link |
+| `NEXT_PUBLIC_APP_URL` | WhatsApp bridge (Leg B) | Public app base URL, no trailing slash (e.g. `https://khamhealth.com`) — used to build the wallet link sent over WhatsApp |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
 | `NEXT_PUBLIC_APP_NAME` | App | `Glyph` |
