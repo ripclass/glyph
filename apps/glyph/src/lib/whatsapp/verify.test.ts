@@ -7,7 +7,7 @@ beforeEach(() => {
   process.env.WHATSAPP_VERIFY_TOKEN = "verify-tok";
   process.env.DIALOG360_WEBHOOK_SECRET = "shh";
   delete process.env.VERCEL_ENV;
-  process.env.NODE_ENV = "test";
+  (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 });
 
 describe("verifyChallenge", () => {
