@@ -84,7 +84,7 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
       replyText = CONSENT_DECLINED_MSG;
     }
   } else if (action.kind === "document_received") {
-    if (patientId) {
+    if (patientId && action.mediaId) {
       const consentId = await resolveDocConsent(admin, patientId);
       if (consentId) {
         await writeFlow(admin, waId, "awaiting_document_type", { pendingMediaId: action.mediaId, pendingMimeType: action.mimeType });
@@ -93,12 +93,19 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
         await writeFlow(admin, waId, "awaiting_document_consent", { pendingMediaId: action.mediaId, pendingMimeType: action.mimeType });
         replyText = DOC_CONSENT_NOTICE;
       }
+    } else if (patientId) {
+      replyText = DOC_FAIL_MSG; // malformed media (no id) — fail fast
     }
   } else if (action.kind === "document_consent_reply") {
     if (action.agreed && patientId) {
-      await createDocConsent(admin, patientId);
-      await writeFlow(admin, waId, "awaiting_document_type", state); // keep the stashed media
-      replyText = DOC_TYPE_QUESTION;
+      const cid = await createDocConsent(admin, patientId);
+      if (cid) {
+        await writeFlow(admin, waId, "awaiting_document_type", state); // keep the stashed media
+        replyText = DOC_TYPE_QUESTION;
+      } else {
+        await writeFlow(admin, waId, "idle", {});
+        replyText = DOC_FAIL_MSG;
+      }
     } else {
       await writeFlow(admin, waId, "idle", {});
       replyText = CONSENT_DECLINED_MSG;
