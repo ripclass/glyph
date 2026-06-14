@@ -83,6 +83,7 @@ Glyph/
 │   ├── smoke-egress.mjs            # Tier A/B gate: scrub round-trip, consent withdrawal, log tamper
 │   ├── smoke-documents.mjs         # document pipeline: storage RLS, Tier B consent, real extraction
 │   ├── smoke-triage.mjs            # Pocket v2 triage E2E (hits the live Next route): red-flag escalation, Tier B consent fail-closed, real LLM exchange, session persistence. usage: node scripts/smoke-triage.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
+│   ├── smoke-whatsapp.mjs          # WhatsApp bridge Leg A E2E: drives the webhook, asserts bind→conversation→dedupe. usage: node scripts/smoke-whatsapp.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
 │   ├── dev-doctor.mjs              # recreate doctor@glyph.dev/glyph-dev-2026 after local db reset (refuses prod)
 │   ├── create-doctor.mjs           # REAL doctor onboarding (works on prod; safety rails, no self-signup yet)
 │   └── fixtures/rx-napa.jpg        # synthetic BD prescription (Napa/Seclo, 1+0+1) for extraction smoke
@@ -114,7 +115,8 @@ Glyph/
 │   │   ├── 004_document_storage.sql # private `documents` bucket + clinic-scoped storage RLS
 │   │   ├── 005_waitlist.sql        # waitlist_signups: RLS deny-all (service-role only via /api/waitlist)
 │   │   ├── 006_wallet_tokens.sql   # wallet_access_tokens: Pocket bearer tokens, RLS deny-all (service-role only)
-│   │   └── 007_triage_sessions.sql # triage_sessions: Pocket v2 triage exchanges, RLS deny-all (service-role only)
+│   │   ├── 007_triage_sessions.sql # triage_sessions: Pocket v2 triage exchanges, RLS deny-all (service-role only)
+│   │   └── 008_whatsapp_bridge.sql # whatsapp_links + wa_conversations + wa_messages: WhatsApp bridge Leg A, RLS deny-all (service-role only)
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -174,6 +176,9 @@ Glyph/
         │   ├── api/wallet/issue/route.ts # POCKET: doctor-session, find-or-create patient wallet bearer token (+optional PIN)
         │   ├── api/wallet/[token]/route.ts # POCKET: public, service-role read of one patient's record by bearer token (PIN-gated)
         │   ├── api/wallet/[token]/triage/route.ts # POCKET v2: token-gated symptom triage. Validates token (wallet-logic) → deterministic screenRedFlags pre-screen → resolves/creates patient ai_processing consent (device_info='pocket_triage') → calls triage edge fn (service-role) → validateOutcome clamp → persists triage_sessions on final answer
+│   ├── api/whatsapp/webhook/route.ts      # WHATSAPP BRIDGE (Leg A): inbound webhook (GET challenge + POST: signature-verify → dedupe on provider_message_id → processInbound inline). Next 14.2 has no stable after(), so processing is inline + sweeper-recovered.
+│   ├── api/whatsapp/bind-code/route.ts   # WHATSAPP BRIDGE: doctor-session issues a one-time bind code + wa.me QR link (RLS patient scope-check via user client; service-role insert into whatsapp_links).
+│   ├── api/cron/whatsapp-sweeper/route.ts # WHATSAPP BRIDGE: every-minute cron (Vercel Pro) retrying inbound wa_messages stuck in 'received'.
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
@@ -204,6 +209,7 @@ Glyph/
         │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), projections
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
         │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test)
+        │   ├── whatsapp/            # WhatsApp bridge Leg A: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration). Routes call into this; clinical thinking stays in edge fns (Legs B+).
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
         │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
@@ -341,6 +347,13 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API (`send-followup`) | Renamed from `WHATSAPP_BUSINESS_TOKEN` in M4 |
 | `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business API | Matches code |
 | `TRIAGE_SHARED_SECRET` | Pocket v2 triage (server-to-server) | **Must be set with the SAME value in BOTH the Vercel env AND Supabase function secrets.** The `triage` edge fn is deployed `--no-verify-jwt` and authenticates only on this secret (a dedicated secret — NOT the service-role key, which differs between Vercel and the function's auto-injected env on this project). Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `WHATSAPP_PROVIDER` | WhatsApp bridge (Leg A) | Set to `dialog360`; selects the send/verify adapter in `lib/whatsapp/provider.ts` |
+| `DIALOG360_API_KEY` | WhatsApp bridge (Leg A) | From the founder's 360dialog channel — needed for outbound send; without it, outbound logs `failed` (expected in DB-only smoke) |
+| `DIALOG360_API_BASE` | WhatsApp bridge (Leg A) | 360dialog API base URL (e.g. `https://waba.360dialog.io`); from founder's channel settings |
+| `DIALOG360_PHONE_NUMBER_ID` | WhatsApp bridge (Leg A) | 360dialog phone number ID for the Glyph WA number; from founder's channel |
+| `WHATSAPP_VERIFY_TOKEN` | WhatsApp bridge (Leg A) | Static string used for GET webhook challenge verification (set same value in 360dialog dashboard) |
+| `DIALOG360_WEBHOOK_SECRET` | WhatsApp bridge (Leg A) | HMAC-SHA256 secret 360dialog uses to sign inbound POST payloads; used by `lib/whatsapp/verify.ts` |
+| `GLYPH_WA_NUMBER` | WhatsApp bridge (Leg A) | The Glyph WhatsApp number shown to patients in the QR bind flow (e.g. `+8801XXXXXXXXX`) |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
 | `NEXT_PUBLIC_APP_NAME` | App | `Glyph` |
@@ -522,4 +535,6 @@ Phase 2 (§8.5) is complete and merged; new work needs founder authorization (ch
 
 ---
 
-*Last updated: 2026-06-11 (Phase 2 merged to `main`, live on khamhealth.com; document pipeline shipped). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
+**WhatsApp bridge design + plan:** `docs/superpowers/specs/2026-06-14-glyph-whatsapp-bridge-design.md` (architecture, schema, security model) and `docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-a.md` (task-by-task build plan for Leg A).
+
+*Last updated: 2026-06-14 (WhatsApp bridge Leg A in progress on `feature/whatsapp-bridge-leg-a`). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
