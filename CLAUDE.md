@@ -347,13 +347,13 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API (`send-followup`) | Renamed from `WHATSAPP_BUSINESS_TOKEN` in M4 |
 | `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Business API | Matches code |
 | `TRIAGE_SHARED_SECRET` | Pocket v2 triage (server-to-server) | **Must be set with the SAME value in BOTH the Vercel env AND Supabase function secrets.** The `triage` edge fn is deployed `--no-verify-jwt` and authenticates only on this secret (a dedicated secret — NOT the service-role key, which differs between Vercel and the function's auto-injected env on this project). Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `WHATSAPP_PROVIDER` | WhatsApp bridge (Leg A) | Set to `dialog360`; selects the send/verify adapter in `lib/whatsapp/provider.ts` |
+| `WHATSAPP_PROVIDER` | WhatsApp bridge (Leg A) | Set to `360dialog` (default); selects the send/verify adapter in `lib/whatsapp/provider.ts` (`meta` is the alternate) |
 | `DIALOG360_API_KEY` | WhatsApp bridge (Leg A) | From the founder's 360dialog channel — needed for outbound send; without it, outbound logs `failed` (expected in DB-only smoke) |
-| `DIALOG360_API_BASE` | WhatsApp bridge (Leg A) | 360dialog API base URL (e.g. `https://waba.360dialog.io`); from founder's channel settings |
+| `DIALOG360_API_BASE` | WhatsApp bridge (Leg A) | 360dialog API base URL (default `https://waba-v2.360dialog.io`); from founder's channel settings |
 | `DIALOG360_PHONE_NUMBER_ID` | WhatsApp bridge (Leg A) | 360dialog phone number ID for the Glyph WA number; from founder's channel |
 | `WHATSAPP_VERIFY_TOKEN` | WhatsApp bridge (Leg A) | Static string used for GET webhook challenge verification (set same value in 360dialog dashboard) |
 | `DIALOG360_WEBHOOK_SECRET` | WhatsApp bridge (Leg A) | HMAC-SHA256 secret 360dialog uses to sign inbound POST payloads; used by `lib/whatsapp/verify.ts` |
-| `GLYPH_WA_NUMBER` | WhatsApp bridge (Leg A) | The Glyph WhatsApp number shown to patients in the QR bind flow (e.g. `+8801XXXXXXXXX`) |
+| `GLYPH_WA_NUMBER` | WhatsApp bridge (Leg A) | The Glyph WhatsApp number for the QR bind flow, E.164 **without** `+` (e.g. `8801XXXXXXXXX`) — used verbatim in the `wa.me/<number>` link |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
 | `NEXT_PUBLIC_APP_NAME` | App | `Glyph` |
