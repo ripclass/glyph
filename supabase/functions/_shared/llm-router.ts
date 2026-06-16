@@ -439,6 +439,7 @@ const OPENROUTER_MODEL_MAP: Record<string, string> = {
   "gemini-2.0-flash": "google/gemini-2.5-flash",
   "gemini-1.5-flash": "google/gemini-2.5-flash-lite",
   "gemini-2.0-pro": "google/gemini-2.5-pro",
+  "claude-opus-4-8": "anthropic/claude-opus-4.8",
   "claude-sonnet-4-20250514": "anthropic/claude-sonnet-4",
   "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
   "sonar-pro": "perplexity/sonar-pro",
