@@ -36,6 +36,17 @@ describe("validateWarnings", () => {
     expect(validateWarnings(null)).toEqual([]);
     expect(validateWarnings("nope")).toEqual([]);
   });
+
+  it("keeps only the valid entries when the array is mixed", () => {
+    const raw = [
+      { type: "interaction", severity: "moderate", subject: "Aspirin", object: "Warfarin", explanation: "Bleeding", basis: "Rx", confidence: "low" },
+      { type: "telepathy", severity: "low", subject: "X", object: "Y", explanation: "e", basis: "b" },
+      { type: "allergy", severity: "low", subject: "", object: "Y", explanation: "e", basis: "b" },
+    ];
+    const out = validateWarnings(raw);
+    expect(out).toHaveLength(1);
+    expect(out[0].subject).toBe("Aspirin");
+  });
 });
 
 describe("computeCompleteness", () => {
@@ -47,6 +58,9 @@ describe("computeCompleteness", () => {
   });
   it("is 'rich' when meds plus a condition or allergy are known", () => {
     expect(computeCompleteness({ existingMedCount: 2, hasAllergies: false, hasConditions: true })).toBe("rich");
+  });
+  it("is 'partial' when only medications are known (no allergies/conditions)", () => {
+    expect(computeCompleteness({ existingMedCount: 3, hasAllergies: false, hasConditions: false })).toBe("partial");
   });
 });
 
