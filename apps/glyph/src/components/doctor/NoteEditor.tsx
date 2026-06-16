@@ -35,6 +35,8 @@ export interface NoteEditorProps {
   onApprove: (note: BDNote | SOAPNote, format: NoteFormat, edits: NoteEdits) => void;
   /** Whether the note has already been approved (locked). */
   isApproved?: boolean;
+  /** True while approval is mid-flight (safety check running or its panel shown) — hides the editor's own approve/edit controls so the safety panel owns the action. */
+  approvalPending?: boolean;
   className?: string;
 }
 
@@ -67,11 +69,11 @@ export function NoteEditor({
   soapNote,
   onApprove,
   isApproved = false,
+  approvalPending = false,
   className,
 }: NoteEditorProps) {
   const [format, setFormat] = React.useState<NoteFormat>("bd");
   const [isEditing, setIsEditing] = React.useState(false);
-  const [approved, setApproved] = React.useState(isApproved);
 
   // BD note editable state
   const [editedBD, setEditedBD] = React.useState<BDNote>(bdNote);
@@ -108,7 +110,6 @@ export function NoteEditor({
     };
     const note = format === "bd" ? editedBD : editedSOAP;
     onApprove(note, format, edits);
-    setApproved(true);
     setIsEditing(false);
   };
 
@@ -142,7 +143,7 @@ export function NoteEditor({
                 ? "bg-white text-slate-800 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             )}
-            disabled={approved}
+            disabled={isApproved || approvalPending}
           >
             BD Format
           </button>
@@ -155,7 +156,7 @@ export function NoteEditor({
                 ? "bg-white text-slate-800 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
             )}
-            disabled={approved}
+            disabled={isApproved || approvalPending}
           >
             SOAP
           </button>
@@ -163,7 +164,7 @@ export function NoteEditor({
 
         {/* Edit / Approve controls */}
         <div className="flex items-center gap-2">
-          {approved && (
+          {isApproved && (
             <span className="flex items-center gap-1 rounded-full bg-glyph-100 px-2.5 py-0.5 text-xs font-medium text-glyph-800">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -182,7 +183,7 @@ export function NoteEditor({
               Approved
             </span>
           )}
-          {!approved && (
+          {!isApproved && !approvalPending && (
             <>
               <Button
                 variant="outline"
@@ -227,7 +228,7 @@ export function NoteEditor({
                 value={editedBD[key]}
                 onChange={(v) => handleBDChange(key, v)}
                 isModified={modifiedSections.has(key)}
-                disabled={approved}
+                disabled={isApproved}
               />
             ))}
           </div>
@@ -241,7 +242,7 @@ export function NoteEditor({
                 value={editedSOAP[key]}
                 onChange={(v) => handleSOAPChange(key, v)}
                 isModified={modifiedSections.has(key)}
-                disabled={approved}
+                disabled={isApproved}
               />
             ))}
           </div>

@@ -97,6 +97,7 @@ serve(async (req: Request) => {
     const { data: priorRx } = await userClient
       .from("prescriptions").select("medications, source, created_at")
       .eq("patient_id", visit.patient_id)
+      // visitId is a validated UUID here — the visit lookup above 404s any non-UUID before this filter runs, so the interpolation is not an injection surface; preserve that ordering.
       .or(`visit_id.is.null,visit_id.neq.${visitId}`);
 
     const existingMeds = (priorRx ?? []).flatMap((p) => asStrings((p.medications as { name?: string }[] | null)));

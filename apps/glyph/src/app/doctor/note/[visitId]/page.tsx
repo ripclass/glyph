@@ -322,6 +322,7 @@ export default function NotePage() {
             soapNote={toSOAPNote(serverNote)}
             onApprove={handleApprove}
             isApproved={isApproved}
+            approvalPending={checking || Boolean(safety)}
           />
         </>
       ) : (
