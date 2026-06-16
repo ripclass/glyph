@@ -124,7 +124,7 @@ ${specialty ? `Specialty context: ${specialty}` : ""}
 Be specific, cite guideline names where possible (e.g., ADA 2025, JNC-8, GOLD 2024).`;
 
       const llmResult = await callLLM({
-        primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.2, maxTokens: 2000 },
+        primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.2, maxTokens: 2000 },
         fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.2, maxTokens: 2000 },
         prompt: `Clinical query: ${query}`,
         systemPrompt,

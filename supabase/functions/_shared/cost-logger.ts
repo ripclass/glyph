@@ -15,6 +15,7 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "medgemma-4b": { input: 0.075, output: 0.30 },
   "medgemma-27b": { input: 0.15, output: 0.60 },
   // Claude
+  "claude-opus-4-8": { input: 5.00, output: 25.00 },
   "claude-sonnet-4-20250514": { input: 3.00, output: 15.00 },
   "claude-3-5-sonnet-20241022": { input: 3.00, output: 15.00 },
   "claude-3-haiku-20240307": { input: 0.25, output: 1.25 },

@@ -170,7 +170,7 @@ Generate the briefing card JSON. Pay special attention to:
     // ── Call LLM (streaming) ────────────────────────────────
     const stream = await callLLM({
       // MedGemma demoted until Vertex OAuth exists - native streaming now works.
-      primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.2, maxTokens: 4000 },
+      primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.2, maxTokens: 4000 },
       fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.2, maxTokens: 4000 },
       prompt,
       systemPrompt: BRIEFING_SYSTEM_PROMPT,
@@ -226,7 +226,7 @@ Generate the briefing card JSON. Pay special attention to:
         await logUsage({
           visitId,
           edgeFunction: "generate-briefing",
-          model: "claude-sonnet-4-20250514",
+          model: "claude-opus-4-8",
           wasFallback: false,
           inputTokens: Math.ceil(prompt.length / 4),
           outputTokens: Math.ceil(cleanedText.length / 4),

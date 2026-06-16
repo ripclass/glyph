@@ -146,7 +146,7 @@ async function handleGuideline(
 
   // Fallback: Claude for evidence synthesis
   const llmResult = await callLLM({
-    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.2, maxTokens: 3000 },
+    primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.2, maxTokens: 3000 },
     fallback: { provider: "gemini", model: "gemini-2.0-pro", temperature: 0.2, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "guideline"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
@@ -166,7 +166,7 @@ async function handleDrugInteraction(
   visitId: string,
 ): Promise<ConsultQueryResponse> {
   const llmResult = await callLLM({
-    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
+    primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.1, maxTokens: 3000 },
     fallback: { provider: "gemini", model: "gemini-2.0-pro", temperature: 0.1, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "drug_interaction"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
@@ -186,7 +186,7 @@ async function handleDifferential(
   visitId: string,
 ): Promise<ConsultQueryResponse> {
   const llmResult = await callLLM({
-    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.3, maxTokens: 3000 },
+    primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.3, maxTokens: 3000 },
     fallback: { provider: "gemini", model: "gemini-2.0-pro", temperature: 0.3, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "differential"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
@@ -240,7 +240,7 @@ async function handleLabInterpretation(
 ): Promise<ConsultQueryResponse> {
   const llmResult = await callLLM({
     // MedGemma demoted until Vertex OAuth exists (it always fell through).
-    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.1, maxTokens: 3000 },
+    primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.1, maxTokens: 3000 },
     fallback: { provider: "gemini", model: "gemini-2.0-flash", temperature: 0.1, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "lab_interpretation"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
@@ -260,7 +260,7 @@ async function handleGenericClinical(
   visitId: string,
 ): Promise<ConsultQueryResponse> {
   const llmResult = await callLLM({
-    primary: { provider: "claude", model: "claude-sonnet-4-20250514", temperature: 0.3, maxTokens: 3000 },
+    primary: { provider: "claude", model: "claude-opus-4-8", temperature: 0.3, maxTokens: 3000 },
     fallback: { provider: "gemini", model: "gemini-2.0-pro", temperature: 0.3, maxTokens: 3000 },
     prompt: buildClinicalPrompt(query, deidentifiedContext, "generic_clinical"),
     systemPrompt: CLINICAL_SYSTEM_PROMPT,
