@@ -38,6 +38,8 @@ export function PrescriptionSafetyPanel(props: {
     onVerdict({ index, verdict });
   };
 
+  const isThinEmpty = result.warnings.length === 0 && result.dataCompleteness === "thin";
+
   if (result.status === "failed") {
     return (
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
@@ -54,7 +56,11 @@ export function PrescriptionSafetyPanel(props: {
   return (
     <div className="space-y-3 rounded-xl border border-bone-line bg-white p-4">
       {result.warnings.length === 0 ? (
-        <p className="text-sm font-medium text-glyph-800">✓ No interactions found based on the medications on file.</p>
+        isThinEmpty ? (
+          <p className="text-sm font-medium text-amber-800">⚠ No interactions found, but there is almost no medication history on file — this is NOT a clean bill of health. Review the prescription manually.</p>
+        ) : (
+          <p className="text-sm font-medium text-glyph-800">✓ No interactions found based on the medications on file.</p>
+        )
       ) : (
         <>
           <p className="text-sm font-semibold text-ink">Review {result.warnings.length} possible concern{result.warnings.length > 1 ? "s" : ""} before approving:</p>
@@ -65,16 +71,16 @@ export function PrescriptionSafetyPanel(props: {
               <p className="mt-1 text-sm text-ink-soft">{w.explanation}</p>
               <p className="mt-1 text-xs text-ink-faint">Basis: {w.basis}{w.confidence === "low" ? " · low confidence, verify" : ""}</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button onClick={() => onAskGlyph(`${w.subject} with ${w.object}: ${w.explanation}`)} className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-bone-raise">Ask Glyph</button>
+                <button type="button" onClick={() => onAskGlyph(`${w.subject} with ${w.object}: ${w.explanation}`)} className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-bone-raise">Ask Glyph</button>
                 {(["adjust", "accept", "dismiss"] as Verdict[]).map((v) => (
-                  <button key={v} onClick={() => setV(i, v)} className={`rounded-full border px-3 py-1 text-xs capitalize ${verdicts[i] === v ? "border-ink bg-ink text-bone-raise" : "border-ink/20 text-ink"}`}>{v}</button>
+                  <button type="button" key={v} aria-pressed={verdicts[i] === v} onClick={() => setV(i, v)} className={`rounded-full border px-3 py-1 text-xs capitalize ${verdicts[i] === v ? "border-ink bg-ink text-bone-raise" : "border-ink/20 text-ink"}`}>{v}</button>
                 ))}
               </div>
             </div>
           ))}
         </>
       )}
-      <p className="text-xs text-ink-faint">{COMPLETENESS_NOTE[result.dataCompleteness]}</p>
+      {!isThinEmpty && <p className="text-xs text-ink-faint">{COMPLETENESS_NOTE[result.dataCompleteness]}</p>}
       <div className="flex gap-2 pt-1">
         <Button onClick={onConfirm} disabled={confirming}>{confirming ? "Approving…" : "Confirm & approve"}</Button>
         <Button variant="outline" onClick={onCancel} disabled={confirming}>Back to note</Button>
