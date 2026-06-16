@@ -4,8 +4,11 @@
  *
  * Fixtures:
  *   1. Cardiac   — patient with "Ischemic heart disease"; prescribe Ibuprofen → ≥1 warning
- *                  of type "interaction" or "contraindication".  Prior Aspirin Rx seeded
- *                  (exercises existingMedCount > 0).
+ *                  of type "interaction" or "contraindication".  Two prior Rx seeded:
+ *                  a visit-linked Aspirin AND a VISITLESS (visit_id=null) Clopidogrel
+ *                  (the WhatsApp pre-chamber photo path).  Asserts existingMedCount ≥ 2,
+ *                  proving the .or() query now counts visitless historical Rx that a
+ *                  plain neq("visit_id", …) would have silently dropped.
  *   2. Allergy   — patient with known_allergies ["Penicillin"]; prescribe Amoxicillin
  *                  → ≥1 warning of type "allergy".
  *   3. Clean     — patient with empty allergies/conditions, no prior Rx; prescribe
@@ -145,9 +148,9 @@ async function provisionPatient({ name, allergies = [], conditions = [], priorMe
 
   if (priorMeds && priorMeds.length > 0) {
     // Seed a prior prescription on a DISTINCT prior visit.  The function queries
-    //   prescriptions WHERE patient_id = ? AND visit_id != <current visitId>
-    // PostgREST neq() generates `visit_id <> '...'` which excludes NULLs in
-    // Postgres — so we must use a real visit_id, not null.
+    //   prescriptions WHERE patient_id = ? AND (visit_id IS NULL OR visit_id <> <current>)
+    // i.e. all prior Rx EXCEPT the current visit's draft — visit-linked rows like
+    // this one are counted.  (Visitless rows are exercised separately below.)
     const { data: priorVisit } = await admin
       .from('visits')
       .insert({
@@ -179,10 +182,21 @@ console.log('── Fixture 1: Cardiac (Ibuprofen + Ischemic heart disease) ─�
 const { patient: p1, visit: v1 } = await provisionPatient({
   name: 'Karim Ischemic',
   conditions: ['Ischemic heart disease'],
-  priorMeds: ['Aspirin 75mg'],        // seeds existingMedCount=1
+  priorMeds: ['Aspirin 75mg'],        // visit-linked prior Rx → existingMedCount += 1
 });
 toClean.patients.push(p1.id);
 toClean.visits.push(v1.id);
+
+// Seed an ADDITIONAL VISITLESS prior Rx (visit_id = null) — the WhatsApp Leg C
+// "pre-chamber" photo path produces exactly these.  The OLD .neq("visit_id", …)
+// query silently dropped these (Postgres `<>` is UNKNOWN vs NULL); the .or()
+// fix must now count it.  So existingMedCount should be ≥ 2 (Aspirin + Clopidogrel).
+await admin.from('prescriptions').insert({
+  patient_id: p1.id,
+  visit_id: null,
+  source: 'photo_historical',
+  medications: [{ name: 'Clopidogrel' }],
+});
 
 const r1 = await callSafety(jwt, { visitId: v1.id, medications: [{ name: 'Ibuprofen', dose: '400mg', frequency: '1+0+1' }] });
 const b1 = await r1.json();
@@ -200,7 +214,7 @@ check(
   w1.some((w) => w.type === 'interaction' || w.type === 'contraindication'),
   `types=${w1.map((w) => w.type).join(',')}`
 );
-check('cardiac: existingMedCount ≥ 1 (prior Aspirin seeded)', (b1.data?.existingMedCount ?? 0) >= 1, `existingMedCount=${b1.data?.existingMedCount}`);
+check('cardiac: existingMedCount ≥ 2 (visit-linked Aspirin + VISITLESS Clopidogrel both counted)', (b1.data?.existingMedCount ?? 0) >= 2, `existingMedCount=${b1.data?.existingMedCount}`);
 check('cardiac: hasConditions=true', b1.data?.hasConditions === true, `hasConditions=${b1.data?.hasConditions}`);
 console.log(`  model: ${b1.data?.model}\n`);
 

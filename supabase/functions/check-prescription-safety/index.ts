@@ -90,9 +90,14 @@ serve(async (req: Request) => {
     const { data: patient } = await userClient
       .from("patients").select("name, name_bn, phone, known_allergies, chronic_conditions").eq("id", visit.patient_id).maybeSingle();
 
+    // `.or` keeps visitless/NULL-visit_id historical Rx (e.g. WhatsApp pre-chamber
+    // photo uploads) while excluding ONLY the current visit's own draft rows. A
+    // plain .neq("visit_id", visitId) would silently drop every NULL-visit_id row,
+    // since Postgres `<>` is UNKNOWN against NULL — a clinical-safety gap.
     const { data: priorRx } = await userClient
       .from("prescriptions").select("medications, source, created_at")
-      .eq("patient_id", visit.patient_id).neq("visit_id", visitId);
+      .eq("patient_id", visit.patient_id)
+      .or(`visit_id.is.null,visit_id.neq.${visitId}`);
 
     const existingMeds = (priorRx ?? []).flatMap((p) => asStrings((p.medications as { name?: string }[] | null)));
     const allergies = asStrings(patient?.known_allergies);
