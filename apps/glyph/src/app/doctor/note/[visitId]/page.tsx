@@ -16,6 +16,9 @@ import { useAuthStore } from "@/lib/stores/auth-store";
 import { getVisit, type VisitWithRelations } from "@/lib/services/visits";
 import { createClient } from "@/lib/supabase/client";
 import { WalletHandoff } from "@/components/doctor/WalletHandoff";
+import { checkPrescriptionSafety } from "@/lib/services/safety";
+import type { SafetyResult, WarningVerdict } from "@/lib/services/safety-logic";
+import { PrescriptionSafetyPanel } from "@/components/doctor/PrescriptionSafetyPanel";
 
 /** Server note JSON shape (generate-note edge function, BD format) */
 interface ServerNote {
@@ -100,6 +103,12 @@ export default function NotePage() {
     visitNoteVcId: string;
     prescriptionVcId: string | null;
   } | null>(null);
+  const [safety, setSafety] = React.useState<SafetyResult | null>(null);
+  const [checking, setChecking] = React.useState(false);
+  const [pendingApproval, setPendingApproval] = React.useState<
+    { doctorEdits: ServerNote | undefined } | null
+  >(null);
+  const verdictsRef = React.useRef<WarningVerdict[]>([]);
 
   const refresh = React.useCallback(async () => {
     const v = await getVisit(visitId);
@@ -134,10 +143,13 @@ export default function NotePage() {
   }, [visitId, preferredFormat, refresh]);
 
   /**
-   * Approve → issue credentials. Doctor edits to the text sections are
-   * merged over the stored note; the structured medication list stays as
-   * generated (structured Rx editing is a follow-up feature) so the
-   * PrescriptionCredential always carries real structured data.
+   * Phase 1 of approval: intercept the NoteEditor's approve, run the
+   * prescription safety check, and park the (possibly edited) note. The actual
+   * POST that issues credentials happens in commitApproval, behind the panel's
+   * Confirm — so the doctor always reviews the safety result before signing.
+   * Doctor edits to the text sections are merged over the stored note; the
+   * structured medication list stays as generated (structured Rx editing is a
+   * follow-up) so the PrescriptionCredential always carries real structured data.
    */
   const handleApprove = React.useCallback(
     async (_note: BDNote | SOAPNote, format: NoteFormat, edits: NoteEdits) => {
@@ -145,53 +157,78 @@ export default function NotePage() {
         toast.error("Approval is BD-format only for now");
         return;
       }
-      setApproving(true);
+      const original = (visit?.generated_note ?? {}) as ServerNote;
+      const edited = _note as BDNote;
+      const hasEdits = Object.values(edits).some(Boolean);
+      const doctorEdits = hasEdits
+        ? {
+            ...original,
+            chiefComplaint: edited.cc,
+            onExamination: edited.oe,
+            investigations: edited.ix,
+            advice: edited.advice,
+          }
+        : undefined;
+
+      setChecking(true);
+      verdictsRef.current = [];
       try {
-        const original = (visit?.generated_note ?? {}) as ServerNote;
-        const edited = _note as BDNote;
-        const hasEdits = Object.values(edits).some(Boolean);
-        const doctorEdits = hasEdits
-          ? {
-              ...original,
-              chiefComplaint: edited.cc,
-              onExamination: edited.oe,
-              investigations: edited.ix,
-              advice: edited.advice,
-            }
-          : undefined;
-
-        const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        const res = await fetch("/api/visits/approve-note", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token ?? ""}`,
-          },
-          body: JSON.stringify({ visitId, ...(doctorEdits ? { doctorEdits } : {}) }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) {
-          throw new Error(json.error ?? `Approval failed (${res.status})`);
-        }
-
-        setCredentials({
-          visitNoteVcId: json.data.visitNoteVcId,
-          prescriptionVcId: json.data.prescriptionVcId,
-        });
-        toast.success("Note approved — credentials issued");
-        await refresh();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Approval failed");
+        const meds = (original.prescription?.medications ?? []).filter((m) => m.name);
+        const result = await checkPrescriptionSafety(visitId, meds);
+        setSafety(result);
+        setPendingApproval({ doctorEdits });
       } finally {
-        setApproving(false);
+        setChecking(false);
       }
     },
-    [visitId, visit, refresh]
+    [visitId, visit]
   );
+
+  /**
+   * Phase 2 of approval: the panel's Confirm calls this. This is the original
+   * approve POST, unchanged except it now carries the safetyCheck record. The
+   * safety check NEVER blocks — a failed result still reaches here via the
+   * panel's "Approve anyway".
+   */
+  const commitApproval = React.useCallback(async () => {
+    if (!pendingApproval || !safety) return;
+    setApproving(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const safetyCheck = { ...safety, verdicts: verdictsRef.current };
+      const res = await fetch("/api/visits/approve-note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({
+          visitId,
+          safetyCheck,
+          ...(pendingApproval.doctorEdits ? { doctorEdits: pendingApproval.doctorEdits } : {}),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? `Approval failed (${res.status})`);
+      }
+      setCredentials({
+        visitNoteVcId: json.data.visitNoteVcId,
+        prescriptionVcId: json.data.prescriptionVcId,
+      });
+      toast.success("Note approved — credentials issued");
+      setSafety(null);
+      setPendingApproval(null);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Approval failed");
+    } finally {
+      setApproving(false);
+    }
+  }, [pendingApproval, safety, visitId, refresh]);
 
   if (!visit) {
     return (
@@ -244,6 +281,33 @@ export default function NotePage() {
 
       {serverNote ? (
         <>
+          {checking && (
+            <p className="mb-3 text-center text-sm text-slate-500">
+              Running prescription safety check…
+            </p>
+          )}
+          {safety && (
+            <div className="mb-5">
+              <PrescriptionSafetyPanel
+                result={safety}
+                onVerdict={(v) => {
+                  verdictsRef.current = [
+                    ...verdictsRef.current.filter((x) => x.index !== v.index),
+                    v,
+                  ];
+                }}
+                onAskGlyph={(text) => {
+                  window.location.href = `/doctor/consult/${visitId}?q=${encodeURIComponent(text)}`;
+                }}
+                onConfirm={commitApproval}
+                onCancel={() => {
+                  setSafety(null);
+                  setPendingApproval(null);
+                }}
+                confirming={approving}
+              />
+            </div>
+          )}
           {approving && (
             <p className="mb-3 text-center text-sm text-slate-500">
               Issuing credentials…
