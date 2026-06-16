@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     }
 
     // ── Input ─────────────────────────────────────────────────
-    const { visitId, doctorEdits, nextAppointmentAt } = await req.json().catch(() => ({}));
+    const { visitId, doctorEdits, nextAppointmentAt, safetyCheck } = await req.json().catch(() => ({}));
     if (!visitId) {
       return NextResponse.json(
         { success: false, error: 'visitId is required' },
@@ -148,6 +148,7 @@ export async function POST(req: Request) {
         approved_at: new Date().toISOString(),
         note_credential_id: noteCredential.rowId,
         status: 'completed',
+        prescription_safety_check: (safetyCheck ?? null) as Json,
       })
       .eq('id', visitId);
 
