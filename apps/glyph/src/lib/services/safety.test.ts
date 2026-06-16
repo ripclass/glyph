@@ -24,4 +24,11 @@ describe("checkPrescriptionSafety", () => {
     expect(r.status).toBe("failed");
     expect(r.warnings).toEqual([]);
   });
+
+  it("returns FAILED when the edge fn resolves with no payload", async () => {
+    (invokeFunction as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    const r = await checkPrescriptionSafety("visit-1", [{ name: "A" }]);
+    expect(r.status).toBe("failed");
+    expect(r.warnings).toEqual([]);
+  });
 });

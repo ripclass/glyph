@@ -14,13 +14,20 @@ export async function checkPrescriptionSafety(
   visitId: string,
   medications: MedInput[],
 ): Promise<SafetyResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const raw = await Promise.race([
       invokeFunction<RawSafetyData>("check-prescription-safety", { visitId, medications }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("safety check timed out")), TIMEOUT_MS)),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("safety check timed out")), TIMEOUT_MS);
+      }),
     ]);
+    // Explicit fail-safe: a missing payload must read as "couldn't run", never "safe".
+    if (!raw) throw new Error("safety check returned no data");
     return buildSafetyResult(raw);
   } catch (err) {
     return failedResult(err instanceof Error ? err.message : "safety check failed");
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
