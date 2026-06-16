@@ -157,6 +157,7 @@ export default function NotePage() {
         toast.error("Approval is BD-format only for now");
         return;
       }
+      if (checking || approving) return;
       const original = (visit?.generated_note ?? {}) as ServerNote;
       const edited = _note as BDNote;
       const hasEdits = Object.values(edits).some(Boolean);
@@ -177,11 +178,13 @@ export default function NotePage() {
         const result = await checkPrescriptionSafety(visitId, meds);
         setSafety(result);
         setPendingApproval({ doctorEdits });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Safety check failed");
       } finally {
         setChecking(false);
       }
     },
-    [visitId, visit]
+    [visitId, visit, checking, approving]
   );
 
   /**
