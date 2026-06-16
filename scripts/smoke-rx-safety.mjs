@@ -289,7 +289,10 @@ const r5 = await callSafetyNoAuth({ visitId: v1.id, medications: [{ name: 'Ibupr
 const b5 = await r5.json().catch(() => ({}));
 console.log(`  HTTP ${r5.status} | body=${JSON.stringify(b5).slice(0, 120)}`);
 check('auth: no Authorization header → HTTP 401', r5.status === 401, `status=${r5.status}`);
-check('auth: success=false in body', b5.success === false, `success=${b5.success}`);
+// 401 may come from our function ({success:false}) OR the platform gateway
+// ({code:"UNAUTHORIZED_NO_AUTH_HEADER"}, no success field) — both are correct
+// rejections; the contract is "not a success envelope".
+check('auth: body is a rejection, never a success envelope', b5.success !== true, `body=${JSON.stringify(b5).slice(0, 80)}`);
 console.log();
 
 // ── Usage log (diagnostic) ────────────────────────────────────────────────────
