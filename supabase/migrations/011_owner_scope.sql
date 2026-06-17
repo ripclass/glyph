@@ -118,3 +118,15 @@ END $$;
 CREATE POLICY "patients_owner_org" ON patients FOR ALL
   USING (owner_org_id IN (SELECT organization_id FROM memberships WHERE user_id = auth.uid()))
   WITH CHECK (owner_org_id IN (SELECT organization_id FROM memberships WHERE user_id = auth.uid()));
+
+-- ---------- SCOPE-EXCLUSIVITY INVARIANT (security boundary) ----------
+-- The two PERMISSIVE patient policies (doctors_own_clinic, patients_owner_org)
+-- OR their WITH CHECK clauses. Without this, a writer could set BOTH clinic_id
+-- (own) and owner_org_id (foreign) on one row — passing one policy's check and
+-- exposing the row to the other scope. This RESTRICTIVE policy AND's across all
+-- writes, enforcing that a patient is owned by EXACTLY ONE scope. USING (true)
+-- leaves reads/row-visibility to the permissive policies; only writes are
+-- constrained. Service-role writes bypass RLS entirely (unaffected).
+CREATE POLICY "patients_single_scope" ON patients AS RESTRICTIVE FOR ALL
+  USING (true)
+  WITH CHECK (num_nonnulls(clinic_id, owner_org_id) = 1);

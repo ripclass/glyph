@@ -92,7 +92,8 @@ const { data: seedClinic } = await db
   .select('organization_id')
   .eq('id', SEED_CLINIC_ID)
   .single();
-const clinicOrgId = seedClinic.organization_id;
+const clinicOrgId = seedClinic?.organization_id;
+check('seed clinic + backfilled org present', Boolean(seedClinic?.organization_id), 'missing seed clinic org');
 
 // Clinic side: a doctor (member) + a clinic patient (clinic_id set, owner NULL).
 const pw = 'smoke-test-only-1234';
@@ -175,7 +176,37 @@ const { data: staffSeesClinicOrg } = await asStaff
   .from('organizations').select('id').eq('id', clinicOrgId);
 check('centre staff CANNOT read the clinic organization (RLS)', staffSeesClinicOrg?.length === 0, `got ${staffSeesClinicOrg?.length}`);
 
+// --- WRITE boundary: the scope-exclusivity invariant (RESTRICTIVE policy) ---
+// A clinic doctor must not be able to smuggle a foreign owner_org onto a row.
+const { error: docSmuggleInsErr } = await asDoctor
+  .from('patients')
+  .insert({ clinic_id: SEED_CLINIC_ID, owner_org_id: centerOrg.id, name: 'Smuggle Insert' })
+  .select('id');
+check('clinic doctor CANNOT insert a patient claiming a foreign owner_org (WITH CHECK)', Boolean(docSmuggleInsErr), docSmuggleInsErr?.message ?? 'insert unexpectedly succeeded');
+
+const { error: docSmuggleUpdErr } = await asDoctor
+  .from('patients')
+  .update({ owner_org_id: centerOrg.id })
+  .eq('id', clinicPatient.id)
+  .select('id');
+check('clinic doctor CANNOT move their patient to a foreign owner_org (WITH CHECK)', Boolean(docSmuggleUpdErr), docSmuggleUpdErr?.message ?? 'update unexpectedly succeeded');
+
+// Centre staff must not be able to attach a clinic_id to their owner-scoped patient.
+const { error: staffSmuggleInsErr } = await asStaff
+  .from('patients')
+  .insert({ owner_org_id: centerOrg.id, clinic_id: SEED_CLINIC_ID, name: 'Staff Smuggle' })
+  .select('id');
+check('centre staff CANNOT insert a patient claiming a clinic_id (WITH CHECK)', Boolean(staffSmuggleInsErr), staffSmuggleInsErr?.message ?? 'insert unexpectedly succeeded');
+
+// A well-formed single-scope write still succeeds (the invariant is not over-broad).
+const { error: wellFormedErr } = await asStaff
+  .from('patients')
+  .insert({ owner_org_id: centerOrg.id, clinic_id: null, name: 'Well Formed Owner Patient' })
+  .select('id');
+check('centre staff CAN insert a well-formed owner-scoped patient', !wellFormedErr, wellFormedErr?.message);
+
 // --- cleanup ---
+await db.from('patients').delete().in('name', ['Smuggle Insert', 'Staff Smuggle', 'Well Formed Owner Patient']);
 await db.from('patients').delete().in('id', [clinicPatient.id, centerPatient.id]);
 await db.from('memberships').delete().in('user_id', [docUser.user.id, staffUser.user.id]);
 await db.from('doctors').delete().eq('id', docUser.user.id);
