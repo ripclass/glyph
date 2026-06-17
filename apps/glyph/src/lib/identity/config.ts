@@ -8,13 +8,14 @@
  */
 
 /** Entity kinds that hold DIDs (maps 1:1 to principal tables) */
-export type EntityKind = 'patient' | 'doctor' | 'clinic';
+export type EntityKind = 'patient' | 'doctor' | 'clinic' | 'organization';
 
 /** Principal table per entity kind */
 export const ENTITY_TABLE = {
   patient: 'patients',
   doctor: 'doctors',
   clinic: 'clinics',
+  organization: 'organizations',
 } as const satisfies Record<EntityKind, string>;
 
 /**

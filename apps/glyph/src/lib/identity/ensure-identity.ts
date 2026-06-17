@@ -1,5 +1,5 @@
 /**
- * @fileoverview DID provisioning for principals (patients/doctors/clinics).
+ * @fileoverview DID provisioning for principals (patients/doctors/clinics/organizations).
  * Idempotent and race-safe: an entity gets exactly one DID, generated on
  * first need, persisted on its row, with the DID Document published as
  * version 1 in `did_documents` (append-only).
@@ -30,7 +30,7 @@ export interface EntityIdentity {
  * loser's freshly generated key is discarded, never stored).
  *
  * @param admin - Service-role client
- * @param kind - patient | doctor | clinic
+ * @param kind - patient | doctor | clinic | organization
  * @param id - Row id in the principal table
  * @returns The entity's DID + key material
  * @throws {Error} If the entity row does not exist
