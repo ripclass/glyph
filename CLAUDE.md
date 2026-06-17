@@ -117,7 +117,9 @@ Glyph/
 │   │   ├── 006_wallet_tokens.sql   # wallet_access_tokens: Pocket bearer tokens, RLS deny-all (service-role only)
 │   │   ├── 007_triage_sessions.sql # triage_sessions: Pocket v2 triage exchanges, RLS deny-all (service-role only)
 │   │   ├── 008_whatsapp_bridge.sql # whatsapp_links + wa_conversations + wa_messages: WhatsApp bridge Leg A, RLS deny-all (service-role only)
-│   │   └── 009_scheduled_messages.sql # scheduled_messages: Leg D proactive send queue + visits.next_appointment_at, RLS deny-all
+│   │   ├── 009_scheduled_messages.sql # scheduled_messages: Leg D proactive send queue + visits.next_appointment_at, RLS deny-all
+│   │   ├── 010_prescription_safety.sql # visits.prescription_safety_check JSONB: safety result + per-warning doctor verdicts, recorded at note-approval (audit today, KhaM-Med ground truth tomorrow)
+│   │   └── 011_owner_scope.sql      # organizations + memberships + clinics.organization_id (backfilled), patients.owner_org_id + clinic_id RELAXED to nullable, kham_holding provisional-owner singleton; RESTRICTIVE patients_single_scope policy + patients_one_scope CHECK enforce one-owner-scope; NEW owner-scoped RLS ALONGSIDE the untouched clinic RLS. The audit's R2 "clinic is one owner type" foundation (Lens is first consumer). Chamber path unchanged; smoke-path 19/19 + smoke-owner-scope green.
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -208,9 +210,9 @@ Glyph/
         ├── lib/
         │   ├── hooks/               # useVoiceInput, useAmbientRecording, useIntakeConversation,
         │   │                        # useConsultChat, usePatientHistory, useRealtimeQueue
-        │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), projections
+        │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), config(+test), projections
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
-        │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test),
+        │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test), organizations(+logic+test),
         │   │                        # triage-runner (shared symptom-triage engine: red-flag screen → consent → egress-gated `triage` edge fn → clamp → persist; called by BOTH the wallet triage route and the WhatsApp bridge)
         │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Leg C adds media (360dialog download), documents (bucket upload), doc-type (flow: image → consent → type question → extract-document service path). Leg D adds templates (glyph_followup/glyph_appointment_reminder/glyph_doctor_nudge template definitions), schedule (enqueue/drain helpers for scheduled_messages), and sendTemplate (360dialog template send). Routes call into this; clinical thinking stays in edge fns.
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
@@ -260,13 +262,15 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 |---|---|---|
 | `clinics` | `id`, `name`, `district` | Single clinic per doctor (via `doctors.clinic_id`) |
 | `doctors` | `id → auth.users(id)`, `clinic_id`, `bmdc_reg_no`, `preferred_language`, `preferred_note_format` | Phone unique; BMDC = Bangladesh Medical & Dental Council |
-| `patients` | `clinic_id`, `name`/`name_bn`, `phone`, `age`, `blood_group`, `known_allergies JSONB`, `chronic_conditions JSONB` | Soft-denormalized allergies/conditions for fast briefing |
+| `patients` | `clinic_id`, `name`/`name_bn`, `phone`, `age`, `blood_group`, `known_allergies JSONB`, `chronic_conditions JSONB` | Soft-denormalized allergies/conditions for fast briefing. Migration 011 added nullable `owner_org_id` (org-scoped/provisional patients) and relaxed `clinic_id` to nullable; a `patients_one_scope` CHECK enforces exactly one of clinic_id/owner_org_id (Chamber rows stay clinic-only). |
 | `visits` | **central table** — `status` enum: `intake → intake_complete → in_consultation → note_review → completed → followup_sent`; includes `intake_transcript`, `intake_summary`, `briefing_card`, `consultation_transcript`, `consultation_queries`, `generated_note`, `doctor_edits`, `approved_note`, `evidence_links`, `api_costs`, attendant fields | Auto `visit_number` via trigger per patient |
 | `prescriptions` | `patient_id`, `visit_id`, `source` (`photo_historical`/`photo_current`/`generated`), `medications JSONB`, `extraction_confidence` | Linked to image in Storage |
 | `lab_reports` | Same pattern as prescriptions + `test_category`, `results JSONB` | — |
 | `consent_records` | `consent_type` enum: `recording`, `data_storage`, `ai_processing`, `image_capture`, `whatsapp_followup`, `data_sharing`; `granted_by` ∈ {patient, attendant, guardian} | Tracks withdrawal + device info for PDPO audit |
 | `api_usage_log` | `edge_function`, `model_used`, `was_fallback`, input/output tokens, latency, cost, error | Populated by `cost-logger.ts` |
 | `waitlist_signups` | `name`, `phone` (unique, canonical `01X…`), `role` (doctor/clinic/pharmacy/other), `district`, `bmdc_reg_no`, `status` | Migration 005. RLS enabled with ZERO policies — service-role only, written by `/api/waitlist` |
+| `organizations` | `id`, `name`, `org_type` (clinic/diagnostic_centre/hospital/employer/recruiter/kham_holding), DID/key cols | Migration 011. The general owner (R2). Each clinic has a 1:1 backfilled org (`clinics.organization_id`). RLS: members read their own org. |
+| `memberships` | `user_id → auth.users`, `organization_id → organizations`, `role` (owner/admin/doctor/technologist/signatory/staff) | Migration 011. Who may act for an owner (generalizes `doctors.clinic_id`); lets non-doctor staff log in. UNIQUE(user_id, org). RLS: self-read. |
 
 **Indexes:** on `visits(patient_id|doctor_id|visit_date DESC|status|clinic_id,visit_date)`, `prescriptions(patient_id)`, `lab_reports(patient_id|category)`, `patients(phone|clinic_id)`, `consent_records(patient_id)`, `api_usage_log(visit_id)`.
 
