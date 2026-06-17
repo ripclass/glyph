@@ -130,3 +130,13 @@ CREATE POLICY "patients_owner_org" ON patients FOR ALL
 CREATE POLICY "patients_single_scope" ON patients AS RESTRICTIVE FOR ALL
   USING (true)
   WITH CHECK (num_nonnulls(clinic_id, owner_org_id) = 1);
+
+-- Belt-and-suspenders: the RESTRICTIVE policy above only constrains RLS-bound
+-- (authenticated) writes; service-role writes bypass RLS. This table CHECK makes
+-- the single-scope invariant UNCONDITIONAL — it holds for every writer, incl.
+-- the service-role provisional-patient path. All existing Chamber rows are
+-- clinic-only (num_nonnulls = 1), so it validates cleanly. The deferred
+-- Chamber→owner_org migration must move clinic_id→owner_org_id per-row (never
+-- both set at once) to stay within this constraint.
+ALTER TABLE patients
+  ADD CONSTRAINT patients_one_scope CHECK (num_nonnulls(clinic_id, owner_org_id) = 1);

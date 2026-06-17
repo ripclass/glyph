@@ -205,8 +205,15 @@ const { error: wellFormedErr } = await asStaff
   .select('id');
 check('centre staff CAN insert a well-formed owner-scoped patient', !wellFormedErr, wellFormedErr?.message);
 
+// The table CHECK makes the single-scope invariant unconditional: even a
+// service-role write (which bypasses RLS) cannot create a both-scopes row.
+const { error: bothScopeErr } = await db
+  .from('patients')
+  .insert({ clinic_id: SEED_CLINIC_ID, owner_org_id: centerOrg.id, name: 'Both Scope (service role)' });
+check('table CHECK rejects a both-scope row even via service role', Boolean(bothScopeErr), bothScopeErr?.message ?? 'service-role insert unexpectedly succeeded');
+
 // --- cleanup ---
-await db.from('patients').delete().in('name', ['Smuggle Insert', 'Staff Smuggle', 'Well Formed Owner Patient']);
+await db.from('patients').delete().in('name', ['Smuggle Insert', 'Staff Smuggle', 'Well Formed Owner Patient', 'Both Scope (service role)']);
 await db.from('patients').delete().in('id', [clinicPatient.id, centerPatient.id]);
 await db.from('memberships').delete().in('user_id', [docUser.user.id, staffUser.user.id]);
 await db.from('doctors').delete().eq('id', docUser.user.id);
