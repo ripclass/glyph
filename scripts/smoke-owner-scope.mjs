@@ -93,7 +93,7 @@ const { data: seedClinic } = await db
   .eq('id', SEED_CLINIC_ID)
   .single();
 const clinicOrgId = seedClinic?.organization_id;
-check('seed clinic + backfilled org present', Boolean(seedClinic?.organization_id), 'missing seed clinic org');
+check('seed clinic + backfilled org present', Boolean(seedClinic?.organization_id), seedClinic?.organization_id ? '' : 'missing seed clinic org');
 
 // Clinic side: a doctor (member) + a clinic patient (clinic_id set, owner NULL).
 const pw = 'smoke-test-only-1234';
