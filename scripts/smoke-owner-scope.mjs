@@ -85,7 +85,104 @@ const { error: badRoleErr } = await db
 check('memberships role CHECK rejects unknown role', Boolean(badRoleErr), badRoleErr?.message);
 await db.auth.admin.deleteUser(tmpUser.user.id);
 
-// ===== Section B added in Task 2 (before this summary) =====
+// ===== Section B: owner_org_id, nullable clinic_id, RLS isolation =====
+const SEED_CLINIC_ID = 'c0000000-0000-0000-0000-000000000001'; // from seed.sql
+const { data: seedClinic } = await db
+  .from('clinics')
+  .select('organization_id')
+  .eq('id', SEED_CLINIC_ID)
+  .single();
+const clinicOrgId = seedClinic.organization_id;
+
+// Clinic side: a doctor (member) + a clinic patient (clinic_id set, owner NULL).
+const pw = 'smoke-test-only-1234';
+const { data: docUser } = await db.auth.admin.createUser({
+  email: `smoke-owner-doc-${Date.now()}@glyph.local`,
+  password: pw,
+  email_confirm: true,
+});
+await db.from('doctors').insert({
+  id: docUser.user.id,
+  clinic_id: SEED_CLINIC_ID,
+  name: 'Dr. Owner Scope',
+  phone: `017${String(Date.now()).slice(-8)}`,
+});
+await db.from('memberships').insert({
+  user_id: docUser.user.id,
+  organization_id: clinicOrgId,
+  role: 'doctor',
+});
+const { data: clinicPatient } = await db
+  .from('patients')
+  .insert({ clinic_id: SEED_CLINIC_ID, name: 'Clinic Patient' })
+  .select('id')
+  .single();
+
+// Centre side: a diagnostic_centre org + staff (member, NOT a doctor) + a
+// patient with clinic_id NULL (proves the relax + owner_org_id).
+const { data: centerOrg } = await db
+  .from('organizations')
+  .insert({ name: 'Popular Diagnostics (smoke)', org_type: 'diagnostic_centre' })
+  .select('id')
+  .single();
+const { data: staffUser } = await db.auth.admin.createUser({
+  email: `smoke-owner-staff-${Date.now()}@glyph.local`,
+  password: pw,
+  email_confirm: true,
+});
+await db.from('memberships').insert({
+  user_id: staffUser.user.id,
+  organization_id: centerOrg.id,
+  role: 'technologist',
+});
+const { data: centerPatient, error: centerPatErr } = await db
+  .from('patients')
+  .insert({ owner_org_id: centerOrg.id, clinic_id: null, name: 'Walk-in Patient' })
+  .select('id')
+  .single();
+check('patient inserts with owner_org_id and NULL clinic_id', !centerPatErr, centerPatErr?.message);
+
+const { data: docMems } = await db
+  .from('memberships')
+  .select('user_id')
+  .eq('organization_id', clinicOrgId)
+  .eq('user_id', docUser.user.id);
+check('clinic doctor has a clinic-org membership', docMems?.length === 1);
+
+// --- RLS: sign in as the clinic doctor (anon client + JWT) ---
+const asDoctor = createClient(url, anonKey, { auth: { persistSession: false } });
+await asDoctor.auth.signInWithPassword({ email: docUser.user.email, password: pw });
+const { data: docSeesClinic } = await asDoctor
+  .from('patients').select('id').eq('id', clinicPatient.id);
+check('clinic doctor sees their clinic patient', docSeesClinic?.length === 1);
+const { data: docSeesCenter } = await asDoctor
+  .from('patients').select('id').eq('id', centerPatient.id);
+check('clinic doctor CANNOT see the centre patient (RLS)', docSeesCenter?.length === 0, `got ${docSeesCenter?.length}`);
+
+// --- RLS: sign in as the centre staff ---
+const asStaff = createClient(url, anonKey, { auth: { persistSession: false } });
+await asStaff.auth.signInWithPassword({ email: staffUser.user.email, password: pw });
+const { data: staffSeesCenter } = await asStaff
+  .from('patients').select('id').eq('id', centerPatient.id);
+check('centre staff sees their centre patient', staffSeesCenter?.length === 1);
+const { data: staffSeesClinic } = await asStaff
+  .from('patients').select('id').eq('id', clinicPatient.id);
+check('centre staff CANNOT see the clinic patient (RLS)', staffSeesClinic?.length === 0, `got ${staffSeesClinic?.length}`);
+const { data: staffSeesOwnOrg } = await asStaff
+  .from('organizations').select('id').eq('id', centerOrg.id);
+check('centre staff reads its own organization', staffSeesOwnOrg?.length === 1);
+const { data: staffSeesClinicOrg } = await asStaff
+  .from('organizations').select('id').eq('id', clinicOrgId);
+check('centre staff CANNOT read the clinic organization (RLS)', staffSeesClinicOrg?.length === 0, `got ${staffSeesClinicOrg?.length}`);
+
+// --- cleanup ---
+await db.from('patients').delete().in('id', [clinicPatient.id, centerPatient.id]);
+await db.from('memberships').delete().in('user_id', [docUser.user.id, staffUser.user.id]);
+await db.from('doctors').delete().eq('id', docUser.user.id);
+await db.from('organizations').delete().eq('id', centerOrg.id);
+await db.auth.admin.deleteUser(docUser.user.id);
+await db.auth.admin.deleteUser(staffUser.user.id);
+console.log('\ncleanup done');
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures === 0 ? 0 : 1);

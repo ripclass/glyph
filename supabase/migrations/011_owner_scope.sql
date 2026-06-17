@@ -76,7 +76,8 @@ CREATE INDEX idx_memberships_org ON memberships(organization_id);
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE memberships ENABLE ROW LEVEL SECURITY;
 
--- Members see their own organization(s).
+-- Members see their own organization(s). Relies on membership_self_read
+-- exposing the user's own membership rows to this sub-select.
 CREATE POLICY "org_member_read" ON organizations FOR SELECT USING (
   id IN (SELECT organization_id FROM memberships WHERE user_id = auth.uid())
 );
@@ -85,3 +86,35 @@ CREATE POLICY "org_member_read" ON organizations FOR SELECT USING (
 CREATE POLICY "membership_self_read" ON memberships FOR SELECT USING (
   user_id = auth.uid()
 );
+
+-- ---------- PATIENTS: generalize ownership ----------
+-- owner_org_id = the new owner pointer (any org_type). clinic_id relaxes to
+-- nullable so a centre/provisional patient needs no clinic. Existing Chamber
+-- patients keep clinic_id with a NULL owner_org_id — their RLS is untouched.
+ALTER TABLE patients ADD COLUMN owner_org_id UUID REFERENCES organizations(id);
+ALTER TABLE patients ALTER COLUMN clinic_id DROP NOT NULL;
+CREATE INDEX idx_patients_owner_org ON patients(owner_org_id);
+
+-- Backfill a membership for every existing doctor → their clinic's org. Lets a
+-- clinic become an owner later with no retrofit; dormant for Chamber today
+-- (Chamber reads via clinic_id, not memberships).
+DO $$
+DECLARE d RECORD; org UUID;
+BEGIN
+  FOR d IN SELECT id, clinic_id FROM doctors WHERE clinic_id IS NOT NULL LOOP
+    SELECT organization_id INTO org FROM clinics WHERE id = d.clinic_id;
+    IF org IS NOT NULL THEN
+      INSERT INTO memberships (user_id, organization_id, role)
+      VALUES (d.id, org, 'doctor')
+      ON CONFLICT (user_id, organization_id) DO NOTHING;
+    END IF;
+  END LOOP;
+END $$;
+
+-- New owner-scoped access to patients, ALONGSIDE the untouched clinic policy.
+-- PERMISSIVE policies OR together: a clinic doctor still reaches clinic patients
+-- via "doctors_own_clinic"; org members reach owner_org patients here. No leak:
+-- clinic patients have owner_org_id NULL, owner-scoped patients have clinic_id NULL.
+CREATE POLICY "patients_owner_org" ON patients FOR ALL
+  USING (owner_org_id IN (SELECT organization_id FROM memberships WHERE user_id = auth.uid()))
+  WITH CHECK (owner_org_id IN (SELECT organization_id FROM memberships WHERE user_id = auth.uid()));
