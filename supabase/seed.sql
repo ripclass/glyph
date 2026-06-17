@@ -3,9 +3,17 @@
 -- 1 clinic, 2 doctors, 5 patients with varied histories
 -- ============================================================
 
+-- Organization (owner) for the seeded clinic. `supabase db reset` runs
+-- migrations BEFORE seed.sql, so migration 011's clinic-backfill loop sees an
+-- empty clinics table; the seed must therefore carry the clinic's own org and
+-- link to uphold the "clinic is a 1:1 organization satellite" invariant
+-- (the same state migration 011 produces for real clinics on prod).
+INSERT INTO organizations (id, name, org_type, district, phone) VALUES
+  ('e0000000-0000-0000-0000-000000000001', 'ডক্টর রহমান ক্লিনিক', 'clinic', 'Mirpur', '+8801700000001');
+
 -- Clinic
-INSERT INTO clinics (id, name, address, district, phone) VALUES
-  ('c0000000-0000-0000-0000-000000000001', 'ডক্টর রহমান ক্লিনিক', '42 Mirpur Road, Dhaka-1205', 'Mirpur', '+8801700000001');
+INSERT INTO clinics (id, name, address, district, phone, organization_id) VALUES
+  ('c0000000-0000-0000-0000-000000000001', 'ডক্টর রহমান ক্লিনিক', '42 Mirpur Road, Dhaka-1205', 'Mirpur', '+8801700000001', 'e0000000-0000-0000-0000-000000000001');
 
 -- Note: Doctors reference auth.users — in dev, create users via Supabase Auth first,
 -- then update these IDs to match.
