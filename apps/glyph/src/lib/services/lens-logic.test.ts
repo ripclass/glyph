@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLabOrderRow, normalizeRawItem, KNOWN_TEST_CATEGORIES, buildLabResultData } from './lens-logic';
+import { buildLabOrderRow, normalizeRawItem, KNOWN_TEST_CATEGORIES, buildLabResultData, parseImageUpload } from './lens-logic';
 
 describe('buildLabOrderRow', () => {
   it('builds an ordered row with the centre as owner', () => {
@@ -50,5 +50,31 @@ describe('buildLabResultData', () => {
   });
   it('throws when there are no results (schema requires min 1)', () => {
     expect(() => buildLabResultData({ orgDid: 'did:web:example.com:org:o', orgName: 'X', testCategory: 'CBC', reportDate: '2026-06-18', normalized: [] })).toThrow();
+  });
+});
+
+describe('parseImageUpload', () => {
+  it('accepts jpeg and returns jpg ext + the bare base64', () => {
+    const r = parseImageUpload({ imageBase64: 'AQID', contentType: 'image/jpeg' });
+    expect(r).toEqual({ base64: 'AQID', ext: 'jpg' });
+  });
+
+  it('strips a data-URL prefix', () => {
+    const r = parseImageUpload({ imageBase64: 'data:image/png;base64,AQID', contentType: 'image/png' });
+    expect(r).toEqual({ base64: 'AQID', ext: 'png' });
+  });
+
+  it('maps webp', () => {
+    expect(parseImageUpload({ imageBase64: 'AQID', contentType: 'image/webp' }).ext).toBe('webp');
+  });
+
+  it('throws on a disallowed content type', () => {
+    expect(() => parseImageUpload({ imageBase64: 'AQID', contentType: 'image/gif' })).toThrow();
+    expect(() => parseImageUpload({ imageBase64: 'AQID', contentType: 'application/pdf' })).toThrow();
+  });
+
+  it('throws on empty payload', () => {
+    expect(() => parseImageUpload({ imageBase64: '', contentType: 'image/jpeg' })).toThrow();
+    expect(() => parseImageUpload({ imageBase64: 'data:image/jpeg;base64,', contentType: 'image/jpeg' })).toThrow();
   });
 });

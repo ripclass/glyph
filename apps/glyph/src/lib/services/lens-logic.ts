@@ -87,3 +87,30 @@ export function normalizeRawItem(raw: Record<string, unknown>): LabResultItem {
     ...(severity ? { severity } : {}),
   };
 }
+
+/** Content types we accept for a lab-report photo, mapped to a file extension. */
+const IMAGE_EXT: Record<string, 'jpg' | 'png' | 'webp'> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+export interface ParsedImageUpload {
+  base64: string;
+  ext: 'jpg' | 'png' | 'webp';
+}
+
+/**
+ * Validates + normalizes a posted lab-report image. Pure (no Buffer/network) so
+ * lens-logic stays browser-safe; the route decodes the returned base64 to bytes.
+ *
+ * @throws {Error} on a disallowed content type or an empty payload
+ */
+export function parseImageUpload(input: { imageBase64: string; contentType: string }): ParsedImageUpload {
+  const ext = IMAGE_EXT[input.contentType];
+  if (!ext) throw new Error(`Unsupported image type: ${input.contentType}`);
+  // Strip an optional data-URL prefix: "data:image/png;base64,...."
+  const base64 = input.imageBase64.replace(/^data:[^;]+;base64,/, '').trim();
+  if (!base64) throw new Error('Empty image payload');
+  return { base64, ext };
+}
