@@ -7,10 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface ResultItem { testName: string; value: string; unit?: string; referenceRange?: string }
+interface NormalizedItem { testName: string; value: string; unit?: string; referenceRange?: string; isAbnormal?: boolean; severity?: string }
+interface SanityFlag { message: string; severity: 'info' | 'warning' | 'critical' }
 
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
   const [order, setOrder] = useState<any>(null);
   const [rows, setRows] = useState<ResultItem[]>([{ testName: '', value: '', unit: '', referenceRange: '' }]);
+  const [normalized, setNormalized] = useState<NormalizedItem[]>([]);
+  const [sanityFlags, setSanityFlags] = useState<SanityFlag[]>([]);
 
   async function load() {
     const supabase = createClient();
@@ -36,6 +40,16 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     toast.success('Results saved'); void load();
   }
 
+  async function runNormalize() {
+    const res = await fetch(`/api/center/orders/${params.id}/normalize`, {
+      method: 'POST', headers: { Authorization: `Bearer ${await token()}` },
+    });
+    const json = await res.json();
+    if (!json.success) return toast.error(json.error);
+    setNormalized(json.data.normalized ?? []); setSanityFlags(json.data.sanityFlags ?? []);
+    toast.success('Normalized'); void load();
+  }
+
   if (!order) return <p className="text-sm text-clinical-muted">Loading…</p>;
 
   return (
@@ -58,7 +72,23 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
           <Button onClick={saveResults}>Save results</Button>
         </div>
       </section>
-      {/* Normalize panel (Task 6) and Sign panel (Task 7) render below. */}
+
+      <section className="space-y-2 rounded-xl border border-line bg-white p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium text-ink">AI normalize + sanity-check</h2>
+          <Button variant="accent" onClick={runNormalize} disabled={order.status === 'ordered'}>Normalize</Button>
+        </div>
+        {(normalized.length ? normalized : (order.normalized_results ?? [])).map((r: NormalizedItem, i: number) => (
+          <div key={i} className="flex justify-between text-sm">
+            <span className="text-ink">{r.testName}</span>
+            <span className={r.isAbnormal ? 'text-red_flag' : 'text-clinical-muted'}>{r.value} {r.unit} ({r.referenceRange})</span>
+          </div>
+        ))}
+        {(sanityFlags.length ? sanityFlags : (order.sanity_flags ?? [])).map((f: SanityFlag, i: number) => (
+          <p key={i} className="text-xs text-red_flag">&#x26A0; {f.message}</p>
+        ))}
+      </section>
+      {/* Sign panel (Task 7) renders below. */}
     </div>
   );
 }
