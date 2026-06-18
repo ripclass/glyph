@@ -101,7 +101,7 @@ serve(async (req: Request) => {
     }
 
     // ── Parse body ──────────────────────────────────────────
-    const { imageUrl, type, visitId, patientId, consentId } = await req.json();
+    const { imageUrl, type, visitId, patientId, consentId, extractOnly } = await req.json();
 
     if (!imageUrl || !type || !patientId) {
       return jsonResponse(
@@ -190,6 +190,14 @@ serve(async (req: Request) => {
     }
 
     const confidence = typeof extracted.confidence === "number" ? extracted.confidence : 0.5;
+
+    // Lens reuse: return the extracted structure WITHOUT projecting a row. The
+    // centre flow holds results as a lab_orders draft until signing; only the sign
+    // step writes the frozen lab_reports projection. Chamber/bridge paths omit the
+    // flag and keep inserting as before.
+    if (extractOnly === true) {
+      return jsonResponse({ success: true, data: extracted });
+    }
 
     // ── Store in appropriate table ──────────────────────────
     if (type === "prescription") {
