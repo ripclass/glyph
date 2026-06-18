@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLabOrderRow, normalizeRawItem, KNOWN_TEST_CATEGORIES } from './lens-logic';
+import { buildLabOrderRow, normalizeRawItem, KNOWN_TEST_CATEGORIES, buildLabResultData } from './lens-logic';
 
 describe('buildLabOrderRow', () => {
   it('builds an ordered row with the centre as owner', () => {
@@ -30,5 +30,25 @@ describe('normalizeRawItem', () => {
 describe('KNOWN_TEST_CATEGORIES', () => {
   it('includes the common BD panels', () => {
     expect(KNOWN_TEST_CATEGORIES).toEqual(expect.arrayContaining(['CBC', 'RFT', 'LFT', 'HbA1c', 'Lipid Profile', 'Thyroid', 'Urine R/E']));
+  });
+});
+
+describe('buildLabResultData', () => {
+  it('builds a LabResultData payload with the centre as lab + encounterDate', () => {
+    const data = buildLabResultData({
+      orgId: 'org1', orgName: 'Popular Diagnostics', testCategory: 'CBC',
+      reportDate: '2026-06-18',
+      normalized: [{ testName: 'Hemoglobin', value: '9.1', unit: 'g/dL', referenceRange: '13-17', isAbnormal: true, severity: 'moderate' }],
+    });
+    expect(data.testCategory).toBe('CBC');
+    expect(data.reportDate).toBe('2026-06-18');
+    expect(data.encounterDate).toBe('2026-06-18');
+    expect(data.lab).toEqual({ did: 'did:org:org1', name: 'Popular Diagnostics' });
+    expect(data.results).toHaveLength(1);
+    expect(data.results[0].testName).toBe('Hemoglobin');
+    expect(data.locale).toBe('bn');
+  });
+  it('throws when there are no results (schema requires min 1)', () => {
+    expect(() => buildLabResultData({ orgId: 'o', orgName: 'X', testCategory: 'CBC', reportDate: '2026-06-18', normalized: [] })).toThrow();
   });
 });

@@ -15,6 +15,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   const [rows, setRows] = useState<ResultItem[]>([{ testName: '', value: '', unit: '', referenceRange: '' }]);
   const [normalized, setNormalized] = useState<NormalizedItem[]>([]);
   const [sanityFlags, setSanityFlags] = useState<SanityFlag[]>([]);
+  const [signed, setSigned] = useState<{ vcId: string } | null>(null);
 
   async function load() {
     const supabase = createClient();
@@ -38,6 +39,15 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     const json = await res.json();
     if (!json.success) return toast.error(json.error);
     toast.success('Results saved'); void load();
+  }
+
+  async function sign() {
+    const res = await fetch(`/api/center/orders/${params.id}/sign`, {
+      method: 'POST', headers: { Authorization: `Bearer ${await token()}` },
+    });
+    const json = await res.json();
+    if (!json.success) return toast.error(json.error);
+    setSigned({ vcId: json.data.labResultVcId }); toast.success('Signed'); void load();
   }
 
   async function runNormalize() {
@@ -88,7 +98,15 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
           <p key={i} className="text-xs text-red_flag">&#x26A0; {f.message}</p>
         ))}
       </section>
-      {/* Sign panel (Task 7) renders below. */}
+      {(order.normalized_results?.length || normalized.length) ? (
+        <section className="rounded-xl border border-line bg-white p-4">
+          {order.status === 'signed' || signed ? (
+            <p className="text-sm text-ink">&#x2713; Signed &middot; LabResult credential issued.</p>
+          ) : (
+            <Button onClick={sign}>Sign &amp; issue result</Button>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

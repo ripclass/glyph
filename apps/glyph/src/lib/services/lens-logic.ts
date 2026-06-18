@@ -43,6 +43,31 @@ export function buildLabOrderRow(input: BuildLabOrderInput) {
   };
 }
 
+export interface BuildLabResultInput {
+  orgId: string;
+  orgName: string;
+  testCategory: string;
+  reportDate: string; // ISO date
+  normalized: LabResultItem[];
+}
+
+/**
+ * Builds the LabResultData payload (credentialSubject.data) for issueCredential.
+ * `lab` is an entityRef to the centre org (the issuer); encounterDate mirrors the
+ * report date. Matches labResultData in @kham/schemas-clinical.
+ */
+export function buildLabResultData(input: BuildLabResultInput) {
+  if (!input.normalized.length) throw new Error('LabResult requires at least one result');
+  return {
+    encounterDate: input.reportDate,
+    locale: 'bn' as const,
+    lab: { did: `did:org:${input.orgId}`, name: input.orgName },
+    testCategory: input.testCategory,
+    reportDate: input.reportDate,
+    results: input.normalized,
+  };
+}
+
 /** Normalizes one raw result row (extract-document or manual) to a LabResultItem. */
 export function normalizeRawItem(raw: Record<string, unknown>): LabResultItem {
   const testName = String((raw.testName ?? raw.name ?? '')).trim();

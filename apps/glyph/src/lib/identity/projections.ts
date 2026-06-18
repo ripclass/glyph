@@ -121,5 +121,48 @@ export async function rebuildProjections(
     }
   }
 
+  // ── LabResult projection: insert a lab_reports row for each LabResultCredential.
+  // Insert-once/idempotent: the trg_lab_reports_frozen trigger blocks mutation of
+  // credentialed rows, so we skip any row that already carries this credential_id.
+  for (const cred of creds ?? []) {
+    if (!cred.types.includes('LabResultCredential')) continue;
+    report.checked++;
+
+    const { data: existing } = await admin
+      .from('lab_reports')
+      .select('id')
+      .eq('credential_id', cred.id)
+      .maybeSingle();
+
+    if (existing) {
+      report.skippedExisting++;
+      continue;
+    }
+
+    const data = payloadOf(cred.credential_json);
+
+    const { error: insErr } = await admin.from('lab_reports').insert({
+      patient_id: patient.id,
+      visit_id: null,
+      source: 'digital',
+      lab_name: typeof data.lab === 'object' && data.lab !== null
+        ? ((data.lab as { name?: unknown }).name as string | undefined) ?? null
+        : null,
+      report_date: typeof data.reportDate === 'string' ? data.reportDate : null,
+      test_category: typeof data.testCategory === 'string' ? data.testCategory : null,
+      results: Array.isArray(data.results) ? (data.results as Json) : [],
+      raw_extraction: null,
+      extraction_confidence: null,
+      verified_by_doctor: true,
+      credential_id: cred.id,
+    });
+
+    if (insErr) {
+      report.unprojectable.push(cred.vc_id);
+    } else {
+      report.inserted++;
+    }
+  }
+
   return report;
 }
