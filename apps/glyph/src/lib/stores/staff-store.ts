@@ -31,7 +31,7 @@ export const useStaffStore = create<StaffState>((set) => ({
   signOut: async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    set({ staff: null });
+    set({ staff: null, isLoading: false });
   },
 
   checkStaffSession: async () => {
