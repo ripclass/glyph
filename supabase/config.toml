@@ -34,3 +34,17 @@ file_size_limit = "50MiB"
 
 [realtime]
 enabled = true
+
+# Edge functions deployed with JWT verification OFF — they authenticate on a shared
+# secret (triage: TRIAGE_SHARED_SECRET; lens-normalize: LENS_SHARED_SECRET) or a bridge
+# secret (extract-document: WHATSAPP_BRIDGE_SECRET), NOT a Supabase JWT. Pinned here so a
+# blanket `supabase functions deploy` preserves it — previously only a deploy-time
+# `--no-verify-jwt` flag, which a flagless redeploy would silently reset to verify_jwt=true.
+[functions.triage]
+verify_jwt = false
+
+[functions.extract-document]
+verify_jwt = false
+
+[functions.lens-normalize]
+verify_jwt = false
