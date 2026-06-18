@@ -75,6 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const bytes = Buffer.from(parsed.base64, 'base64');
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const imageUrl = `lens/${staff.orgId}/${order.patient_id}/${ts}.${parsed.ext}`;
+  // body.contentType is already validated against the image allowlist by parseImageUpload above (throws → 400), so it is safe to pass here.
   const { error: upErr } = await admin.storage
     .from('documents')
     .upload(imageUrl, bytes, { contentType: body.contentType, upsert: false });

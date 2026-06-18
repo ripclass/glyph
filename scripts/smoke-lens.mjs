@@ -10,6 +10,7 @@
  * (APP_URL unused until Section B; pass http://localhost:3000.)
  */
 
+import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 
 const [appUrl, url, anonKey, serviceKey] = process.argv.slice(2);
@@ -159,6 +160,26 @@ if (!appUrl) {
   });
   check('save results 200', resulted.status === 200 && resulted.json.success, JSON.stringify(resulted.json));
 
+  // ── 2b. image-extract plumbing ────────────────────────────────────────────
+  // image-extract: consent + service-role upload + extract-document(extractOnly) plumbing.
+  // rx-napa.jpg is a prescription fixture (no lab fixture exists), so we assert the
+  // PLUMBING (200 + rawResults is an array) + that the consent row was recorded — NOT
+  // specific extracted values (LLM reading a Rx as a lab report is non-deterministic).
+  const fixtureB64 = readFileSync('scripts/fixtures/rx-napa.jpg').toString('base64');
+  const extracted = await post(`/api/center/orders/${orderId}/extract`, tech.jwt, {
+    consent: true, imageBase64: fixtureB64, contentType: 'image/jpeg',
+  });
+  check('image-extract returns 200 + rawResults array', extracted.status === 200 && Array.isArray(extracted.json.data?.rawResults), JSON.stringify(extracted.json).slice(0, 200));
+
+  const { data: order2b } = await db.from('lab_orders').select('patient_id').eq('id', orderId).single();
+  const { data: imgConsent } = await db
+    .from('consent_records').select('id')
+    .eq('patient_id', order2b.patient_id).eq('consent_type', 'image_capture').eq('device_info', 'lens_image_extract').eq('granted', true);
+  check('image-extract recorded an image_capture consent (lens_image_extract)', (imgConsent?.length ?? 0) === 1, `got ${imgConsent?.length}`);
+
+  const consentReject = await post(`/api/center/orders/${orderId}/extract`, tech.jwt, { imageBase64: fixtureB64, contentType: 'image/jpeg' });
+  check('image-extract WITHOUT consent is rejected (400)', consentReject.status === 400, `got ${consentReject.status}`);
+
   // ── 3. normalize ──────────────────────────────────────────────────────────
   const normd = await post(`/api/center/orders/${orderId}/normalize`, tech.jwt);
   check('normalize returns results', normd.json.success && (normd.json.data?.normalized?.length ?? 0) > 0, JSON.stringify(normd.json));
@@ -218,6 +239,7 @@ if (!appUrl) {
   // ── cleanup ───────────────────────────────────────────────────────────────
   if (createdOrderId) await db.from('lab_orders').delete().eq('id', createdOrderId);
   if (createdCredId)  await db.from('lab_reports').delete().eq('credential_id', createdCredId);
+  if (createdPatId)   await db.from('consent_records').delete().eq('patient_id', createdPatId);
   if (createdPatId)   await db.from('patients').delete().eq('id', createdPatId);
   await db.from('memberships').delete().in('user_id', createdUserIds);
   await db.from('organizations').delete().in('id', createdOrgIds);

@@ -132,7 +132,7 @@ Glyph/
 │       ├── intake-start/
 │       ├── intake-turn/
 │       ├── intake-complete/
-│       ├── extract-document/       # Two auth paths: (1) user-JWT intake path (doctor uploads via tablet); (2) bridge service path (WHATSAPP_BRIDGE_SECRET, deployed --no-verify-jwt) for visitless WhatsApp pre-chamber uploads (Leg C).
+│       ├── extract-document/       # Three auth paths: (1) user-JWT intake path (doctor uploads via tablet); (2) bridge service path (WHATSAPP_BRIDGE_SECRET, deployed --no-verify-jwt) for visitless WhatsApp pre-chamber uploads (Leg C); (3) Lens centre image-extract path (staff JWT, extractOnly=true — called by /api/center/orders/[id]/extract, no DB row written).
 │       ├── generate-briefing/
 │       ├── consult-query/          # The router-of-routers (see §4)
 │       ├── consult-uptodate/
@@ -197,6 +197,7 @@ Glyph/
         │   │   └── orders/[id]/
         │   │       ├── results/route.ts  # POST: save raw_results for an order
         │   │       ├── normalize/route.ts # POST: call lens-normalize edge fn (LENS_SHARED_SECRET) → persist normalized_results + sanity_flags
+        │   │       ├── extract/route.ts  # POST: upload a lab-report photo (consent required, device_info='lens_image_extract') → service-role upload to documents bucket → extract-document (staff JWT, extractOnly=true, Tier B) → return rawResults for UI pre-fill; does NOT save results
         │   │       └── sign/route.ts     # POST: issue LabResult VC (org DID as issuer), freeze order, set status=signed
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).

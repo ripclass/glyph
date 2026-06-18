@@ -17,6 +17,8 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   const [sanityFlags, setSanityFlags] = useState<SanityFlag[]>([]);
   const [signed, setSigned] = useState<{ vcId: string } | null>(null);
   const [walletPath, setWalletPath] = useState<string | null>(null);
+  const [imgConsent, setImgConsent] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   async function load() {
     const supabase = createClient();
@@ -29,6 +31,37 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   async function token() {
     const { data: { session } } = await createClient().auth.getSession();
     return session?.access_token;
+  }
+
+  async function extractFromPhoto(file: File) {
+    setExtracting(true);
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = () => reject(new Error('Could not read file'));
+        fr.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/center/orders/${params.id}/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
+        body: JSON.stringify({ consent: true, imageBase64: dataUrl, contentType: file.type }),
+      });
+      const json = await res.json();
+      if (!json.success) return toast.error(json.error);
+      const extracted = json.data.rawResults ?? [];
+      if (extracted.length) {
+        // Replace the rows if the only existing row is blank, else append.
+        setRows((prev) => (prev.length === 1 && !prev[0].testName ? extracted : [...prev.filter((r) => r.testName), ...extracted]));
+        toast.success(`Pre-filled ${extracted.length} result${extracted.length > 1 ? 's' : ''} — please review`);
+      } else {
+        toast.message(json.data.note ?? 'No results read from the image');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Extraction failed');
+    } finally {
+      setExtracting(false);
+    }
   }
 
   async function saveResults() {
@@ -81,6 +114,17 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
 
       <section className="space-y-2 rounded-xl border border-line bg-white p-4">
         <h2 className="font-medium text-ink">Results</h2>
+        <label className="flex items-center gap-2 text-xs text-clinical-muted">
+          <input type="checkbox" checked={imgConsent} onChange={(e) => setImgConsent(e.target.checked)} />
+          Patient consents to AI-assisted reading of this report
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          disabled={!imgConsent || extracting}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void extractFromPhoto(f); e.currentTarget.value = ''; }}
+          className="text-xs"
+        />
         {rows.map((r, i) => (
           <div key={i} className="flex gap-2">
             <Input placeholder="Test" value={r.testName} onChange={(e) => setRows(rows.map((x, j) => j === i ? { ...x, testName: e.target.value } : x))} />
