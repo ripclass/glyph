@@ -406,6 +406,101 @@ export type Database = {
           },
         ]
       }
+      lab_orders: {
+        Row: {
+          created_at: string | null
+          credential_id: string | null
+          id: string
+          lab_report_id: string | null
+          normalized_at: string | null
+          normalized_results: Json | null
+          ordered_at: string | null
+          ordered_by: string | null
+          owner_org_id: string
+          patient_id: string
+          raw_results: Json | null
+          result_image_path: string | null
+          resulted_at: string | null
+          resulted_by: string | null
+          sanity_flags: Json | null
+          signatory_user_id: string | null
+          signed_at: string | null
+          status: string
+          test_category: string
+        }
+        Insert: {
+          created_at?: string | null
+          credential_id?: string | null
+          id?: string
+          lab_report_id?: string | null
+          normalized_at?: string | null
+          normalized_results?: Json | null
+          ordered_at?: string | null
+          ordered_by?: string | null
+          owner_org_id: string
+          patient_id: string
+          raw_results?: Json | null
+          result_image_path?: string | null
+          resulted_at?: string | null
+          resulted_by?: string | null
+          sanity_flags?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          test_category: string
+        }
+        Update: {
+          created_at?: string | null
+          credential_id?: string | null
+          id?: string
+          lab_report_id?: string | null
+          normalized_at?: string | null
+          normalized_results?: Json | null
+          ordered_at?: string | null
+          ordered_by?: string | null
+          owner_org_id?: string
+          patient_id?: string
+          raw_results?: Json | null
+          result_image_path?: string | null
+          resulted_at?: string | null
+          resulted_by?: string | null
+          sanity_flags?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          test_category?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_orders_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_orders_lab_report_id_fkey"
+            columns: ["lab_report_id"]
+            isOneToOne: false
+            referencedRelation: "lab_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_orders_owner_org_id_fkey"
+            columns: ["owner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_orders_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_reports: {
         Row: {
           created_at: string | null
@@ -1428,3 +1523,4 @@ export type WhatsappLink = Database['public']['Tables']['whatsapp_links']['Row']
 export type WhatsappLinkInsert = Database['public']['Tables']['whatsapp_links']['Insert'];
 export type ScheduledMessage = Database['public']['Tables']['scheduled_messages']['Row'];
 export type ScheduledMessageInsert = Database['public']['Tables']['scheduled_messages']['Insert'];
+
