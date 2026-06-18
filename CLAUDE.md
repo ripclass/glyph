@@ -56,7 +56,7 @@ Both packages are TS-source packages (`main: ./src/index.ts`) consumed via `tran
 
 **Fonts:** Inter, Noto Sans Bengali, JetBrains Mono (+ Instrument Sans as `font-display` for landing/display use). **Theme colors — ANCHORED DESIGN (2026-06-13):** the whole app inherits the marketing site's "quiet clinical" system at token level (`apps/glyph/tailwind.config.ts`). The `glyph-*` scale is REMAPPED: 50-500 = lime accent family (#dff258 at 400), 600-950 = ink darks (#171a19 at 600) — so `bg-glyph-600 text-white` renders as an ink pill and `bg-glyph-50` as pale lime. `clinical-*` and the raw `slate-*` scale are remapped to warm bone/ink neutrals (bone #f4f5f3, line #e2e4e0, ink #171a19). shadcn CSS vars in globals.css carry the same system (--primary=ink, --ring=lime). Buttons are pill-shaped; `accent` variant = lime. `red_flag` unchanged. Do NOT reintroduce green or cool slate values.
 
-**LLM providers wired in `supabase/functions/_shared/llm-router.ts`:** Gemini, MedGemma (via Vertex AI), Claude, OpenAI, Perplexity. Streaming is supported for Gemini and Claude.
+**LLM providers wired in `supabase/functions/_shared/llm-router.ts`:** Gemini, MedGemma (self-hosted OpenAI-compatible, dormant until `MEDGEMMA_BASE_URL` is set), Claude, OpenAI, Perplexity. Streaming is supported for Gemini and Claude.
 
 ---
 
@@ -84,6 +84,7 @@ Glyph/
 │   ├── smoke-documents.mjs         # document pipeline: storage RLS, Tier B consent, real extraction
 │   ├── smoke-triage.mjs            # Pocket v2 triage E2E (hits the live Next route): red-flag escalation, Tier B consent fail-closed, real LLM exchange, session persistence. usage: node scripts/smoke-triage.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
 │   ├── smoke-whatsapp.mjs          # WhatsApp bridge Leg A–D E2E: drives the webhook, asserts bind→conversation→dedupe (Leg A), triage/wallet/revoke (Leg B), image→consent→type-question + whatsapp_document consent recorded (Leg C), scheduled_messages enqueue (Leg D — deterministic queue state; real template delivery needs Meta-approved templates + live number). usage: node scripts/smoke-whatsapp.mjs <APP_URL> <SUPABASE_URL> <SERVICE_KEY>
+│   ├── smoke-medgemma.mjs          # KhaM-Med light-up: direct OpenAI-compatible round-trip against MEDGEMMA_BASE_URL. DEFERRED — run only after a real endpoint exists (see spec runbook). usage: node scripts/smoke-medgemma.mjs <MEDGEMMA_BASE_URL> [MODEL] [API_KEY]
 │   ├── dev-doctor.mjs              # recreate doctor@glyph.dev/glyph-dev-2026 after local db reset (refuses prod)
 │   ├── create-doctor.mjs           # REAL doctor onboarding (works on prod; safety rails, no self-signup yet)
 │   └── fixtures/rx-napa.jpg        # synthetic BD prescription (Napa/Seclo, 1+0+1) for extraction smoke
@@ -249,15 +250,15 @@ Glyph/
 | Intake greeting | `gemini-2.0-flash` | `gemini-1.5-flash` | `intake-start` | No | Creates consent rows, initializes transcript |
 | Intake turn (convo) | `gemini-2.0-flash` | `gemini-1.5-flash` | `intake-turn` | **Yes (SSE)** | Streams tee'd to client + transcript capture |
 | Intake summarization | `gemini-2.0-flash` | `claude-3-haiku-20240307` | `intake-complete` | No | Fires `generate-briefing` afterward |
-| Prescription / lab OCR | `gemini-2.0-flash` (vision) | `claude-sonnet-4-20250514` | `extract-document` | No | MedGemma demoted until Vertex OAuth exists; Tier B (image) egress |
-| Briefing card | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-briefing` | **Yes (SSE)** | MedGemma demoted until Vertex OAuth; strict `BriefingCard` JSON, red-flag rules in system prompt |
+| Prescription / lab OCR | `gemini-2.0-flash` (vision) | `claude-sonnet-4-20250514` | `extract-document` | No | MedGemma dormant until a self-hosted endpoint is configured + a route is re-promoted (measured); Tier B (image) egress |
+| Briefing card | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-briefing` | **Yes (SSE)** | MedGemma dormant (see above); strict `BriefingCard` JSON, red-flag rules in system prompt |
 | Consult: guideline | UpToDate Connect API → `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` → `consult-uptodate` | No | Falls through to LLM synthesis if UpToDate unavailable |
 | Consult: drug interaction | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | Deidentifies context first |
 | Consult: differential Dx | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | — |
 | Consult: recent studies | `perplexity sonar-pro` | `claude-sonnet-4-20250514` | `consult-query` | No | — |
-| Consult: lab interpretation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `consult-query` | No | MedGemma demoted until Vertex OAuth |
+| Consult: lab interpretation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `consult-query` | No | MedGemma dormant until a self-hosted endpoint is configured + a route is re-promoted (measured) |
 | Consult: generic clinical | `claude-sonnet-4-20250514` | `gemini-2.0-pro` | `consult-query` | No | Default route |
-| Clinical note generation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-note` | **Yes (SSE)** | MedGemma demoted until Vertex OAuth; BD format default, SOAP optional |
+| Clinical note generation | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `generate-note` | **Yes (SSE)** | MedGemma dormant (see above); BD format default, SOAP optional |
 | Patient WhatsApp summary | `gemini-2.0-flash` | `gemini-1.5-flash` | `generate-patient-summary` | No | Entirely in Bangla, no emoji |
 | WhatsApp delivery | WhatsApp Business Cloud API v19 | — | `send-followup` | No | Requires `whatsapp_followup` consent row |
 | Pocket symptom triage | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `triage` | No | Temp 0.2. **Tier B egress — requires `consentId`** (patient's `ai_processing` consent, `device_info='pocket_triage'`). Deterministic `screenRedFlags` pre-screen in the Next route forces urgent before the model. Never diagnoses/prescribes. |
@@ -265,7 +266,7 @@ Glyph/
 
 **Routing inside `consult-query`** is regex-driven (`detectQueryType`) — see `supabase/functions/consult-query/index.ts`. Every external call is preceded by `deidentify()` and the response is passed through `reidentify()` before returning.
 
-**Transport (2026-06-11):** `llm-router.ts` resolves transport per provider — native API when the native key (`GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/…) is set, otherwise **OpenRouter** (`OPENROUTER_API_KEY`, one key for Gemini/Claude/Perplexity/OpenAI; model ids mapped in `OPENROUTER_MODEL_MAP`). Native keys always win, so moving to direct keys later is config-only. MedGemma has no OpenRouter path (Vertex-only) — its routes now fail over to their fallback model via OpenRouter. OpenRouter streaming is **normalized to Gemini-shaped SSE** in the router, so all stream consumers (function tee-parsers + client hooks) are transport-agnostic. ⚠ Latent pre-existing bug, untouched: a NATIVE Claude streaming fallback emits Claude-shaped SSE that Gemini-format parsers won't read — fix when M4 touches streaming. PDPO note: OpenRouter Inc. is an additional foreign processor in the chain — must be named in the M4 egress tiers/`egress_log`.
+**Transport (2026-06-11):** `llm-router.ts` resolves transport per provider — native API when the native key (`GEMINI_API_KEY`/`ANTHROPIC_API_KEY`/…) is set, otherwise **OpenRouter** (`OPENROUTER_API_KEY`, one key for Gemini/Claude/Perplexity/OpenAI; model ids mapped in `OPENROUTER_MODEL_MAP`). Native keys always win, so moving to direct keys later is config-only. MedGemma has **no OpenRouter path** — it uses `callSelfHostedMedGemma`, a self-hosted OpenAI-compatible adapter (POST `{MEDGEMMA_BASE_URL}/chat/completions`), gated on `MEDGEMMA_BASE_URL`; unset → provider unavailable, routes fall through to their fallback. Vertex OAuth is retired; `VERTEX_AI_API_KEY`/`GCP_PROJECT_ID`/`GCP_LOCATION` are no longer read. OpenRouter streaming is **normalized to Gemini-shaped SSE** in the router, so all stream consumers (function tee-parsers + client hooks) are transport-agnostic. ⚠ Latent pre-existing bug, untouched: a NATIVE Claude streaming fallback emits Claude-shaped SSE that Gemini-format parsers won't read — fix when M4 touches streaming. PDPO note: OpenRouter Inc. is an additional foreign processor in the chain — must be named in the M4 egress tiers/`egress_log`.
 
 **Cost + usage logging:** `callLLM()` in `llm-router.ts` fires `logUsage()` to `api_usage_log` after every successful call. When the primary fails and fallback runs, the row is flagged `was_fallback = true`.
 
@@ -367,13 +368,16 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `NEXT_PUBLIC_SUPABASE_URL` | **Required** for dev | From `supabase start` output |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Required** for dev | Same |
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions (service writes) | Do NOT expose to client |
-| `GOOGLE_CLOUD_PROJECT_ID` | Vertex AI / MedGemma | — |
+| `GOOGLE_CLOUD_PROJECT_ID` | ~~Vertex AI / MedGemma~~ **RETIRED** | No longer read — MedGemma is self-hosted (see `MEDGEMMA_BASE_URL` below) |
 | `GOOGLE_CLOUD_SPEECH_KEY` | Google STT | Not yet wired end-to-end |
 | `GEMINI_API_KEY` | Gemini API (native; OpenRouter used when absent) | `GOOGLE_AI_STUDIO_KEY` is legacy GCP-side only |
 | `OPENROUTER_API_KEY` | LLM transport when native keys are absent | One key for Gemini/Claude/Perplexity/OpenAI |
 | `ANTHROPIC_API_KEY` | Claude (native) | Optional — OpenRouter covers it |
 | `OPENAI_API_KEY` | OpenAI (unused by any current function, but router supports it) | Optional |
 | `PERPLEXITY_API_KEY` | Consult: recent studies | Optional |
+| `MEDGEMMA_BASE_URL` | KhaM-Med self-hosted endpoint | Base URL for the OpenAI-compatible MedGemma endpoint (no trailing slash, e.g. `https://<endpoint>/v1`). **When unset (default), the `medgemma` provider is unavailable and all routes fall through to their fallback — no behavior change.** Set via `supabase secrets set` at light-up time. |
+| `MEDGEMMA_API_KEY` | KhaM-Med self-hosted endpoint | Optional bearer token for the MedGemma endpoint. |
+| `MEDGEMMA_MODEL` | KhaM-Med self-hosted endpoint | Optional model id override; defaults to whatever model id the calling route passes (e.g. `medgemma-27b-text-it`). |
 | `UPTODATE_API_KEY` | UpToDate Connect | Optional — falls back to Claude synthesis |
 | `UPTODATE_BASE_URL` | UpToDate endpoint | Optional — defaults to `https://connect.uptodate.com` |
 | `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API (`send-followup`) | Renamed from `WHATSAPP_BUSINESS_TOKEN` in M4 |
@@ -395,9 +399,11 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 
 **Undocumented env vars read by code (must add to `.env.example` before these work):**
 - `GEMINI_API_KEY` — `llm-router.ts`
-- `VERTEX_AI_API_KEY` — `llm-router.ts` (broken by design — Vertex expects OAuth, not a raw key; M4 replaces this)
-- `GCP_PROJECT_ID`, `GCP_LOCATION` — `llm-router.ts` (`callVertexMedGemma`), defaults `"kham-health"` / `"us-central1"`
 - `WHATSAPP_ACCESS_TOKEN` — `send-followup`
+
+**Retired env vars (no longer read by code):**
+- `VERTEX_AI_API_KEY` — replaced by `MEDGEMMA_BASE_URL`; Vertex OAuth was broken by design anyway
+- `GCP_PROJECT_ID`, `GCP_LOCATION` — were `callVertexMedGemma` defaults; adapter retired
 
 ---
 
@@ -415,7 +421,7 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 ### ⚠ Known gaps (deliberate, not regressions)
 - **Prod doctor accounts**: none exist out of the box — create via `scripts/create-doctor.mjs` (no self-signup until BMDC verification exists).
 - `speech.ts` targets a `speech-stream` edge function that does not exist — v1 STT is the browser Web Speech API (transits Google outside the egress gate; covered by ai_processing consent, noted in NORTHSTAR-CORRECTIONS).
-- MedGemma demoted from all primaries until a Vertex OAuth flow exists; its fall-through paths (if re-promoted) deliver plain text instead of SSE and double-log usage.
+- MedGemma dormant from all primaries until a self-hosted endpoint is configured (`MEDGEMMA_BASE_URL`) and a route is re-promoted (a separate measured task); the `callSelfHostedMedGemma` adapter is wired and ready. Non-streaming — any route re-pointed at it must handle a plain-text (non-SSE) response.
 - Native-Claude-stream SSE shape mismatch — latent, only if a native `ANTHROPIC_API_KEY` is ever set (OpenRouter normalizes today).
 - Doctor nav: Schedule is a disabled "coming soon" stub (appointments aren't in the data model — needs a product decision). Patients and Settings are live screens.
 - Many components keep inline Bangla strings with `TODO: i18n` markers (pre-existing pattern; new code should use `t()` but the M4/M5 screens did not — reconcile eventually).
@@ -433,7 +439,7 @@ The architecture decision: **the Verifiable Credential is canonical; Postgres ro
 | M2 | `@kham/schemas-clinical` | ✅ |
 | **M3-pre** | `ai.ts` casing ✅ → schema/types reconciliation ✅ (root cause: `Database` was an `interface` → schema degraded to `never`; also `@supabase/ssr` 0.5→0.12) → patient-registration + `createVisit` ✅ (`scripts/smoke-db.mjs`, 14/14) → **one register→intake-turn(streaming)→note path LIVE on production** (`scripts/smoke-path.mjs`, 19/19 — Bangla multi-turn intake, BD-format note with Napa/1+0+1 dosing, via OpenRouter) | ✅ 2026-06-12 |
 | M3 | **DONE.** Migration 002 (INSERT-only `credentials`, versioned `did_documents`, append-only status log, projection-freeze triggers; `scripts/smoke-credentials.mjs` 18/18) + the seam in `apps/glyph/src/lib/identity/` (`issueCredential` validates via schemas-clinical registry → signs via @kham/identity → canonical row → `rebuildProjections`). Routes: `/.well-known/did/[...slug]` (public did:web resolution), `/api/verify` (local resolveIssuer fast-path + store-status overlay), `/api/visits/approve-note` (first consumer: Rx + VisitNote credentials on approval, one-shot, 409 on re-approve). E2E `scripts/smoke-issuance.mjs` 14/14 incl. tampered-Rx rejection. Env: `DID_WEB_HOST` (khamhealth.com prod) + `CREDENTIAL_ENCRYPTION_KEY` (server-only; **founder must back it up — losing it orphans every stored private key**) | ✅ 2026-06-12 |
-| M4 | **DONE** (except document-upload wiring — top follow-up). Egress gate ✅; all screens live (login/AuthGuard, registration, Web-Speech intake conversation + ConsentPrompt naming processors, summary, realtime dashboard, briefing+retry, consult, note→approve-note credentials, patient timeline); MedGemma demoted from primaries until Vertex OAuth; WhatsApp env renamed; null-visit usage logging | ✅ 2026-06-13 |
+| M4 | **DONE** (except document-upload wiring — top follow-up). Egress gate ✅; all screens live (login/AuthGuard, registration, Web-Speech intake conversation + ConsentPrompt naming processors, summary, realtime dashboard, briefing+retry, consult, note→approve-note credentials, patient timeline); MedGemma demoted from primaries (now self-hosted adapter, dormant until MEDGEMMA_BASE_URL set); WhatsApp env renamed; null-visit usage logging | ✅ 2026-06-13 |
 | M5 | **DONE.** `/pharmacy`: patient lookup by (family-shared) phone → DID → signed PrescriptionCredentials verified via the local fast-path (`✓ dispensable` / `✗ revoked` after a status transition — revocation propagates to the counter). Browser-verified both directions | ✅ 2026-06-13 |
 | Post-P2 | **Document pipeline DONE + deployed** (2026-06-11): migration 004 private bucket + storage RLS, consent-at-capture, upload→extract→cards→briefing. Also: CORS preflight 500 fixed, "Saara" UI label removed (§12), intake-start consent insert idempotent + never resurrects withdrawn consent, doctor onboarding script. **PR #1 merged — `main` is canonical.** | ✅ 2026-06-11 |
 

@@ -56,7 +56,7 @@ MEDGEMMA_MODEL=             # optional; defaults to the model id the route passe
    - **RunPod Serverless** (`runpod/worker-vllm`, **A100 80GB** for BF16, or **L40S 48GB** for Q8) or **Modal** (vLLM class, A100) — per-second billing, ~**$5–15/mo at pilot volume**, ~$0 idle, **20–60s cold start** (the adapter's generous timeout handles this; fine for async lab-normalization, not for low-latency interactive use). Set `MEDGEMMA_MODEL=medgemma-27b-text-it`.
    - Per-minute-billed providers (HF Endpoints, Baseten) are 10–15× costlier at low volume — avoid until steady flow.
 2. `supabase secrets set MEDGEMMA_BASE_URL=… MEDGEMMA_API_KEY=… MEDGEMMA_MODEL=medgemma-27b-text-it`; redeploy the functions that should use it.
-3. Run `scripts/smoke-medgemma.mjs` against the endpoint → confirm a real round-trip.
+3. Run `scripts/smoke-medgemma.mjs` against the endpoint → confirm a real round-trip. **Known edge case:** if the text-response check fails even though the endpoint returned HTTP 200, the OpenAI-compatible server may be returning `message.content` as an **array of parts** (e.g. `[{type:'text', text:'...'}]`) rather than a plain string — `parseOpenAIChatText` currently handles string content only. If the smoke's text check fails for this reason, extend `parseOpenAIChatText` to flatten array content before re-promoting a route.
 4. **Separately + measured:** decide which route(s) to re-point at `provider:'medgemma'` (e.g. lab interpretation, or the Lens v1.5 vision co-interp) — its own small task, gated on evaluation against real BD data. Update the §4 routing table then.
 
 ### Spike → dedicated 24/7 (founder wants this ready)
