@@ -1,6 +1,6 @@
 /**
  * Unified LLM routing with fallback support.
- * Dispatches to Gemini, MedGemma (Vertex AI), Claude, OpenAI, or Perplexity.
+ * Dispatches to Gemini, MedGemma (self-hosted), Claude, OpenAI, or Perplexity.
  */
 
 import type { LLMResponse, ModelConfig } from "./types.ts";
@@ -19,7 +19,7 @@ import { reidentify } from "./deidentify.ts";
 
 const ENV_KEYS: Record<ModelConfig["provider"], string> = {
   gemini: "GEMINI_API_KEY",
-  medgemma: "VERTEX_AI_API_KEY",
+  medgemma: "MEDGEMMA_BASE_URL",
   claude: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
   perplexity: "PERPLEXITY_API_KEY",
@@ -30,7 +30,8 @@ const ENV_KEYS: Record<ModelConfig["provider"], string> = {
  * Claude, Perplexity, and OpenAI models in our routing table. Used as the
  * transport ONLY when the provider's native key is absent — native keys
  * always win, so moving to direct keys later requires no code change.
- * MedGemma is Vertex-only and deliberately has no OpenRouter path.
+ * MedGemma (KhaM-Med) is a SELF-HOSTED OpenAI-compatible endpoint (MEDGEMMA_BASE_URL)
+ * and deliberately has no OpenRouter path. Dormant until the endpoint is configured.
  */
 const OPENROUTER_KEY_ENV = "OPENROUTER_API_KEY";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -160,8 +161,54 @@ async function callGeminiStream(
   return { stream: res.body!, model };
 }
 
-async function callVertexMedGemma(
-  apiKey: string,
+/** 27B on a scale-to-zero GPU can cold-start in 20-60s; don't abort early. */
+const MEDGEMMA_TIMEOUT_MS = 120_000;
+
+/** Pure: build an OpenAI chat-completions body from the router's call shape. */
+function buildMedGemmaChatBody(
+  model: string,
+  prompt: string,
+  systemPrompt?: string,
+  images?: string[],
+  temperature = 0.2,
+  maxTokens = 4096,
+): Record<string, unknown> {
+  const userContent = images?.length
+    ? [
+        { type: "text", text: prompt },
+        ...images.map((img) => ({
+          type: "image_url",
+          image_url: { url: img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}` },
+        })),
+      ]
+    : prompt;
+  const messages: Array<Record<string, unknown>> = [];
+  if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+  messages.push({ role: "user", content: userContent });
+  return { model, messages, temperature, max_tokens: maxTokens };
+}
+
+/** Pure: pull assistant text + token usage out of an OpenAI chat-completions response. */
+function parseOpenAIChatText(
+  json: { choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } },
+): { text: string; inputTokens: number; outputTokens: number } {
+  const content = json?.choices?.[0]?.message?.content;
+  const usage = json?.usage ?? {};
+  return {
+    text: typeof content === "string" ? content : "",
+    inputTokens: usage.prompt_tokens ?? 0,
+    outputTokens: usage.completion_tokens ?? 0,
+  };
+}
+
+/**
+ * Self-hosted KhaM-Med (MedGemma) via an OpenAI-compatible endpoint.
+ * `baseUrl` arrives from resolveProvider (ENV_KEYS.medgemma = MEDGEMMA_BASE_URL).
+ * Optional MEDGEMMA_API_KEY (bearer) + MEDGEMMA_MODEL (overrides the route's model id).
+ * Dormant until MEDGEMMA_BASE_URL is set; no OpenRouter path.
+ */
+async function callSelfHostedMedGemma(
+  baseUrl: string,
   model: string,
   prompt: string,
   systemPrompt?: string,
@@ -170,51 +217,32 @@ async function callVertexMedGemma(
   maxTokens = 4096,
 ): Promise<LLMResponse> {
   const start = performance.now();
-  const projectId = Deno.env.get("GCP_PROJECT_ID") ?? "kham-health";
-  const location = Deno.env.get("GCP_LOCATION") ?? "us-central1";
+  const apiKey = Deno.env.get("MEDGEMMA_API_KEY");
+  const resolvedModel = Deno.env.get("MEDGEMMA_MODEL") ?? model;
+  const body = buildMedGemmaChatBody(resolvedModel, prompt, systemPrompt, images, temperature, maxTokens);
 
-  const parts: Record<string, unknown>[] = [];
-  if (images?.length) {
-    for (const img of images) {
-      parts.push({ inline_data: { mime_type: "image/jpeg", data: img } });
-    }
-  }
-  parts.push({ text: prompt });
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-  const contents: Record<string, unknown>[] = [{ role: "user", parts }];
-  const body: Record<string, unknown> = {
-    contents,
-    generationConfig: { temperature, maxOutputTokens: maxTokens },
-  };
-  if (systemPrompt) {
-    body.system_instruction = { parts: [{ text: systemPrompt }] };
-  }
-
-  const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
-  const res = await fetch(url, {
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers,
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(MEDGEMMA_TIMEOUT_MS),
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`MedGemma ${model} error ${res.status}: ${errText}`);
+    throw new Error(`MedGemma ${resolvedModel} error ${res.status}: ${errText}`);
   }
 
   const json = await res.json();
-  const candidate = json.candidates?.[0];
-  const text = candidate?.content?.parts?.[0]?.text ?? "";
-  const usage = json.usageMetadata ?? {};
-
+  const { text, inputTokens, outputTokens } = parseOpenAIChatText(json);
   return {
     text,
-    model,
-    inputTokens: usage.promptTokenCount ?? 0,
-    outputTokens: usage.candidatesTokenCount ?? 0,
+    model: resolvedModel,
+    inputTokens,
+    outputTokens,
     latencyMs: Math.round(performance.now() - start),
   };
 }
@@ -428,7 +456,7 @@ async function callPerplexity(
 
 /**
  * Native model id → OpenRouter model id.
- * MedGemma models are intentionally absent (Vertex-only): an unmapped model
+ * MedGemma models are intentionally absent (self-hosted, no OpenRouter path): an unmapped model
  * throws, which hands control to callLLM's existing fallback chain.
  */
 const OPENROUTER_MODEL_MAP: Record<string, string> = {
@@ -624,7 +652,7 @@ type ProviderStreamFn = (
 
 const PROVIDERS: Record<ModelConfig["provider"], ProviderFn> = {
   gemini: callGemini,
-  medgemma: callVertexMedGemma,
+  medgemma: callSelfHostedMedGemma,
   claude: callClaude,
   openai: callOpenAI,
   perplexity: callPerplexity,
