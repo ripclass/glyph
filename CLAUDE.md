@@ -119,7 +119,8 @@ Glyph/
 │   │   ├── 008_whatsapp_bridge.sql # whatsapp_links + wa_conversations + wa_messages: WhatsApp bridge Leg A, RLS deny-all (service-role only)
 │   │   ├── 009_scheduled_messages.sql # scheduled_messages: Leg D proactive send queue + visits.next_appointment_at, RLS deny-all
 │   │   ├── 010_prescription_safety.sql # visits.prescription_safety_check JSONB: safety result + per-warning doctor verdicts, recorded at note-approval (audit today, KhaM-Med ground truth tomorrow)
-│   │   └── 011_owner_scope.sql      # organizations + memberships + clinics.organization_id (backfilled), patients.owner_org_id + clinic_id RELAXED to nullable, kham_holding provisional-owner singleton; RESTRICTIVE patients_single_scope policy + patients_one_scope CHECK enforce one-owner-scope; NEW owner-scoped RLS ALONGSIDE the untouched clinic RLS. The audit's R2 "clinic is one owner type" foundation (Lens is first consumer). Chamber path unchanged; smoke-path 19/19 + smoke-owner-scope green.
+│   │   ├── 011_owner_scope.sql      # organizations + memberships + clinics.organization_id (backfilled), patients.owner_org_id + clinic_id RELAXED to nullable, kham_holding provisional-owner singleton; RESTRICTIVE patients_single_scope policy + patients_one_scope CHECK enforce one-owner-scope; NEW owner-scoped RLS ALONGSIDE the untouched clinic RLS. The audit's R2 "clinic is one owner type" foundation (Lens is first consumer). Chamber path unchanged; smoke-path 19/19 + smoke-owner-scope green.
+│   │   └── 012_lab_orders.sql       # lab_orders workflow table: owner-org-scoped order→result→sign lifecycle; raw_results + normalized_results + sanity_flags JSONB; status enum (ordered/resulted/normalized/signed); freeze-on-credential trigger (blocks update when status=signed); member RLS (org members read/write their own org's orders). Lens v1 surface.
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -138,7 +139,8 @@ Glyph/
 │       ├── generate-note/
 │       ├── generate-patient-summary/
 │       ├── send-followup/
-│       └── triage/                   # POCKET v2: patient symptom triage; deployed --no-verify-jwt, auth via TRIAGE_SHARED_SECRET (server-to-server), Tier B egress (consentId required)
+│       ├── triage/                   # POCKET v2: patient symptom triage; deployed --no-verify-jwt, auth via TRIAGE_SHARED_SECRET (server-to-server), Tier B egress (consentId required)
+│       └── lens-normalize/           # LENS v1: AI normalize + sanity-check of raw lab results; deployed --no-verify-jwt, auth via LENS_SHARED_SECRET (same pattern as triage); Tier A egress; primary claude-opus-4-8, fallback gemini-2.0-flash. MUST be deployed with --no-verify-jwt (the gateway JWT check rejects the shared-secret bearer without it).
 ├── packages/
 │   ├── identity/                   # @kham/identity — src/{crypto,credentials,did}, test/trust-root.test.ts (7 tests = CI gate)
 │   └── schemas-clinical/           # @kham/schemas-clinical — src/{common,registry,*-schemas}, test/schemas.test.ts (11 tests)
@@ -183,6 +185,19 @@ Glyph/
         │   ├── api/whatsapp/bind-code/route.ts # WHATSAPP BRIDGE: doctor-session issues a one-time bind code + wa.me QR link (RLS patient scope-check via user client; service-role insert into whatsapp_links).
         │   ├── api/cron/whatsapp-sweeper/route.ts # WHATSAPP BRIDGE: every-minute cron (Vercel Pro) retrying inbound wa_messages stuck in 'received'. (Leg A skeleton + Leg B patient core + Leg C pre-chamber photo capture built; voice deferred. specs/plans in docs/superpowers/{specs,plans}/2026-06-14-glyph-whatsapp-bridge-*.md. Leg C plan: docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-c.md)
         │   ├── api/cron/whatsapp-scheduler/route.ts # WHATSAPP BRIDGE Leg D: every-5-min cron (Vercel Pro); enqueues doctor nudges for overdue visits + drains scheduled_messages (followup/appointment_reminder/doctor_nudge) past fire_at via sendTemplate. Delivery gated on 3 Meta-approved utility templates (glyph_followup, glyph_appointment_reminder, glyph_doctor_nudge). Plan: docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-d.md
+        │   ├── center/
+        │   │   ├── layout.tsx           # Centre-staff AuthGuard (checks staff-store session, redirects to /center/login)
+        │   │   ├── page.tsx             # LENS: centre dashboard — open orders list
+        │   │   ├── login/page.tsx       # Glyph Lens centre sign in (email+password, staff-store)
+        │   │   └── orders/
+        │   │       ├── new/page.tsx     # New order form (patient lookup/create + test category)
+        │   │       └── [id]/page.tsx    # Order detail: result entry, AI normalize, sign + wallet link
+        │   ├── api/center/
+        │   │   ├── orders/route.ts      # POST: create new lab order (staff session, owner-org RLS)
+        │   │   └── orders/[id]/
+        │   │       ├── results/route.ts  # POST: save raw_results for an order
+        │   │       ├── normalize/route.ts # POST: call lens-normalize edge fn (LENS_SHARED_SECRET) → persist normalized_results + sanity_flags
+        │   │       └── sign/route.ts     # POST: issue LabResult VC (org DID as issuer), freeze order, set status=signed
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
@@ -213,9 +228,11 @@ Glyph/
         │   ├── identity/            # M3 issuance seam: issue, ensure-identity, note-mapping(+test), config(+test), projections
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
         │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test), organizations(+logic+test),
-        │   │                        # triage-runner (shared symptom-triage engine: red-flag screen → consent → egress-gated `triage` edge fn → clamp → persist; called by BOTH the wallet triage route and the WhatsApp bridge)
+        │   │                        # triage-runner (shared symptom-triage engine: red-flag screen → consent → egress-gated `triage` edge fn → clamp → persist; called by BOTH the wallet triage route and the WhatsApp bridge),
+        │   │                        # staff-logic(+test) (centre-staff session: shapeStaffSession, canSign, canEnterResults, role gates),
+        │   │                        # lens-logic(+test) (lab-order helpers: buildLabOrderRow, normalizeRawItem, buildLabResultData, KNOWN_TEST_CATEGORIES, LabResultItem)
         │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Leg C adds media (360dialog download), documents (bucket upload), doc-type (flow: image → consent → type question → extract-document service path). Leg D adds templates (glyph_followup/glyph_appointment_reminder/glyph_doctor_nudge template definitions), schedule (enqueue/drain helpers for scheduled_messages), and sendTemplate (360dialog template send). Routes call into this; clinical thinking stays in edge fns.
-        │   ├── stores/              # auth-store, intake-store, consult-store, queue-store
+        │   ├── stores/              # auth-store, intake-store, consult-store, queue-store, staff-store (centre-staff session + signIn)
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
         │   ├── i18n/                # bn.json, en.json, index.ts (useLanguage hook)
         │   └── utils/               # cn, cost-tracker, format-date-bd, format-prescription
@@ -243,6 +260,7 @@ Glyph/
 | Patient WhatsApp summary | `gemini-2.0-flash` | `gemini-1.5-flash` | `generate-patient-summary` | No | Entirely in Bangla, no emoji |
 | WhatsApp delivery | WhatsApp Business Cloud API v19 | — | `send-followup` | No | Requires `whatsapp_followup` consent row |
 | Pocket symptom triage | `claude-sonnet-4-20250514` | `gemini-2.0-flash` | `triage` | No | Temp 0.2. **Tier B egress — requires `consentId`** (patient's `ai_processing` consent, `device_info='pocket_triage'`). Deterministic `screenRedFlags` pre-screen in the Next route forces urgent before the model. Never diagnoses/prescribes. |
+| Lens lab normalize | `claude-opus-4-8` | `gemini-2.0-flash` | `lens-normalize` | No | **Tier A egress** (structured fields only, no free text). AI normalize raw lab values + sanity-check (flags `critical`/`warning`/`info`). Deployed `--no-verify-jwt`; auth via `LENS_SHARED_SECRET` (same pattern as `triage`). |
 
 **Routing inside `consult-query`** is regex-driven (`detectQueryType`) — see `supabase/functions/consult-query/index.ts`. Every external call is preceded by `deidentify()` and the response is passed through `reidentify()` before returning.
 
@@ -271,6 +289,7 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 | `waitlist_signups` | `name`, `phone` (unique, canonical `01X…`), `role` (doctor/clinic/pharmacy/other), `district`, `bmdc_reg_no`, `status` | Migration 005. RLS enabled with ZERO policies — service-role only, written by `/api/waitlist` |
 | `organizations` | `id`, `name`, `org_type` (clinic/diagnostic_centre/hospital/employer/recruiter/kham_holding), DID/key cols | Migration 011. The general owner (R2). Each clinic has a 1:1 backfilled org (`clinics.organization_id`). RLS: members read their own org. |
 | `memberships` | `user_id → auth.users`, `organization_id → organizations`, `role` (owner/admin/doctor/technologist/signatory/staff) | Migration 011. Who may act for an owner (generalizes `doctors.clinic_id`); lets non-doctor staff log in. UNIQUE(user_id, org). RLS: self-read. |
+| `lab_orders` | `id`, `owner_org_id → organizations`, `patient_id → patients`, `ordered_by → auth.users`, `test_category`, `status` enum (ordered/resulted/normalized/signed), `raw_results JSONB`, `normalized_results JSONB`, `sanity_flags JSONB`, `lab_result_vc_id → credentials` | Migration 012. Lens v1 workflow table. Owner-org-scoped (RLS: members of the org). Freeze-on-credential trigger blocks updates once status=signed. |
 
 **Indexes:** on `visits(patient_id|doctor_id|visit_date DESC|status|clinic_id,visit_date)`, `prescriptions(patient_id)`, `lab_reports(patient_id|category)`, `patients(phone|clinic_id)`, `consent_records(patient_id)`, `api_usage_log(visit_id)`.
 
@@ -323,10 +342,15 @@ node scripts/smoke-path.mjs <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY>          # T
 node scripts/smoke-egress.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
 node scripts/smoke-documents.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
 # smoke-credentials.mjs: LOCAL ONLY (append-only rows would be permanent on prod)
+node scripts/smoke-lens.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY>    # Lens v1: Section A = DB schema; Section B = full E2E (needs Next + edge fns running)
 
 # Prod deploys (in this order when schema is involved)
 supabase db push -p (Get-Content .db-password.glyph-prod.local)   # migrations → prod
 supabase functions deploy                                          # all edge functions
+supabase functions deploy lens-normalize --no-verify-jwt           # ⚠ MUST use --no-verify-jwt: lens-normalize
+                                                                   # auths via LENS_SHARED_SECRET bearer; the
+                                                                   # gateway JWT check rejects it without this flag
+                                                                   # (same pattern as triage + extract-document)
 vercel deploy --prod --yes                                         # frontend (server-side build;
                                                                    # local `vercel build` is broken on Windows)
 ```
@@ -363,6 +387,7 @@ From `.env.example` (copy to `apps/glyph/.env.local` — **Next.js loads from th
 | `GLYPH_WA_NUMBER` | WhatsApp bridge (Leg A) | The Glyph WhatsApp number for the QR bind flow, E.164 **without** `+` (e.g. `8801XXXXXXXXX`) — used verbatim in the `wa.me/<number>` link |
 | `NEXT_PUBLIC_APP_URL` | WhatsApp bridge (Leg B) | Public app base URL, no trailing slash (e.g. `https://khamhealth.com`) — used to build the wallet link sent over WhatsApp |
 | `WHATSAPP_BRIDGE_SECRET` | WhatsApp bridge (Leg C) | Shared secret the bridge sends to `extract-document` (deployed `--no-verify-jwt`). **Must be set with the SAME value in BOTH Vercel AND `supabase secrets set`** (same pattern as `TRIAGE_SHARED_SECRET`). Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `LENS_SHARED_SECRET` | Lens v1 normalize (server-to-server) | **Must be set with the SAME value in BOTH Vercel env AND `supabase secrets set`.** The `lens-normalize` edge fn is deployed `--no-verify-jwt` and authenticates only on this secret. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `NEXT_PUBLIC_APP_ENV` | App | `development` / `production` |
 | `NEXT_PUBLIC_DEFAULT_LANGUAGE` | App | `bn` |
 | `NEXT_PUBLIC_APP_NAME` | App | `Glyph` |
@@ -546,4 +571,4 @@ Phase 2 (§8.5) is complete and merged; new work needs founder authorization (ch
 
 **WhatsApp bridge design + plan:** `docs/superpowers/specs/2026-06-14-glyph-whatsapp-bridge-design.md` (architecture, schema, security model) and `docs/superpowers/plans/2026-06-14-glyph-whatsapp-bridge-leg-a.md` (task-by-task build plan for Leg A).
 
-*Last updated: 2026-06-14 (WhatsApp bridge Leg A in progress on `feature/whatsapp-bridge-leg-a`). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*
+*Last updated: 2026-06-18 (Lens v1 complete on `feature/lens-v1` — migration 012, /center routes, lens-normalize edge fn, staff-logic/lens-logic services, staff-store; regression gates clean locally; awaiting founder "ship it" for prod deploy). Keep this file current. If a future session needs something and finds it missing here, that's a signal to add it.*

@@ -53,9 +53,11 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // The visit-RLS check is implicit: the patient must belong to the doctor's
-  // clinic for them to have reached this point in the app, but verify the
-  // patient exists (and scope) via the user-scoped client which honours RLS.
+  // The visit-RLS check is implicit: the patient must be reachable by the
+  // caller's RLS — either clinic-scoped (doctor path) or owner-org-scoped
+  // (centre-staffer path via the memberships-based owner-org RLS added in
+  // migration 011). Verify the patient exists via the user-scoped client which
+  // honours whichever policy applies.
   const { data: patient } = await userClient
     .from("patients")
     .select("id")

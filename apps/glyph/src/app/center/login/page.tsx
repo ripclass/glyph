@@ -39,7 +39,7 @@ export default function CenterLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-clinical-bg p-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl border border-line bg-white p-6">
-        <h1 className="text-lg font-semibold text-ink">Glyph Lens — Centre sign in</h1>
+        <h1 className="text-lg font-semibold text-ink">Glyph Lens centre sign in</h1>
         <Input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" className="w-full" disabled={submitting}>

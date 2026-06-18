@@ -98,7 +98,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
       <section className="space-y-2 rounded-xl border border-line bg-white p-4">
         <div className="flex items-center justify-between">
           <h2 className="font-medium text-ink">AI normalize + sanity-check</h2>
-          <Button variant="accent" onClick={runNormalize} disabled={order.status === 'ordered'}>Normalize</Button>
+          <Button variant="accent" onClick={runNormalize} disabled={!order.raw_results?.length}>Normalize</Button>
         </div>
         {(normalized.length ? normalized : (order.normalized_results ?? [])).map((r: NormalizedItem, i: number) => (
           <div key={i} className="flex justify-between text-sm">
@@ -107,7 +107,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
           </div>
         ))}
         {(sanityFlags.length ? sanityFlags : (order.sanity_flags ?? [])).map((f: SanityFlag, i: number) => (
-          <p key={i} className="text-xs text-red_flag">&#x26A0; {f.message}</p>
+          <p key={i} className={`text-xs ${f.severity === 'critical' || f.severity === 'warning' ? 'text-red_flag' : 'text-clinical-muted'}`}>&#x26A0; {f.message}</p>
         ))}
       </section>
       {(order.normalized_results?.length || normalized.length) ? (
