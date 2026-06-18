@@ -90,8 +90,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const patientIdentity = await ensureEntityIdentity(admin, 'patient', order.patient_id);
 
     // ── Build the LabResultData payload ─────────────────────────
+    // orgIdentity is already resolved above; pass the real did:web:... DID so
+    // the immutable credential payload's lab.did matches the actual issuer DID.
     const data = buildLabResultData({
-      orgId: staff.orgId,
+      orgDid: orgIdentity.did,
       orgName: staff.orgName,
       testCategory: order.test_category,
       reportDate: (

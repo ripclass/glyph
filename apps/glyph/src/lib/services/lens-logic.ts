@@ -44,7 +44,7 @@ export function buildLabOrderRow(input: BuildLabOrderInput) {
 }
 
 export interface BuildLabResultInput {
-  orgId: string;
+  orgDid: string;
   orgName: string;
   testCategory: string;
   reportDate: string; // ISO date
@@ -55,13 +55,15 @@ export interface BuildLabResultInput {
  * Builds the LabResultData payload (credentialSubject.data) for issueCredential.
  * `lab` is an entityRef to the centre org (the issuer); encounterDate mirrors the
  * report date. Matches labResultData in @kham/schemas-clinical.
+ * `orgDid` must be the real issuer DID (did:web:...) resolved by ensureEntityIdentity —
+ * not a fabricated did:org: string — because LabResult credentials are immutable once minted.
  */
 export function buildLabResultData(input: BuildLabResultInput) {
   if (!input.normalized.length) throw new Error('LabResult requires at least one result');
   return {
     encounterDate: input.reportDate,
     locale: 'bn' as const,
-    lab: { did: `did:org:${input.orgId}`, name: input.orgName },
+    lab: { did: input.orgDid, name: input.orgName },
     testCategory: input.testCategory,
     reportDate: input.reportDate,
     results: input.normalized,

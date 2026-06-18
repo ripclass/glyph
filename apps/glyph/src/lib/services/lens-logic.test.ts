@@ -34,21 +34,21 @@ describe('KNOWN_TEST_CATEGORIES', () => {
 });
 
 describe('buildLabResultData', () => {
-  it('builds a LabResultData payload with the centre as lab + encounterDate', () => {
+  it('builds a LabResultData payload with the real org DID as lab.did + encounterDate', () => {
     const data = buildLabResultData({
-      orgId: 'org1', orgName: 'Popular Diagnostics', testCategory: 'CBC',
+      orgDid: 'did:web:khamhealth.com:org:org-1', orgName: 'Popular Diagnostics', testCategory: 'CBC',
       reportDate: '2026-06-18',
       normalized: [{ testName: 'Hemoglobin', value: '9.1', unit: 'g/dL', referenceRange: '13-17', isAbnormal: true, severity: 'moderate' }],
     });
     expect(data.testCategory).toBe('CBC');
     expect(data.reportDate).toBe('2026-06-18');
     expect(data.encounterDate).toBe('2026-06-18');
-    expect(data.lab).toEqual({ did: 'did:org:org1', name: 'Popular Diagnostics' });
+    expect(data.lab).toEqual({ did: 'did:web:khamhealth.com:org:org-1', name: 'Popular Diagnostics' });
     expect(data.results).toHaveLength(1);
     expect(data.results[0].testName).toBe('Hemoglobin');
     expect(data.locale).toBe('bn');
   });
   it('throws when there are no results (schema requires min 1)', () => {
-    expect(() => buildLabResultData({ orgId: 'o', orgName: 'X', testCategory: 'CBC', reportDate: '2026-06-18', normalized: [] })).toThrow();
+    expect(() => buildLabResultData({ orgDid: 'did:web:example.com:org:o', orgName: 'X', testCategory: 'CBC', reportDate: '2026-06-18', normalized: [] })).toThrow();
   });
 });

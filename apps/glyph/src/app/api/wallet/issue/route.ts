@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     .eq("id", patientId)
     .maybeSingle();
   if (!patient) {
-    return NextResponse.json({ success: false, error: "Patient not found in your clinic" }, { status: 404 });
+    return NextResponse.json({ success: false, error: "Patient not found in your scope" }, { status: 404 });
   }
 
   // Find-or-create the active token.
