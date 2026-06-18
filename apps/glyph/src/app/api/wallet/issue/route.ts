@@ -75,6 +75,16 @@ export async function POST(req: Request) {
     .limit(1)
     .maybeSingle();
 
+  // Resolve whether the caller is a doctor — centre staffers are not in the
+  // doctors table, so the FK would fail if we always passed user.id.
+  // created_by_doctor_id is already nullable (migration 006 — no NOT NULL).
+  const { data: doctorRow } = await admin
+    .from("doctors")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+  const createdByDoctorId: string | null = doctorRow ? user.id : null;
+
   let token: string;
   if (existing) {
     token = existing.token;
@@ -87,7 +97,7 @@ export async function POST(req: Request) {
       token,
       patient_id: patientId,
       pin_hash: pinHash ?? null,
-      created_by_doctor_id: user.id,
+      created_by_doctor_id: createdByDoctorId,
     });
     if (error) {
       console.error("[wallet/issue] insert failed:", error.code, error.message);

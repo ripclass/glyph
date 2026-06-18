@@ -16,6 +16,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
   const [normalized, setNormalized] = useState<NormalizedItem[]>([]);
   const [sanityFlags, setSanityFlags] = useState<SanityFlag[]>([]);
   const [signed, setSigned] = useState<{ vcId: string } | null>(null);
+  const [walletPath, setWalletPath] = useState<string | null>(null);
 
   async function load() {
     const supabase = createClient();
@@ -39,6 +40,17 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     const json = await res.json();
     if (!json.success) return toast.error(json.error);
     toast.success('Results saved'); void load();
+  }
+
+  async function issueWallet() {
+    const res = await fetch('/api/wallet/issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
+      body: JSON.stringify({ patientId: order.patient_id }),
+    });
+    const json = await res.json();
+    if (!json.success) return toast.error(json.error ?? 'wallet link failed');
+    setWalletPath(json.walletPath);
   }
 
   async function sign() {
@@ -101,7 +113,17 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
       {(order.normalized_results?.length || normalized.length) ? (
         <section className="rounded-xl border border-line bg-white p-4">
           {order.status === 'signed' || signed ? (
-            <p className="text-sm text-ink">&#x2713; Signed &middot; LabResult credential issued.</p>
+            <div className="space-y-2">
+              <p className="text-sm text-ink">&#x2713; Signed &middot; LabResult credential issued.</p>
+              <div className="mt-2 space-y-2">
+                <Button variant="ghost" onClick={issueWallet}>Get patient wallet link</Button>
+                {walletPath && (
+                  <a className="block text-sm text-ink underline" href={walletPath} target="_blank" rel="noreferrer">
+                    {walletPath}
+                  </a>
+                )}
+              </div>
+            </div>
           ) : (
             <Button onClick={sign}>Sign &amp; issue result</Button>
           )}
