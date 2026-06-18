@@ -46,7 +46,7 @@ Add to the Results section (above the manual rows):
 
 ### Component 3 — pure helper (`lens-logic.ts`)
 
-`parseImageUpload(input: { imageBase64: string; contentType: string }): { bytes: Uint8Array; ext: string }` — validates the content type against the allowlist, strips a `data:...;base64,` prefix if present, decodes base64 to bytes, returns the bytes + the file extension (`jpg`/`png`/`webp`). Throws on a disallowed type or undecodable input. Unit-tested (no network).
+`parseImageUpload(input: { imageBase64: string; contentType: string }): { base64: string; ext: 'jpg' | 'png' | 'webp' }` — validates the content type against the allowlist, strips a `data:...;base64,` prefix if present, returns the bare base64 + the file extension. Throws on a disallowed type or empty payload. Decoding to bytes happens in the route (`Buffer.from`), kept out of this pure helper so `lens-logic` stays browser-safe. Unit-tested (no network).
 
 ## Data flow
 
