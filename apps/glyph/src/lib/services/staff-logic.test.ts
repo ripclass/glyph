@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shapeStaffSession, canSign, canEnterResults } from './staff-logic';
+import { shapeStaffSession, canSign, canEnterResults, requireOrgType } from './staff-logic';
 
 const row = (over = {}) => ({
   user_id: 'u1',
@@ -19,7 +19,13 @@ describe('shapeStaffSession', () => {
     expect(shapeStaffSession([clinic])).toBeNull();
   });
 
-  it('prefers the centre membership when both exist', () => {
+  it('picks a hospital membership and shapes a session with orgType hospital', () => {
+    const hospital = row({ organizations: { id: 'h1', name: 'Shante Hospital', org_type: 'hospital' }, role: 'signatory' });
+    const s = shapeStaffSession([hospital]);
+    expect(s).toEqual({ userId: 'u1', orgId: 'h1', orgName: 'Shante Hospital', orgType: 'hospital', role: 'signatory' });
+  });
+
+  it('prefers the non-clinic owner membership when both exist', () => {
     const clinic = row({ organizations: { id: 'c1', name: 'Clinic', org_type: 'clinic' }, role: 'doctor' });
     const s = shapeStaffSession([clinic, row()]);
     expect(s?.orgType).toBe('diagnostic_centre');
@@ -29,6 +35,13 @@ describe('shapeStaffSession', () => {
     expect(shapeStaffSession([])).toBeNull();
     expect(shapeStaffSession(null)).toBeNull();
   });
+});
+
+describe('requireOrgType', () => {
+  const s = { userId: 'u', orgId: 'o', orgName: 'H', orgType: 'hospital', role: 'signatory' } as const;
+  it('passes when orgType matches', () => expect(requireOrgType(s, 'hospital')).toBe(true));
+  it('fails on mismatch', () => expect(requireOrgType(s, 'diagnostic_centre')).toBe(false));
+  it('fails on null session', () => expect(requireOrgType(null, 'hospital')).toBe(false));
 });
 
 describe('role capabilities', () => {
