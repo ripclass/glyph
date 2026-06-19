@@ -123,7 +123,8 @@ Glyph/
 │   │   ├── 011_owner_scope.sql      # organizations + memberships + clinics.organization_id (backfilled), patients.owner_org_id + clinic_id RELAXED to nullable, kham_holding provisional-owner singleton; RESTRICTIVE patients_single_scope policy + patients_one_scope CHECK enforce one-owner-scope; NEW owner-scoped RLS ALONGSIDE the untouched clinic RLS. The audit's R2 "clinic is one owner type" foundation (Lens is first consumer). Chamber path unchanged; smoke-path 19/19 + smoke-owner-scope green.
 │   │   ├── 012_lab_orders.sql       # lab_orders workflow table: owner-org-scoped order→result→sign lifecycle; raw_results + normalized_results + sanity_flags JSONB; status enum (ordered/resulted/signed/revoked); freeze-on-credential trigger (blocks update when status=signed); member RLS (org members read/write their own org's orders). Lens v1 surface.
 │   │   ├── 013_discharge_records.sql # discharge_records workflow table: Hospital v1 analogue of lab_orders; status enum (draft/signed/revoked); freeze-on-credential trigger; discharge_diagnosis + discharge_medications + procedures + hospital_course + follow_up_instructions + discharge_condition JSONB/TEXT fields; member RLS (hospital org members only). DischargeSummary VC issued on sign.
-│   │   └── 014_occupational_assessments.sql # occupational_assessments workflow table: Apa v1 analogue of discharge_records (employer owner); status enum (draft/signed/revoked); freeze-on-credential trigger; assessment_type/exposures/findings/fitness_for_role/restrictions/recommendations JSONB fields; member RLS (employer org members only). OccupationalHealth VC issued on sign; assessment_type required before signing.
+│   │   ├── 014_occupational_assessments.sql # occupational_assessments workflow table: Apa v1 analogue of discharge_records (employer owner); status enum (draft/signed/revoked); freeze-on-credential trigger; assessment_type/exposures/findings/fitness_for_role/restrictions/recommendations JSONB fields; member RLS (employer org members only). OccupationalHealth VC issued on sign; assessment_type required before signing.
+│   │   └── 015_clearance_records.sql # clearance_records workflow table: Continuity v1 analogue of occupational_assessments (recruiter owner); status enum (draft/signed/revoked); freeze-on-credential trigger; purpose/fitness_status/restrictions/findings/destination_country/valid_until fields; member RLS (recruiter org members only). MedicalClearance VC issued on sign; purpose AND fitness_status required before signing.
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -228,6 +229,19 @@ Glyph/
         │   │       └── [id]/
         │   │           ├── route.ts     # POST: save assessment fields (assessment_type, fitness_for_role, exposures, findings, restrictions, recommendations); canEnterResults gate (doctor/technologist/signatory/owner/admin)
         │   │           └── sign/route.ts # POST: issue OccupationalHealth VC (employer org DID as issuer, canSign gate = signatory/owner/admin), freeze record, set status=signed. No edge fn — pure Next + Supabase.
+        │   ├── continuity/
+        │   │   ├── layout.tsx           # Continuity recruiter-staff AuthGuard (checks staff-store, org_type='recruiter')
+        │   │   ├── page.tsx             # Continuity: clearance list dashboard
+        │   │   ├── login/page.tsx       # Glyph Continuity recruiter-staff sign in (email+password, staff-store)
+        │   │   └── clearance/
+        │   │       ├── new/page.tsx     # New clearance form (worker lookup/create)
+        │   │       └── [id]/page.tsx    # Clearance detail: field entry + sign → MedicalClearance VC
+        │   ├── api/continuity/
+        │   │   └── clearances/
+        │   │       ├── route.ts         # POST: create draft medical clearance (walk-in or known worker; recruiter-member auth, requireOrgType='recruiter')
+        │   │       └── [id]/
+        │   │           ├── route.ts     # POST: save clearance fields (purpose, fitness_status, destination_country, restrictions, findings, valid_until); canEnterResults gate (doctor/technologist/signatory/owner/admin)
+        │   │           └── sign/route.ts # POST: issue MedicalClearance VC (recruiter org DID as issuer, canSign gate = signatory/owner/admin), freeze record, set status=signed. Requires purpose + fitness_status before signing. No edge fn — pure Next + Supabase.
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
@@ -262,7 +276,8 @@ Glyph/
         │   │                        # staff-logic(+test) (org-type-generalized session: shapeStaffSession/requireOrgType/canSign/canEnterResults — guards Lens/Hospital/Apa surfaces; the same shapeStaffSession works for any non-clinic owner org),
         │   │                        # lens-logic(+test) (lab-order helpers: buildLabOrderRow, normalizeRawItem, buildLabResultData, KNOWN_TEST_CATEGORIES, LabResultItem),
         │   │                        # hospital-logic(+test) (discharge helpers: buildDischargeRecordRow, buildDischargeSummaryData),
-        │   │                        # apa-logic(+test) (occupational-assessment helpers: buildAssessmentRow, buildOccupationalHealthData)
+        │   │                        # apa-logic(+test) (occupational-assessment helpers: buildAssessmentRow, buildOccupationalHealthData),
+        │   │                        # continuity-logic(+test) (clearance helpers: buildClearanceRow, buildMedicalClearanceData)
         │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Leg C adds media (360dialog download), documents (bucket upload), doc-type (flow: image → consent → type question → extract-document service path). Leg D adds templates (glyph_followup/glyph_appointment_reminder/glyph_doctor_nudge template definitions), schedule (enqueue/drain helpers for scheduled_messages), and sendTemplate (360dialog template send). Routes call into this; clinical thinking stays in edge fns.
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store, staff-store (centre-staff session + signIn)
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
@@ -324,6 +339,7 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 | `lab_orders` | `id`, `owner_org_id → organizations`, `patient_id → patients`, `ordered_by → auth.users`, `test_category`, `status` enum (ordered/resulted/signed/revoked), `raw_results JSONB`, `normalized_results JSONB`, `sanity_flags JSONB`, `lab_result_vc_id → credentials` | Migration 012. Lens v1 workflow table. Owner-org-scoped (RLS: members of the org). Freeze-on-credential trigger blocks updates once status=signed. |
 | `discharge_records` | `id`, `owner_org_id → organizations` (hospital), `patient_id → patients`, `status` enum (draft/signed/revoked), `admission_date`, `discharge_date`, `discharge_diagnosis JSONB` ([{text,icd10}]), `discharge_medications JSONB`, `procedures JSONB`, `hospital_course TEXT`, `follow_up_instructions JSONB`, `discharge_condition TEXT`, `created_by → auth.users`, `signatory_user_id → auth.users`, `signed_at`, `credential_id → credentials` | Migration 013. Hospital v1 workflow table. Member RLS (org members only). Freeze-on-credential trigger blocks clinical field mutations once credential_id is set. DischargeSummary VC issued on sign; no projection table (wallet surfacing deferred). |
 | `occupational_assessments` | `id`, `owner_org_id → organizations` (employer), `patient_id → patients`, `status` enum (draft/signed/revoked), `assessment_type TEXT` (pre_placement/periodic/return_to_work/incident/exit), `exposures JSONB` (string[]), `findings JSONB` ([{testName,value,unit,referenceRange,isAbnormal,severity}]), `fitness_for_role TEXT` (fit/fit_with_restrictions/unfit), `restrictions JSONB` (string[]), `recommendations JSONB` (string[]), `created_by → auth.users`, `signatory_user_id → auth.users`, `signed_at`, `credential_id → credentials` | Migration 014. Apa v1 workflow table. Member RLS (org members only). Freeze-on-credential trigger blocks clinical field mutations once credential_id is set. OccupationalHealth VC (issuer=employer org DID) issued on sign; no projection table (wallet surfacing deferred). assessment_type required before signing. |
+| `clearance_records` | `id`, `owner_org_id → organizations` (recruiter), `patient_id → patients`, `status` enum (draft/signed/revoked), `purpose TEXT` (overseas_employment/pre_employment/periodic/general), `fitness_status TEXT` (fit/fit_with_restrictions/temporarily_unfit/unfit), `restrictions JSONB` (string[]), `findings JSONB` ([{testName,value,unit,referenceRange,isAbnormal,severity}]), `destination_country TEXT`, `valid_until DATE`, `created_by → auth.users`, `signatory_user_id → auth.users`, `signed_at`, `credential_id → credentials` | Migration 015. Continuity v1 workflow table. Member RLS (recruiter org members only). Freeze-on-credential trigger blocks clinical field mutations once credential_id is set. MedicalClearance VC (issuer=recruiter org DID) issued on sign; no projection table (wallet surfacing deferred). purpose AND fitness_status required before signing. |
 
 **Indexes:** on `visits(patient_id|doctor_id|visit_date DESC|status|clinic_id,visit_date)`, `prescriptions(patient_id)`, `lab_reports(patient_id|category)`, `patients(phone|clinic_id)`, `consent_records(patient_id)`, `api_usage_log(visit_id)`.
 
@@ -373,7 +389,8 @@ node scripts/create-doctor.mjs <SUPABASE_URL> <SERVICE_KEY> --email .. --passwor
 node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> --type diagnostic_centre --name "Ibn Sina Diagnostics" --signer-email s@centre.bd --signer-password <pw> --signer-name "Dr. Signatory" --staff-email t@centre.bd --staff-password <pw> --staff-name "Technician"
 node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> --type hospital --name "Dev District Hospital" --signer-email s@hosp.dev --signer-password <pw> --signer-name "Dr. Signer" --staff-email d@hosp.dev --staff-password <pw> --staff-name "Doctor"
 node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> --type employer --name "Beximco RMG Unit 4" --signer-email s@employer.bd --signer-password <pw> --signer-name "Dr. Signatory" --staff-email d@employer.bd --staff-password <pw> --staff-name "APA Doctor"
-  # Supported org types: diagnostic_centre, hospital, employer. clinic refused (use create-doctor.mjs). Signatory role is always 'signatory'; staff role is doctor (hospital/employer) or technologist (centre).
+node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> --type recruiter --name "Al-Haramain Overseas" --signer-email s@recruiter.bd --signer-password <pw> --signer-name "Dr. Signatory" --staff-email d@recruiter.bd --staff-password <pw> --staff-name "Continuity Doctor"
+  # Supported org types: diagnostic_centre, hospital, employer, recruiter. clinic refused (use create-doctor.mjs). Signatory role is always 'signatory'; staff role is doctor (hospital/employer/recruiter) or technologist (centre).
 
 # Smoke suites (keys from `supabase start` output locally; for prod:
 # `supabase projects api-keys --project-ref pywgimmcbzwnwcvnvmay -o json`)
@@ -385,6 +402,7 @@ node scripts/smoke-documents.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
 node scripts/smoke-lens.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY>    # Lens v1: Section A = DB schema; Section B = full E2E (needs Next + edge fns running)
 node scripts/smoke-hospital.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY> # Hospital v1: Section A = discharge_records schema; Section B = full E2E (needs Next running, NO edge fns needed)
 node scripts/smoke-apa.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY>      # Apa v1: Section A = occupational_assessments schema; Section B = full E2E (needs Next running, NO edge fns needed — no LLM step)
+node scripts/smoke-continuity.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY> # Continuity v1: Section A = clearance_records schema; Section B = full E2E (needs Next running, NO edge fns needed — no LLM step)
 
 # Prod deploys (in this order when schema is involved)
 supabase db push -p (Get-Content .db-password.glyph-prod.local)   # migrations → prod
