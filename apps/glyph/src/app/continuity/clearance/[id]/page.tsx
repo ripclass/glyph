@@ -33,6 +33,8 @@ export default function ClearanceDetailPage({ params }: { params: { id: string }
   const [destinationCountry, setDestinationCountry] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [saving, setSaving] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [signResult, setSignResult] = useState<{ medicalClearanceVcId: string; patientDid: string; orgDid: string } | null>(null);
 
   async function token() {
     const { data: { session } } = await createClient().auth.getSession();
@@ -85,6 +87,25 @@ export default function ClearanceDetailPage({ params }: { params: { id: string }
       toast.error(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sign() {
+    setSigning(true);
+    try {
+      const res = await fetch(`/api/continuity/clearances/${params.id}/sign`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      const json = await res.json();
+      if (!json.success) return toast.error(json.error);
+      setSignResult(json.data as { medicalClearanceVcId: string; patientDid: string; orgDid: string });
+      toast.success('Signed');
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sign failed');
+    } finally {
+      setSigning(false);
     }
   }
 
@@ -236,19 +257,21 @@ export default function ClearanceDetailPage({ params }: { params: { id: string }
         </Button>
       )}
 
-      {/* Sign panel placeholder */}
+      {/* Sign panel */}
       <section className="rounded-xl border border-line bg-white p-4">
-        {record.status === 'signed' ? (
+        {record.status === 'signed' || signResult ? (
           <div className="space-y-1">
             <p className="text-sm font-medium text-ink">&#x2713; Signed &middot; MedicalClearance issued</p>
             <p className="break-all font-mono text-xs text-clinical-muted">
-              {(record as { credential_id?: string }).credential_id}
+              {signResult?.medicalClearanceVcId ?? (record as { credential_id?: string }).credential_id}
             </p>
           </div>
-        ) : (record?.purpose || purpose) ? (
-          <p className="text-sm text-clinical-muted">Sign &amp; issue (Task 4)</p>
+        ) : (record?.purpose || purpose) && (record?.fitness_status || fitnessStatus) ? (
+          <Button onClick={sign} disabled={signing || frozen}>
+            {signing ? 'Signing…' : 'Sign & issue MedicalClearance'}
+          </Button>
         ) : (
-          <p className="text-sm text-clinical-muted">Select a purpose to enable signing.</p>
+          <p className="text-sm text-clinical-muted">Select a purpose and fitness status to enable signing.</p>
         )}
       </section>
     </div>
