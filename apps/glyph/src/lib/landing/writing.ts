@@ -1259,6 +1259,237 @@ export const WRITING_PIECES: WritingPiece[] = [
       },
     ],
   },
+  {
+    slug: "pocket-the-record-in-her-own-hand",
+    kind: "essay",
+    number: "29",
+    title: "Pocket: the record in her own hand",
+    tagline:
+      "Every credential the network signs has to land somewhere the patient actually holds. That somewhere is Pocket, and it is the spine made visible.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the patient's wallet is not a new product, but the patient-owned record finally placed in the patient's hand.",
+    sections: [
+      {
+        body: [
+          "For most Bangladeshis the front door of the health system is the pharmacy, not the doctor. A Dhaka study of people seeking care for respiratory illness found only one in ten had seen any other provider first. Self-medication runs as high as eighty-eight percent in some surveys, guided by an old prescription, a relative's advice, the internet. The reason is rational: the pharmacy is near, the doctor is far, and no one keeps the patient's story anyway.",
+          "But the phone is already in the house. The national statistics bureau counts mobile phones in ninety-nine percent of households and smartphones in seventy-two percent, and the Surokkha vaccination platform reached roughly sixty million people, proof that Bangladeshis adopt a digital health credential when it is simple and necessary. The story has nowhere to live, and the device to hold it is already in hand.",
+        ],
+        pullQuote:
+          "The patient's story has nowhere to live, and the device to hold it is already in her hand.",
+      },
+      {
+        body: [
+          "Pocket is not a new idea bolted onto Glyph. It is the patient-owned record from the white paper, finally given a place to sit. Every credential the network signs, a prescription from a chamber, a result from a lab, a dispensing from a pharmacy, a discharge from a hospital, lands in the patient's wallet, signed by whoever issued it. The patient can photograph the old paper too, turning the existing plastic bag into the opening balance of a record that now proves itself.",
+          "Once you have decided the record belongs to the patient and is portable by standard, Pocket is what that decision looks like in a hand: free, in Bangla, built for a shared family phone and thin data. It is the spine made visible to the person it was always for. Everything else in the network issues claims; Pocket is where the person who owns them keeps them, and where, before she walks to the pharmacy, she can finally ask a question of a record that knows her.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "pharmacy-the-prescription-becomes-a-control",
+    kind: "essay",
+    number: "30",
+    title: "Pharmacy: the prescription becomes a control",
+    tagline:
+      "Between half and ninety-two percent of antibiotics are sold with no prescription. The signature is what lets a counter tell a real one from a hunch.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "How a signed credential turns the most ignored rule in Bangladeshi healthcare into one a counter can actually enforce.",
+    sections: [
+      {
+        body: [
+          "Bangladesh's antibiotics are rationed at the drug-shop counter, by sales instinct, not clinical judgment. The studies escalate rather than disagree: a WHO-linked classification found half of antibiotic courses sold without a registered physician's prescription; a 2024 study across two hundred forty-six Dhaka pharmacies found only thirty-six percent sold against one; a survey of pharmacy staff found ninety-two percent dispensing antibiotics without a prescription at all. The dispenser is usually not a pharmacist, and when asked why, the answer is economic: ninety-nine percent of rural dispensers feared losing the customer.",
+          "The law against over-the-counter antibiotic sale exists. Enforcement does not, because at the counter a real prescription, a forged one, and no prescription at all look exactly alike. There is nothing to check against.",
+        ],
+        pullQuote:
+          "The law against selling antibiotics over the counter exists. The thing to check it against does not.",
+      },
+      {
+        body: [
+          "Glyph Pharmacy is the same spine, pointed at the counter. The prescription the chamber doctor signed with his key is verifiable by anyone, including a dispenser on a basic phone. With the patient's consent, the wallet returns the active prescription: what was prescribed, by whom, when, and for how long, signed by a real BMDC-anchored identity. The forged prescription fails the check. The antibiotic bought on a hunch has nothing to return. The dispensing itself is written back as a signed credential, so a course abandoned on day three becomes visible to the prescriber.",
+          "Nothing here is new machinery. It is the signed credential from the identity layer, checked at a counter instead of trusted on paper. Sweden and Denmark brought antibiotic dispensing under control the same way, by making the prescription a system record rather than a slip of paper, and Pharmacy is that loop adapted to a counter staffed by a non-pharmacist. The prescription stops being a thing a salesperson can ignore and becomes a control the network can verify. That control falls straight out of the signature.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "lens-a-result-worth-its-signature",
+    kind: "essay",
+    number: "31",
+    title: "Lens: a result worth its signature",
+    tagline:
+      "The country has four radiologists per million people and reports signed by doctors who never saw the film. The fix is the same signature the prescription already uses.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why a lab result becomes trustworthy the same way a prescription does, by carrying the signature of whoever stands behind it.",
+    sections: [
+      {
+        body: [
+          "Bangladesh has about four radiologists per million people, almost all in Dhaka, and a film taken in a district town can wait days for a read. Worse than the wait is the trust. The health directorate's 2022 crackdown closed over eleven hundred illegal facilities in its first days, and sector reporting describes reports printed over the names of physicians who never saw the image. The country has already seen what happens when reports lose credibility: during COVID, after a fake-certificate scandal, daily testing nearly halved because people stopped believing the results.",
+          "The regulator reached for the obvious fix with the only tool it had, ordering every facility to display a QR code on its signboard. That instinct, verification, was right. A sticker on a wall was not the way to deliver it.",
+        ],
+        pullQuote: "A report is only worth what its signature is worth.",
+      },
+      {
+        body: [
+          "Lens is the same spine, applied to the diagnostic report. A result leaves the center as a credential signed by the center and by the professional who verified it, landing in the patient's wallet with its reference ranges and its provenance intact. The report over a radiologist's name now requires that radiologist's actual key, so the ghost-signed report dies at a participating center. And because the model reads first and a licensed human signs last, the four-per-million specialist is multiplied rather than bypassed, exactly the boundary the model essays describe.",
+          "The QR sticker and the signed credential are after the same thing: a report you can trust without knowing the lab. The difference is that a sticker proves nothing and a signature proves the things that matter, who made this claim and whether it was altered. Lens is not a new trust mechanism invented for imaging. It is the prescription's signature, pointed at a lab result, so a report from a known chain finally weighs more than one off a roadside shop, and the difference travels with it.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "hospital-the-stranger-at-2am",
+    kind: "essay",
+    number: "32",
+    title: "Hospital: the stranger at 2am",
+    tagline:
+      "A man arrives unconscious at 2am and the duty doctor starts from zero. The record that would have known him is the one the patient already carries.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the continuity layer a ward needs is the patient-owned record, not another hospital information system.",
+    sections: [
+      {
+        body: [
+          "A medicine ward built for forty beds holds sixty-three. A fifty-eight-year-old arrives at 2am, unconscious, brought by relatives who know only that he takes gas tablets and something for pressure. There is no referral note, because no one referred him. The duty doctor starts from zero on a stranger, at night, in a corridor. The inpatient prescribing study that found six hundred ninety-two medication problems in two hundred orders was run in exactly this setting, and the errors begin with not knowing what the patient was already taking.",
+          "Eleven days later he leaves with a few handwritten lines that go into the plastic bag and are never seen by another clinician. Admission starts from nothing; discharge ends in nothing. Both are information failures, at the two moments information matters most.",
+        ],
+        pullQuote:
+          "Admission starts from nothing. Discharge ends in nothing. Both are failures of a record that should have traveled.",
+      },
+      {
+        body: [
+          "Hospital is deliberately not another hospital information system; the graveyards are full of those. It is the continuity layer, the same spine made institutional. At admission, the patient or the relative holding her phone presents the wallet, and with consent, or through a break-glass protocol that is read-only, time-boxed, and audited, the duty doctor sees in thirty seconds what no Bangladeshi admission has ever had: the active medications, the allergies, the recent labs, the chamber visit two weeks ago where the warning already appeared. At discharge, the summary leaves as a signed credential in the wallet, not a slip that dies at the door.",
+          "The hospital does not adopt a new database it has to fill. It becomes one more issuer signing onto a record the patient already owns, and one more reader of it. That is the whole move: the institution stops being an island and becomes a node in the patient's record. Admission with a history, discharge that travels, referral that arrives before the ambulance, none of these are new systems. They are the portable record from the white paper, finally reaching the ward at 2am.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "continuity-the-worker-the-border-erased",
+    kind: "essay",
+    number: "33",
+    title: "Continuity: the worker the border erased",
+    tagline:
+      "Health status abroad is a deportation weapon, so the worker hides his symptoms. A record only he can unlock is the difference between care and self-incrimination.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why patient-held keys are what let fifteen million migrant workers carry a health record their employer can never see.",
+    sections: [
+      {
+        body: [
+          "Roughly fifteen million Bangladeshis work abroad and send home nearly twenty-four billion dollars a year. The work is dangerous at documented rates, and the wall between the worker and care is not only distance and cost. It is that health status, in the wrong hands, ends a livelihood. A positive tuberculosis result at permit renewal can cancel the permit, which teaches the worker to hide symptoms and arrive home, years later, mid-disease.",
+          "So a health record for this worker has a hard requirement most systems never face. It must be useful to him and invisible to his employer and the destination state. A record they can reach is not a convenience for him. It is a file that can be used against him.",
+        ],
+        pullQuote:
+          "For the migrant worker, a record his employer can reach is not a convenience. It is a self-incrimination file.",
+      },
+      {
+        body: [
+          "This is where patient-held keys stop being a principle and become the product. Because the record is encrypted to keys the worker holds, it is unreadable to anyone he has not allowed, including the people who could deport him for what it says. That is the same property the identity layer gives the factory worker hiding a pregnancy, pointed across a border. Continuity provisions his wallet before he leaves, on the pre-departure registration rail he already has to stand on, and anchors him to a Bangladeshi physician who reviews his voice notes in his own dialect, on his own schedule, invisibly.",
+          "Continuity is not telemedicine invented for migrants. It is the same spine: a portable, patient-owned, patient-locked record, with the keys doing the one job that matters most for this population. The worker carries a clinical identity into the Gulf and home again, across the border that used to erase him, and the only person who can open it is the person it belongs to. Take the keys away from the patient and there is no version of this that is safe. Leave them with him, and the record that would have been a danger becomes the thing that finally follows him home.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "karigor-the-room-that-hides-her",
+    kind: "essay",
+    number: "34",
+    title: "Karigor: the room that hides her",
+    tagline:
+      "The factory pays for the medical room and wants proof it is used. The worker needs it to hide her pregnancy. One record does both, because the keys are hers.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "How the same architecture serves a garment factory and protects the worker from it at the same time.",
+    sections: [
+      {
+        body: [
+          "Bangladesh's garment industry employs about three million workers, a slim majority of them women, and the law already mandates a medical room scaled to the workforce. The published assessment is consistent: the rooms exist on paper, for the buyer audit, and the workers do not use them. The reasons are documented, and the sharpest is this. Pregnancy concealment is a known exit driver, because women have watched what happens to those who tell. A worker will buy Panadol and keep sewing rather than walk into a room she does not trust.",
+          "So the factory medical room has a contradiction at its heart. The factory pays for it and wants proof it is used. The worker will only use it if what she says inside cannot reach the factory. A normal record cannot satisfy both. A factory-readable health record, in a sector where pregnancy discrimination drives women out, is a weapon aimed at the people it claims to serve.",
+        ],
+        pullQuote:
+          "A factory-readable health record, where pregnancy drives women out, is a weapon aimed at the people it claims to serve.",
+      },
+      {
+        body: [
+          "Karigor resolves the contradiction with the spine, not a policy promise. The room is staffed by a trained health assistant with a tablet, and every encounter writes to the worker's own wallet, under her key, on a device the factory cannot read. Her early-pregnancy consultation is a shielded category, visible to her and the clinicians she chooses and to no one else. What management receives is what it actually needs and the buyer audits: signed compliance credentials and de-identified aggregates, the room is staffed, the encounters are happening, never an individual record.",
+          "This is the patient who must not be named, given a place to work. The same machinery that hides her from her employer is the machinery the employer paid for, and that is not a contradiction the design tolerates; it is the design. And when she leaves at thirty-five, her decade of occupational health history leaves with her, because it was always hers. Karigor is not a special confidential product. It is patient-held keys, pointed at the one place a health record is most likely to be turned against the patient.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "maa-not-a-stranger-at-the-third-door",
+    kind: "essay",
+    number: "35",
+    title: "Maa: not a stranger at the third door",
+    tagline:
+      "The mothers who died of preeclampsia sought care, at more than one facility, and were met as strangers at every door. The record that knows them is the whole intervention.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the maternal deaths the system has stopped preventing are routing failures the portable record is built to fix.",
+    sections: [
+      {
+        body: [
+          "Bangladesh's maternal mortality fell for a decade and then plateaued, and the stalled cause is the detectable one. Deaths from preeclampsia and eclampsia stopped falling and now make up about a quarter of maternal deaths, three-quarters of them rural. The condition announces itself through blood pressure, weeks before it kills, with a reading a trained neighbor can take with a cheap cuff. This is not a treatment gap. It is a surveillance gap.",
+          "And the finding that defines the product: the verbal autopsies show that almost all the women who died had left home and sought care, most at more than one facility. Each facility met the dying woman as a stranger, with no history, no blood-pressure trend, no warning she was coming. These are routing and information deaths, the same disease the plastic bag has, at the moment it is most lethal.",
+        ],
+        pullQuote:
+          "The women who died sought care. The system met them as strangers at every door they reached.",
+      },
+      {
+        body: [
+          "Maa is the portable record, pointed at pregnancy. Every contact, a community health worker, a pharmacy corner, a factory room, captures a blood-pressure reading into the mother's wallet, and the trend, not the single value, is watched. A climbing trajectory escalates under national protocol, and the receiving facility, where connected, sees her record and her warning before she arrives. The woman who today reaches her third facility as a stranger arrives instead as an expected patient at the right first one.",
+          "Nothing in Maa is a new kind of record. It is the same patient-owned, portable, signed record that turns a bag of paper into a person, applied to the one history whose absence is measured in lives. The surveillance is the spine doing what it always does, carrying a verifiable history to the next provider, except here the next provider is an emergency obstetric ward and the history is a blood-pressure trend that arrives in time. Maa detects and routes; it does not treat. But the stranger at the third door is exactly the failure a record that travels was built to end.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "bridge-dont-believe-the-paper-verify-the-signature",
+    kind: "essay",
+    number: "36",
+    title: "Bridge: don't believe the paper, verify the signature",
+    tagline:
+      "Families fly abroad because nobody trusts the local report, the machine, or the signature. A credential a foreign specialist can verify is the cheapest thing that keeps them home.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the billions Bangladesh spends on overseas treatment are a trust gap, and trust is what verifiable credentials manufacture.",
+    sections: [
+      {
+        body: [
+          "Bangladeshis spend an estimated four to five billion dollars a year on overseas medical treatment, more than the government's entire health budget, with India alone recording close to half a million Bangladeshi medical travelers in a single year. When Dhaka's own commercial establishment examined why, the answer was not a technology gap; Dhaka has the scanners. The named drivers were lack of trust, doubts over the diagnosis, and fear of counterfeit medicine.",
+          "The cost of that mistrust is paid twice. The family spends years of a pension on a trip taken mostly to confirm a diagnosis, and the foreign oncologist spends the first two days re-doing tests, because she cannot read or trust what came out of the shopping bag. The outflow is a trust gap, and trust is precisely what a verifiable credential manufactures.",
+        ],
+        pullQuote:
+          "The outflow is not a technology gap. It is a trust gap, and trust is what a verifiable credential manufactures.",
+      },
+      {
+        body: [
+          "Bridge is the spine, pointed across the border. From the patient's wallet, with consent, it assembles a specialist-ready dossier: history, medications by generic name, labs and imaging as signed credentials, every item verifiable against its issuer's published key, translated into clinical English with the Bangla originals attached. The two days of re-testing exist because the bag is unreadable and untrustworthy. The bundle is neither. The foreign specialist's opinion returns as a signed credential to the patient's Bangladeshi doctor, because the same line the model essays drew holds here between humans: the foreign specialist informs, the locally licensed doctor decides.",
+          "Bridge invents no new trust. It takes the credentials the network already signs and lets a specialist in Chennai or Bangkok check them against the issuers' keys, exactly as a pharmacy in Khulna does. The instruction the product gives the family is the instruction the whole network is built on: do not believe the paper, verify the signature. For the family weighing thirty thousand dollars and a visa, a verifiable second opinion is often the thing that proves the trip was never necessary, and that proof falls out of the same spine that signs a prescription.",
+        ],
+      },
+    ],
+  },
 ];
 
 export const WRITING_PAPERS = WRITING_PIECES.filter((p) => p.kind === "paper");
