@@ -17,7 +17,7 @@ async function resolveStaffOpinion(authHeader: string, opinionId: string) {
   const { data: memRows } = await userClient
     .from('memberships').select('user_id, role, organizations(id, name, org_type)');
   const staff = shapeStaffSession(memRows as never);
-  if (!staff) return { error: 'Not a program member', status: 403 as const };
+  if (!staff) return { error: 'Not a specialist panel member', status: 403 as const };
   if (!requireOrgType(staff, 'specialist_panel')) {
     return { error: 'Access restricted to specialist panel members', status: 403 as const };
   }

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     .from('memberships')
     .select('user_id, role, organizations(id, name, org_type)');
   const staff = shapeStaffSession(memRows as never);
-  if (!staff) return NextResponse.json({ success: false, error: 'Not a program member' }, { status: 403 });
+  if (!staff) return NextResponse.json({ success: false, error: 'Not a specialist panel member' }, { status: 403 });
   if (!requireOrgType(staff, 'specialist_panel')) {
     return NextResponse.json({ success: false, error: 'Access restricted to specialist panel members' }, { status: 403 });
   }
