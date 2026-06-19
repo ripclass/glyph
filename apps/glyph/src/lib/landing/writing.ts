@@ -346,6 +346,81 @@ export const WRITING_PIECES: WritingPiece[] = [
       },
     ],
   },
+  {
+    slug: "meeting-the-clinic-that-exists",
+    kind: "paper",
+    title: "Meeting the clinic that exists",
+    tagline:
+      "Western clinical AI is built for a fifteen-minute solo visit with an EHR. Bangladesh has forty-eight seconds, an attendant, and a paper pad. Build for that, or build for no one.",
+    readMinutes: 10,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A white paper on designing for the clinic that exists: the forty-eight-second consultation, the family attendant who speaks for the patient, the paper prescription pad, and the plastic bag. Why a clinical AI for Bangladesh has to meet the real encounter, not the one in the pitch deck.",
+    sections: [
+      {
+        index: "01",
+        heading: "The clinic in the brief is not the clinic that exists",
+        body: [
+          "Most clinical AI is built for a clinic that does not exist in Bangladesh. The brief assumes a fifteen-minute consultation, a doctor alone with a patient who speaks for herself, an electronic record to write into, and an insurer deciding what gets paid. Every one of those assumptions is false here, and a product built on them does not underperform in Bangladesh. It simply does not fit.",
+          "The clinic that exists is different in every particular. The consultation is forty-eight seconds. The patient is accompanied by a relative who answers for her. The doctor writes on a paper pad and has never used an EHR. The record is a plastic bag. The patient pays cash, out of her own pocket, for everything. These are not problems to be fixed before the software can work. They are the conditions the software has to work inside, exactly as they are.",
+          "Building for the real clinic is not a compromise. It is the whole design discipline. Every choice in Glyph traces back to a fact about the encounter as it actually happens, and the ones that matter most are the ones a Western brief would never think to ask about.",
+        ],
+        pullQuote:
+          "These are not problems to fix before the software works. They are the conditions it has to work inside.",
+      },
+      {
+        index: "02",
+        heading: "Forty-eight seconds",
+        body: [
+          "The number that defines the Bangladeshi consultation is forty-eight seconds. The largest international review of consultation length ever assembled, covering one hundred seventy-nine studies and twenty-eight and a half million consultations, put Bangladesh at the bottom of the table: an average primary-care visit of roughly forty-eight seconds, against twenty-two and a half minutes in Sweden. A single doctor may see more than ninety patients in a day, in a country with one doctor for every fifteen hundred people.",
+          "You cannot take a history in forty-eight seconds. You cannot read three years of paper in forty-eight seconds. The visit is not failing at these things; there is simply no room in it to attempt them. So the design does not ask the visit to do what it cannot. It moves the history out of the forty-eight seconds entirely, into the time the patient spends waiting, and hands the doctor the result.",
+          "This is also why Glyph demands nothing of the doctor. A doctor running ninety consultations a day has no slack to learn software, and any product that asks for some of that slack has already lost. His only new actions are reading a card and tapping approve. Everything else happens around him, before and after the forty-eight seconds, so the scarcest resource in the system is the one thing the product refuses to spend.",
+        ],
+        pullQuote:
+          "His attention is the scarcest resource in the system, and the one thing the product refuses to spend.",
+      },
+      {
+        index: "03",
+        heading: "The attendant is not an edge case",
+        body: [
+          "In a Western consultation the patient speaks for herself, and an attendant in the room is unusual enough to note. In Bangladesh the accompanied visit is the default. An elderly woman comes with the son who manages her care. A patient who speaks a dialect comes with a relative who translates. A great deal of what the doctor hears about the patient does not come from the patient.",
+          "This breaks the core assumption of clinical AI built elsewhere, that the voice in the room is the patient's. Glyph is built the other way, around the attendant as the normal case. The first thing it resolves is who is holding the device. From there, every clinical fact is tagged with its source: patient-reported, attendant-reported, attendant-translated, attendant-observed. When the patient's account and the attendant's diverge, the difference is surfaced for the doctor rather than flattened into one story.",
+          "This is not a feature bolted onto a solo-encounter design. It is a different starting assumption, and it is the kind of thing that only gets built by someone who has watched the actual encounter, where the son answers before his mother can, and the doctor has to know which words were hers.",
+        ],
+        pullQuote:
+          "A great deal of what the doctor hears about the patient does not come from the patient.",
+      },
+      {
+        index: "04",
+        heading: "Augment the paper, do not replace it",
+        body: [
+          "Bangladeshi doctors write on paper. Not because they are behind, but because the paper pad is faster than any software for a doctor with forty-eight seconds, and because the whole system around them, the pharmacy, the patient, the next clinic, runs on paper too. A product that begins by asking the doctor to abandon the pad has misread the room.",
+          "So Glyph does not replace the prescription. It augments it. The note is drafted in the format Bangladeshi medicine actually uses, CC, O/E, Ix, Rx, Advice, never the SOAP format of Western training unless the doctor explicitly asks for it. The doctor reviews what was drafted, edits it, and approves. The paper prescription still exists, still goes in the patient's hand. What changes is that when the doctor approves, the prescription is also signed with his cryptographic identity, which is the thing that makes it verifiable later at a pharmacy or a hospital.",
+          "The pad is not the enemy of the record. It is the record's oldest form, and the design works with it rather than against it: keep the paper the patient trusts, and add the signature the system needs. Fighting the pad would have cost the doctor's goodwill on day one. Signing it instead is how the paper becomes something more, without the doctor changing a single habit.",
+        ],
+      },
+      {
+        index: "05",
+        heading: "Cost is a clinical fact",
+        body: [
+          "In Bangladesh, seventy-three percent of health spending comes straight out of the patient's pocket, the highest share in South Asia, and health costs push four and a half percent of the population into poverty every year. For most patients, the price of a test or a drug is not a billing detail handled by someone else. It is a decision about whether the family eats as well this month.",
+          "This makes cost a clinical variable, not an administrative one, and a tool that ignores it is giving advice the patient cannot afford to take. Glyph treats cost as part of the medicine: prefer the cheapest investigation that actually answers the question, and reach for the Bangladeshi brand and generic names the patient can find and afford, Napa rather than Tylenol, the local generic rather than the imported brand, not the Western defaults a foreign-trained model reaches for first.",
+          "None of this is the model deciding to be frugal on the patient's behalf. It is the model surfacing the options and their costs so the doctor, who knows this patient and this family, can make the call. In a system that runs on out-of-pocket cash, leaving cost out of the clinical picture is not neutral. It is a way of being wrong that happens to look tidy.",
+        ],
+        pullQuote:
+          "For most patients, the price of a test is a decision about whether the family eats as well this month.",
+      },
+      {
+        index: "06",
+        heading: "Meeting the clinic that exists",
+        body: [
+          "Put it together and a pattern shows. Every real design choice in Glyph is the shape of a fact about the encounter that actually happens. The history moves out of the visit because the visit is forty-eight seconds. The source-tagging exists because the attendant speaks. The note is paper-format and signed because the doctor writes on a pad and the system needs proof. The drug names are local and the tests are cheap because the patient pays cash. None of these came from a brief. They came from the chamber.",
+          "This is the difference between software built for Bangladesh and software ported to it. Ported software treats the country's conditions as friction to be overcome on the way to the design it already had. Software built here treats those conditions as the design. The clinic that exists, with its volume and its attendants and its paper and its poverty, is not the obstacle the product has to survive. It is the thing the product is for. Meet it as it is, or do not bother coming.",
+        ],
+      },
+    ],
+  },
 
   /* ── Essays ─────────────────────────────────────────────────── */
   {
@@ -890,6 +965,296 @@ export const WRITING_PIECES: WritingPiece[] = [
         body: [
           "This is why everything the model learns stays in the country, and why the data behind it is consented and de-identified rather than quietly taken. Not as a compliance posture, but because the alternative, a model trained on a people's medicine and then owned somewhere else, answering to someone else, priced by someone else, is exactly the dependency the whole project exists to refuse.",
           "Sovereignty, in the end, is not about flags. It is this: that the knowledge a country's own sickness and care produce should accrue to that country, in its language, under its law, on its soil, and serve the next patient who walks into the next chamber. KhaM carries the names of two people. The model exists so that what twenty crore more teach it stays theirs.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "glyph-never-prescribes",
+    kind: "essay",
+    number: "19",
+    title: "Glyph never prescribes",
+    tagline:
+      "In the most doctor-starved system on earth, letting the model prescribe looks like mercy. It is the line the whole design refuses to cross.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "The one sentence that governs everything the model does, and why the temptation to break it is strongest exactly where it matters most.",
+    sections: [
+      {
+        body: [
+          "Of all the things a clinical model could be allowed to do, one is forbidden absolutely: Glyph does not prescribe. It does not diagnose, it does not decide, and no amount of confidence in its output changes that. The rule is short, and it is the most important sentence in the system.",
+          "The temptation to break it is real, and it is strongest exactly where the need is greatest. Bangladesh has one doctor for every fifteen hundred people. There are villages a doctor reaches rarely and patients who will never see one for the complaint they have. In that gap, a model that could just write the prescription looks like mercy, not overreach. Why make a sick person wait for a human when the machine already knows the answer?",
+          "Because the machine does not know the answer. It produces an answer, fluently, whether or not it is right, and it produces the wrong ones in the same confident voice as the right ones. A prescription is an action with consequences a model cannot be accountable for, and accountability is not a nicety in medicine. It is the thing that makes the act permissible at all.",
+        ],
+        pullQuote:
+          "In the gap where no doctor reaches, a model that could just prescribe looks like mercy. It is the line the design refuses to cross.",
+      },
+      {
+        body: [
+          "So the model stops short of the act, every time, by design rather than by reminder. It can suggest what a doctor might consider. It can surface an interaction, draft a note, flag a danger. What it cannot do is turn any of that into a prescription, because the step that makes a prescription real, a signature, is reserved to a licensed human and the model has no way to take it.",
+          "This is not Glyph being cautious about liability. It is Glyph being correct about what a prescription is. A prescription is a person, a named and trained and accountable person, taking responsibility for a drug going into a body. Remove the person and you do not have a faster prescription. You have a guess with a dosage. The model's refusal to prescribe is not the limit of its usefulness. It is the precondition for being allowed to be useful at all.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-doctor-signs",
+    kind: "essay",
+    number: "20",
+    title: "The doctor signs",
+    tagline:
+      "When the doctor approves, he is not approving the model. He is taking responsibility, with a key only he holds.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "What actually happens at the moment a doctor approves a note, and why that single act is what makes the AI safe to use.",
+    sections: [
+      {
+        body: [
+          "Everything the model does in a consultation is a draft until one thing happens: the doctor signs. The briefing, the suggested note, the flagged interaction, all of it sits in the category of proposal until a licensed human reviews it and puts his name on the result. The signing is not a formality at the end. It is the event the whole workflow exists to produce.",
+          "And signing here is literal. The doctor approves the note and it is signed with his cryptographic key, the same key that identifies him across the network. In that moment two things happen at once. The draft becomes a decision, and the decision becomes traceable to a specific accountable human. Those are the same act, and neither can happen without him choosing it.",
+        ],
+        pullQuote:
+          "The signing is not a formality at the end. It is the event the whole workflow exists to produce.",
+      },
+      {
+        body: [
+          "This is why the signature is the safety mechanism, not a feature beside it. A clinical AI is safe to use precisely to the degree that nothing it produces becomes an action without a human deciding to sign. Glyph is built so the model's output is always, structurally, a draft, and the doctor's key is the only thing that can promote a draft to a decision. The model cannot reach around him, because it has no key to sign with.",
+          "It also means the accountability is never diffuse. When a Glyph prescription is questioned later, there is no shrugging at the algorithm. A named doctor signed it, with his own key, and the record proves it. That is heavier for the doctor than an anonymous paper scrawl, and it is meant to be. A system where a clinical act traces to an accountable human is the only kind that deserves trust, and the signature is how Glyph guarantees there is always one.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-confident-wrong-answer",
+    kind: "essay",
+    number: "21",
+    title: "The confident wrong answer",
+    tagline:
+      "The danger is not the error. It is that the model delivers its wrong answers in the same certain voice as its right ones, to a doctor too tired to tell which is which.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why a clinical model that is right most of the time can be more dangerous than one that is right less often.",
+    sections: [
+      {
+        body: [
+          "There is a failure mode in human-machine teams that has nothing to do with the machine's accuracy and everything to do with its confidence. It is called automation complacency, and it is the reason a more accurate model can be more dangerous than a less accurate one.",
+          "Picture the doctor at the end of a ninety-patient day. The model has been right ninety times. Each correct answer, delivered fluently and fast, has taught him a little more to trust it, until checking the output feels like wasted motion on a tool that is always right. Then comes the answer that is wrong, in the same calm confident voice as the ninety before it, and he is exactly as primed to accept it as he was the others. The ninety right answers did not make the system safer. They lowered his guard for the wrong one.",
+        ],
+        pullQuote:
+          "Ninety right answers do not make the system safer. They lower the doctor's guard for the wrong one.",
+      },
+      {
+        body: [
+          "This is why accuracy is the wrong thing to optimize for past a point, and why Glyph treats every output as a draft no matter how good the model gets. A model that earns trust by being right is, by the same token, eroding the very checking that catches it when it is wrong. The only durable answer is structural: keep the human in a position where reviewing is required, not optional, so complacency cannot quietly remove the last line of defense.",
+          "Practically, that means Glyph never presents an output as settled. It shows its sources so the doctor can check rather than trust. It flags its own uncertainty instead of smoothing it into fluent prose. It is built to keep the doctor deciding, because the moment he stops deciding and starts rubber-stamping, the model's confidence becomes the system's blind spot. The goal is not a model so good it is never doubted. It is a workflow where doubt never switches off.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "a-second-reader-never-the-signer",
+    kind: "essay",
+    number: "22",
+    title: "A second reader, never the signer",
+    tagline:
+      "Bangladesh has about four radiologists per million people. The model's job is not to be the four-millionth-and-first. It is to make the four go further.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "How a model multiplies a scarce specialist instead of replacing him, in a country with four radiologists per million people.",
+    sections: [
+      {
+        body: [
+          "Bangladesh has roughly seven hundred radiologists for more than one hundred seventy million people, about four per million, almost all of them in Dhaka. A film taken in a district town can wait days for a read. The obvious thing for a capable vision model to do is read the film itself and skip the wait. It is also the wrong thing.",
+          "Glyph's role at a diagnostic center is not radiologist replacement. It is co-interpretation. The model offers a draft observation, a likely finding, an urgency flag, to the technologist who took the film, and that draft routes to a remote radiologist who verifies and signs. The model reads first; the licensed human reads last and signs. The scarce specialist's hour is spent confirming structured drafts from many centers instead of reading cold films one at a time for one.",
+        ],
+        pullQuote: "The model reads first. The licensed human reads last, and signs.",
+      },
+      {
+        body: [
+          "The difference between replacement and co-interpretation is the difference between a report no one will trust and one that travels. A film read only by a machine is an unsigned guess, and the country has already learned what happens to diagnostic reports no accountable human stands behind. A film drafted by the model and signed by a radiologist is the radiologist's read, made faster. The scarcity is eased without the signature being cheapened, because a licensed human still puts his name on every report.",
+          "This is where the model belongs in imaging: as the second reader that makes the first reader reachable, not as a substitute for the reader the country does not have enough of. It multiplies the four-per-million instead of pretending to be the four-million-and-first. The specialist stays in the loop, because his signature is the thing that makes the read worth anything, and the model's gift is to spend his scarce attention only where it counts.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "what-the-model-gives-back",
+    kind: "essay",
+    number: "23",
+    title: "What the model gives back",
+    tagline:
+      "The model's product is not decisions. It is the attention a forty-eight-second visit had taken away from the doctor who has to make them.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "The case for clinical AI stated in the positive: not what it takes over, but what it returns to an overwhelmed doctor.",
+    sections: [
+      {
+        body: [
+          "Most of the argument for where the model belongs is stated in the negative: it does not diagnose, does not prescribe, does not decide. That restraint is right, but it can make the model sound like a tool defined by what it refuses to do. The positive case is simpler and more important. The model's job is to give the doctor back the one thing the system has been stealing from him: attention.",
+          "A doctor with forty-eight seconds and ninety patients is not short on knowledge. He is short on time and attention, spent before he reaches each patient by the history he has no room to take, the bag he has no time to read, the note he has to write while the next patient waits. Every one of those is work the model can do around the visit, so the doctor walks into the forty-eight seconds already knowing what matters and walks out without losing the next minute to paperwork.",
+        ],
+        pullQuote:
+          "The doctor is not short on knowledge. He is short on the attention the system spends before he reaches the patient.",
+      },
+      {
+        body: [
+          "Seen this way, the restraint and the usefulness are the same design. The model does everything around the decision precisely so the human has the attention to make the decision well. It is not competing with the doctor's judgment. It is clearing the ground so his judgment has room to operate, in a system that had crowded it out.",
+          "This is the quiet reason the boundary holds in practice and not just in policy. A doctor does not resent a tool that hands him a prepared patient and takes the paperwork off his hands; he relies on it, and relying on it, he stays the decider. The model that tried to decide for him would meet resistance and deserve it. The model that gives him back his attention is welcomed, and earns the right to sit underneath his judgment by making that judgment possible at the pace the country demands.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "demand-nothing-of-the-doctor",
+    kind: "essay",
+    number: "24",
+    title: "Demand nothing of the doctor",
+    tagline:
+      "A doctor running ninety consultations a day has no slack to learn software. Any product that asks for some has already lost.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the first design law for software in a forty-eight-second clinic is that it asks the doctor to learn nothing.",
+    sections: [
+      {
+        body: [
+          "There is a design law for clinical software in Bangladesh that sounds like a constraint and is really the whole strategy: demand nothing of the doctor. A doctor seeing ninety patients in a day has no spare minutes, no patience for a tutorial, no appetite for a workflow that adds a step. Any product that asks him to learn it, change for it, or work around it has lost before it starts, no matter how good it is underneath.",
+          "This rules out most of what clinical software usually does. No new system to log into in the middle of a visit. No fields to fill that the paper pad did not already have. No training day the clinic cannot spare. The bar is brutal and clarifying: if using Glyph costs the doctor attention during the forty-eight seconds, Glyph has taken the one thing it was supposed to give back.",
+        ],
+        pullQuote:
+          "If using it costs the doctor attention during the forty-eight seconds, it has taken the one thing it was meant to give back.",
+      },
+      {
+        body: [
+          "So Glyph reduces the doctor's new behaviors to two: read a card, tap approve. The intake happened before he walked in. The briefing is already on the screen, red flags first. The note is already drafted in his format. His judgment is the only thing asked of him, and the act of recording it is a single tap. Everything else, the history, the reading, the writing, the signing machinery, runs around him.",
+          "This is why Glyph can enter a chamber without a rollout. There is nothing to roll out. The doctor does on day one what he did before, sees patients and decides, and the software arranges itself around that instead of asking him to arrange himself around it. Demanding nothing is not a limitation the product apologizes for. It is the only way software ever survives contact with a ninety-patient day.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-history-happens-in-the-waiting-room",
+    kind: "essay",
+    number: "25",
+    title: "The history happens in the waiting room",
+    tagline:
+      "The visit is forty-eight seconds and cannot take a history. So the history happens where the time actually is: the waiting room.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "The single move that makes everything else possible: taking the history before the visit, not during it.",
+    sections: [
+      {
+        body: [
+          "The forty-eight-second consultation has one unavoidable consequence: the visit cannot take a history. There is no version of forty-eight seconds that includes asking a patient about her symptoms, her past, her medications, and her family, and still leaves room to examine and decide. Every clinical system that assumes the history happens in the visit is assuming a visit Bangladesh does not have.",
+          "So Glyph moves the history out of the visit and into the place where the time actually is: the waiting room. While the patient waits, often a long time, the intake happens, in Bangla, unhurried, voice-first, on a tablet. The questions a doctor would never have forty-eight seconds to ask get asked here, and the answers reach the doctor as a structured summary before the patient walks in.",
+        ],
+        pullQuote:
+          "Every system that assumes the history happens in the visit is assuming a visit Bangladesh does not have.",
+      },
+      {
+        body: [
+          "This single relocation is what makes the rest of Glyph possible. The briefing exists because the history was taken in the waiting room. The red flags can be surfaced because someone, the model, had the time to look for them that the doctor never will. The plastic bag could be read because the reading happened before the visit, not during it. The waiting room, dead time in every clinic, becomes the part of the encounter where the listening happens.",
+          "It also changes what the forty-eight seconds are for. Freed from taking the history, the visit becomes what it should be: the doctor, already briefed, spending his scarce attention on examining, deciding, and speaking to the patient, rather than on data collection a tablet could have done. The visit does not get longer. It gets better, because the work that never fit inside it has moved to the one place in the clinic that had time to spare.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "whose-words-were-those",
+    kind: "essay",
+    number: "26",
+    title: "Whose words were those",
+    tagline:
+      "When a son answers for his mother, the doctor needs to know which words were hers. A symptom's source is part of the symptom.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the most important question in a Bangladeshi consultation is who is speaking, and what it costs a doctor not to know.",
+    sections: [
+      {
+        body: [
+          "In a Bangladeshi consultation, the patient is often not the one talking. A son speaks for his elderly mother. A husband relays his wife's complaint. A relative translates a dialect the doctor does not share. By the time a symptom reaches the doctor, it may have passed through one or two other people, each of whom added, dropped, or reframed something without meaning to.",
+          "This is not noise to filter out. The source of a symptom is part of the symptom. My mother has chest pain is a different clinical fact from my mother clutched her chest and would not say why, and a doctor who cannot tell which one he is hearing is reasoning on a story he cannot fully trust. In the accompanied visit, who said what is clinical information, and losing it is losing data.",
+        ],
+        pullQuote:
+          "My mother has chest pain is a different clinical fact from my mother clutched her chest and would not say why.",
+      },
+      {
+        body: [
+          "So Glyph treats the speaker as a field, not an assumption. The intake resolves who is holding the device, and tags every claim with its origin: patient-reported, attendant-reported, attendant-translated, attendant-observed. When the patient's own account and the attendant's diverge, the divergence is kept and shown to the doctor, not smoothed into a single tidy narrative that hides the seam.",
+          "A clinical AI built for a Western solo encounter has no place to put this, because it assumes the voice it hears is the patient's. That assumption is wrong here often enough to be dangerous, and getting it right is not a translation feature. It is a different model of what a consultation is: not one person describing herself, but a small group assembling an account, in which the doctor's job includes knowing who contributed which part. Glyph is built for that consultation, because that is the one that actually happens.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-pad-is-not-the-enemy",
+    kind: "essay",
+    number: "27",
+    title: "The pad is not the enemy",
+    tagline:
+      "The paper pad is faster than any software for a doctor with forty-eight seconds. Fight it and you lose. Sign it and the paper becomes something more.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why every attempt to replace the paper prescription failed, and what it means to augment it instead.",
+    sections: [
+      {
+        body: [
+          "A decade of health-IT in Bangladesh has a common grave, and the headstone reads: it asked the doctor to stop using the pad. The electronic record that replaced the prescription was slower to fill than paper, in a visit with no time to spare, so the doctor kept the pad and abandoned the software. The pad won every time, and it won for a good reason.",
+          "The paper prescription is faster than any form. It has no login, no fields, no latency, no dependence on the clinic's intermittent power or network. For a doctor with forty-eight seconds it is the most efficient interface ever devised, and the whole system around him, the pharmacy, the patient, the next clinic, already reads it. A product that treats the pad as the problem has mistaken the most successful tool in the building for the obstacle.",
+        ],
+        pullQuote:
+          "A decade of health-IT shares one grave. The headstone reads: it asked the doctor to stop using the pad.",
+      },
+      {
+        body: [
+          "Glyph does the opposite. It augments the pad instead of replacing it. The doctor still produces a prescription; what changes is that on approval it is drafted in the format he already uses and signed with his cryptographic key, so the paper in the patient's hand now has a verifiable twin the rest of the network can check. He does not give up the speed of paper. He gains the proof paper never had.",
+          "This is the difference between fighting a habit and building on it. The pad is not behind the times; it is the record's oldest and most reliable form, and the right move is to keep it and add what it lacks, which is a signature that travels. A patient who trusts the paper keeps the paper. A pharmacy that needs proof gets the signature. Nobody is asked to change, and the record becomes verifiable anyway. That is what it means to meet the clinic that exists instead of the one a vendor wishes it were.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "cost-is-a-dose",
+    kind: "essay",
+    number: "28",
+    title: "Cost is a dose",
+    tagline:
+      "Seventy-three percent of Bangladeshi health spending is out of pocket. The unaffordable correct answer is, for that patient, a wrong one.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why in a system that runs on out-of-pocket cash, the correct treatment a patient cannot afford is a wrong answer.",
+    sections: [
+      {
+        body: [
+          "In Bangladesh seventy-three percent of health spending comes straight from the patient's pocket, and health costs push four and a half percent of the population into poverty every year. In that system, the price of a test or a drug is not an administrative detail. It is part of whether the treatment happens at all. A correct prescription the patient cannot afford is not a correct prescription. It is advice that will not be followed, which is the same as no advice, at a cost the family still pays in worry.",
+          "This makes cost a clinical variable, as real as a lab value. A clinical tool that recommends the textbook-best investigation without regard to its price is giving an answer that looks right on paper and fails at the pharmacy counter. The right answer in this system is the cheapest one that actually resolves the question, and that is a medical judgment, not a budgeting one.",
+        ],
+        pullQuote:
+          "A correct prescription the patient cannot afford is not a correct prescription. It is advice that will not be followed.",
+      },
+      {
+        body: [
+          "So Glyph carries cost the way it carries any clinical fact. It reaches for Bangladeshi brand and generic names a patient can find and afford, Napa rather than Tylenol, the local generic rather than the imported brand, instead of the Western defaults a foreign-trained model offers first. It prefers the investigation that answers the question at a price the patient can pay over the one a wealthier system would order by reflex. And it surfaces these as options, with their costs, for the doctor to weigh.",
+          "None of this is the model deciding to economize for the patient. It is the model refusing to pretend that cost is somebody else's department. In a system with insurance and gatekeepers, a doctor can leave price to the back office. In a system that runs on cash from a day laborer's pocket, leaving cost out of the clinical picture is not neutrality. It is a way of being confidently, tidily wrong about what this patient can actually do.",
         ],
       },
     ],
