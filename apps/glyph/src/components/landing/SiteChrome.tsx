@@ -25,6 +25,9 @@ export function SiteNav() {
           <a href="/#why" className="transition hover:text-ink">
             Why
           </a>
+          <Link href="/writing" className="transition hover:text-ink">
+            Writing
+          </Link>
           <Link href="/partners" className="transition hover:text-ink">
             Partners
           </Link>
@@ -71,6 +74,9 @@ export function SiteFooter() {
           </Link>
           <Link href="/verify" className="transition hover:text-ink">
             Verify a prescription
+          </Link>
+          <Link href="/writing" className="transition hover:text-ink">
+            Writing
           </Link>
         </div>
         <p>© {new Date().getFullYear()} KhaM Health · KhaM Labs Inc.</p>
