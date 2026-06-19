@@ -1,8 +1,8 @@
 /**
- * Real organization onboarding (service-role). Creates a hospital or
- * diagnostic_centre organization + a signatory + a staff/technologist auth
- * user, each with a membership. No self-signup exists by design (mirrors
- * create-doctor.mjs and create-center.mjs).
+ * Real organization onboarding (service-role). Creates a hospital,
+ * diagnostic_centre, or employer organization + a signatory + a
+ * staff/technologist/doctor auth user, each with a membership. No self-signup
+ * exists by design (mirrors create-doctor.mjs and create-center.mjs).
  *
  * Usage (hospital):
  *   node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> \
@@ -17,6 +17,13 @@
  *     --name "Popular Diagnostics, Dhanmondi" [--district Dhaka] [--phone 02...] \
  *     --signer-email s@centre.bd --signer-password .. --signer-name "Dr. Signatory" \
  *     --staff-email t@centre.bd --staff-password .. --staff-name "Tech Name"
+ *
+ * Usage (employer):
+ *   node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> \
+ *     --type employer \
+ *     --name "Beximco RMG Unit 4" [--district Dhaka] [--phone 02...] \
+ *     --signer-email s@employer.bd --signer-password .. --signer-name "Dr. Signatory" \
+ *     --staff-email d@employer.bd --staff-password .. --staff-name "APA Doctor"
  *
  * Note: --type clinic is refused — use create-doctor.mjs for clinic onboarding.
  */
@@ -33,12 +40,12 @@ const serviceKey = process.argv[3];
 const orgType = arg('--type');
 const name = arg('--name');
 
-const ALLOWED_TYPES = ['hospital', 'diagnostic_centre'];
+const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer'];
 
 if (!url || !serviceKey || !orgType || !name) {
   console.error(
     'usage: node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> ' +
-    '--type hospital|diagnostic_centre --name ".." [--district ..] [--phone ..] ' +
+    '--type hospital|diagnostic_centre|employer --name ".." [--district ..] [--phone ..] ' +
     '--signer-email .. --signer-password .. --signer-name .. ' +
     '--staff-email .. --staff-password .. --staff-name ..'
   );
@@ -96,8 +103,8 @@ async function addStaff(emailFlag, pwFlag, nameFlag, role) {
 // signatory role is shared across org types
 await addStaff('--signer-email', '--signer-password', '--signer-name', 'signatory');
 
-// hospital doctors enter clinical content; technologists enter results for diagnostic centres
-const staffRole = orgType === 'hospital' ? 'doctor' : 'technologist';
+// hospital/employer doctors enter clinical content; technologists enter results for diagnostic centres
+const staffRole = (orgType === 'hospital' || orgType === 'employer') ? 'doctor' : 'technologist';
 await addStaff('--staff-email', '--staff-password', '--staff-name', staffRole);
 
 console.log('DONE');
