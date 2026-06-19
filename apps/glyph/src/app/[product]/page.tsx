@@ -28,15 +28,25 @@ export function generateMetadata({
 }): Metadata {
   const product = getProduct(params.product);
   if (!product) return {};
+  const url = `/${product.slug}`;
   return {
     title: `${product.name} · ${product.headline} | KhaM Health`,
     description: product.standfirst,
+    alternates: { canonical: url },
     openGraph: {
       title: `${product.name} by KhaM Health`,
       description: product.standfirst,
+      url,
       siteName: "KhaM Health",
       locale: "en_US",
       type: "article",
+      images: [{ url: product.image, alt: product.imageAlt }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} by KhaM Health`,
+      description: product.standfirst,
+      images: [product.image],
     },
   };
 }

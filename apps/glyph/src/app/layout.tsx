@@ -3,6 +3,10 @@ import { Toaster } from "sonner";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
+  // Makes every page's openGraph/canonical URL resolve to an absolute
+  // https://khamhealth.com address (without this, Next emits relative
+  // URLs that crawlers and social cards cannot use).
+  metadataBase: new URL("https://khamhealth.com"),
   title: "Glyph — Clinical AI by KhaM Health",
   description:
     "Complete clinical workflow for Bangladeshi doctors: patient intake, AI briefing, ambient scribe, and follow-up.",
@@ -11,6 +15,16 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Glyph",
+  },
+  openGraph: {
+    siteName: "KhaM Health",
+    locale: "en_US",
+    type: "website",
+    images: ["/landing/chamber.webp"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/landing/chamber.webp"],
   },
 };
 

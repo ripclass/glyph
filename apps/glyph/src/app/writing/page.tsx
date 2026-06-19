@@ -25,14 +25,21 @@ import { Reveal } from "@/components/landing/Reveal";
 export const metadata: Metadata = {
   title: "Writing · KhaM Health",
   description:
-    "Essays and white papers on patient-owned, verifiable health records, and on where a clinical model belongs. From the team building Bangladesh's missing health infrastructure.",
+    "Essays and white papers on patient-owned, verifiable health records, sovereign clinical AI, and where a model belongs in care. From the team building Bangladesh's missing health infrastructure.",
+  alternates: { canonical: "/writing" },
   openGraph: {
     title: "Writing · KhaM Health",
     description:
       "Essays on what health software owes the people it serves. The record belongs to the patient; the model sharpens the clinician and never replaces them.",
+    url: "/writing",
     siteName: "KhaM Health",
     locale: "en_US",
     type: "website",
+    images: ["/landing/identity.webp"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/landing/identity.webp"],
   },
 };
 

@@ -22,6 +22,32 @@ export function generateStaticParams() {
 /** Unwritten/unknown slugs 404 rather than rendering an empty shell. */
 export const dynamicParams = false;
 
+/**
+ * Social-card image for a piece. Module-series essays carry their own
+ * product's photo; the rest take an image that fits their cluster.
+ */
+function ogImageForPiece(piece: { slug: string; number?: string }): string {
+  const modules = [
+    "pocket",
+    "pharmacy",
+    "lens",
+    "hospital",
+    "continuity",
+    "karigor",
+    "maa",
+    "bridge",
+  ];
+  const mod = modules.find((m) => piece.slug.startsWith(`${m}-`));
+  if (mod) return `/landing/${mod}.webp`;
+
+  const n = piece.number ? parseInt(piece.number, 10) : 0;
+  if (piece.slug === "anatomy-of-a-plastic-bag" || (n >= 1 && n <= 9))
+    return "/landing/identity.webp";
+  if (piece.slug === "sovereign-by-necessity" || (n >= 10 && n <= 18))
+    return "/landing/kham-med.webp";
+  return "/landing/chamber.webp";
+}
+
 export function generateMetadata({
   params,
 }: {
@@ -29,15 +55,30 @@ export function generateMetadata({
 }): Metadata {
   const piece = getWritingPiece(params.slug);
   if (!piece || !piece.published) return {};
+  // Description carries the searchable, plain-language topic (the
+  // standfirst), so the evocative title stays the brand hook while the
+  // keywords search engines match on live in the description and body.
+  const description = piece.standfirst ?? piece.tagline;
+  const url = `/writing/${piece.slug}`;
+  const image = ogImageForPiece(piece);
   return {
-    title: `${piece.title} · Writing · KhaM Health`,
-    description: piece.tagline,
+    title: `${piece.title} · KhaM Health`,
+    description,
+    alternates: { canonical: url },
     openGraph: {
       title: piece.title,
-      description: piece.tagline,
+      description,
+      url,
       siteName: "KhaM Health",
       locale: "en_US",
       type: "article",
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: piece.title,
+      description,
+      images: [image],
     },
   };
 }
@@ -57,8 +98,40 @@ export default function WritingPiecePage({
     piece.readMinutes ? `${piece.readMinutes} min read` : null,
   ].filter(Boolean);
 
+  // Structured data so search engines read this as an article with an
+  // author, publisher, and headline (eligible for richer results).
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": piece.kind === "paper" ? "ScholarlyArticle" : "Article",
+    headline: piece.title,
+    description: piece.standfirst ?? piece.tagline,
+    datePublished: "2026-06-01",
+    inLanguage: "en",
+    author: {
+      "@type": "Organization",
+      name: "KhaM Labs",
+      url: "https://khamhealth.com",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "KhaM Health",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://khamhealth.com/icons/icon-512.png",
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://khamhealth.com/writing/${piece.slug}`,
+    },
+  };
+
   return (
     <div className="scene min-h-screen px-2 py-2 sm:px-4 sm:py-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <main className="grain-soft relative mx-auto max-w-[1480px] overflow-hidden rounded-[1.75rem] bg-bone text-ink shadow-[0_40px_120px_-40px_rgba(23,26,25,0.45)]">
         <SiteNav />
 

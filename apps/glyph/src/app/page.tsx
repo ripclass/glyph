@@ -44,19 +44,55 @@ export const metadata: Metadata = {
   title: "KhaM Health · Healthcare that remembers you",
   description:
     "KhaM Health is building Bangladesh's missing clinical infrastructure: one identity for every patient, every prescription and lab result signed and verifiable, owned by the patient for life. Glyph Chamber is live in Dhaka. Join the pilot.",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "KhaM Health · Healthcare that remembers you",
     description:
       "One identity for every patient. Every clinical record signed, verifiable, and owned by the patient. Built for Bangladesh first.",
+    url: "/",
     siteName: "KhaM Health",
     locale: "en_US",
     type: "website",
+    images: ["/landing/chamber.webp"],
   },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/landing/chamber.webp"],
+  },
+};
+
+const ORG_JSONLD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://khamhealth.com/#organization",
+      name: "KhaM Health",
+      url: "https://khamhealth.com",
+      logo: "https://khamhealth.com/icons/icon-512.png",
+      email: "hello@khamhealth.com",
+      description:
+        "Clinical infrastructure for Bangladesh: one verifiable identity per patient, every prescription and lab result signed and owned by the patient for life.",
+      foundingLocation: { "@type": "Place", name: "Dhaka, Bangladesh" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://khamhealth.com/#website",
+      url: "https://khamhealth.com",
+      name: "KhaM Health",
+      inLanguage: "en",
+      publisher: { "@id": "https://khamhealth.com/#organization" },
+    },
+  ],
 };
 
 export default function LandingPage() {
   return (
     <div className="scene min-h-screen px-2 py-2 sm:px-4 sm:py-4">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
+      />
       <main className="grain-soft relative mx-auto max-w-[1480px] overflow-hidden rounded-[1.75rem] bg-bone text-ink shadow-[0_40px_120px_-40px_rgba(23,26,25,0.45)]">
         <SiteNav />
         <Hero />
