@@ -31,6 +31,12 @@ describe('shapeStaffSession', () => {
     expect(s).toEqual({ userId: 'u1', orgId: 'p1', orgName: 'BRAC Maternal Program', orgType: 'program', role: 'doctor' });
   });
 
+  it('picks a specialist_panel membership and shapes a session with orgType specialist_panel', () => {
+    const panel = row({ organizations: { id: 'sp1', name: 'Diaspora Oncology Panel', org_type: 'specialist_panel' }, role: 'doctor' });
+    const s = shapeStaffSession([panel]);
+    expect(s).toEqual({ userId: 'u1', orgId: 'sp1', orgName: 'Diaspora Oncology Panel', orgType: 'specialist_panel', role: 'doctor' });
+  });
+
   it('prefers the non-clinic owner membership when both exist', () => {
     const clinic = row({ organizations: { id: 'c1', name: 'Clinic', org_type: 'clinic' }, role: 'doctor' });
     const s = shapeStaffSession([clinic, row()]);

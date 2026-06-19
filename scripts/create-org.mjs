@@ -54,12 +54,12 @@ const serviceKey = process.argv[3];
 const orgType = arg('--type');
 const name = arg('--name');
 
-const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer', 'recruiter', 'program'];
+const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer', 'recruiter', 'program', 'specialist_panel'];
 
 if (!url || !serviceKey || !orgType || !name) {
   console.error(
     'usage: node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> ' +
-    '--type hospital|diagnostic_centre|employer|recruiter|program --name ".." [--district ..] [--phone ..] ' +
+    '--type hospital|diagnostic_centre|employer|recruiter|program|specialist_panel --name ".." [--district ..] [--phone ..] ' +
     '--signer-email .. --signer-password .. --signer-name .. ' +
     '--staff-email .. --staff-password .. --staff-name ..'
   );
@@ -117,8 +117,8 @@ async function addStaff(emailFlag, pwFlag, nameFlag, role) {
 // signatory role is shared across org types
 await addStaff('--signer-email', '--signer-password', '--signer-name', 'signatory');
 
-// hospital/employer/recruiter/program doctors enter clinical content; technologists enter results for diagnostic centres
-const staffRole = (orgType === 'hospital' || orgType === 'employer' || orgType === 'recruiter' || orgType === 'program') ? 'doctor' : 'technologist';
+// hospital/employer/recruiter/program/specialist_panel doctors enter clinical content; technologists enter results for diagnostic centres
+const staffRole = (orgType === 'hospital' || orgType === 'employer' || orgType === 'recruiter' || orgType === 'program' || orgType === 'specialist_panel') ? 'doctor' : 'technologist';
 await addStaff('--staff-email', '--staff-password', '--staff-name', staffRole);
 
 console.log('DONE');
