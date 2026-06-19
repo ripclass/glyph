@@ -121,7 +121,8 @@ Glyph/
 │   │   ├── 009_scheduled_messages.sql # scheduled_messages: Leg D proactive send queue + visits.next_appointment_at, RLS deny-all
 │   │   ├── 010_prescription_safety.sql # visits.prescription_safety_check JSONB: safety result + per-warning doctor verdicts, recorded at note-approval (audit today, KhaM-Med ground truth tomorrow)
 │   │   ├── 011_owner_scope.sql      # organizations + memberships + clinics.organization_id (backfilled), patients.owner_org_id + clinic_id RELAXED to nullable, kham_holding provisional-owner singleton; RESTRICTIVE patients_single_scope policy + patients_one_scope CHECK enforce one-owner-scope; NEW owner-scoped RLS ALONGSIDE the untouched clinic RLS. The audit's R2 "clinic is one owner type" foundation (Lens is first consumer). Chamber path unchanged; smoke-path 19/19 + smoke-owner-scope green.
-│   │   └── 012_lab_orders.sql       # lab_orders workflow table: owner-org-scoped order→result→sign lifecycle; raw_results + normalized_results + sanity_flags JSONB; status enum (ordered/resulted/signed/revoked); freeze-on-credential trigger (blocks update when status=signed); member RLS (org members read/write their own org's orders). Lens v1 surface.
+│   │   ├── 012_lab_orders.sql       # lab_orders workflow table: owner-org-scoped order→result→sign lifecycle; raw_results + normalized_results + sanity_flags JSONB; status enum (ordered/resulted/signed/revoked); freeze-on-credential trigger (blocks update when status=signed); member RLS (org members read/write their own org's orders). Lens v1 surface.
+│   │   └── 013_discharge_records.sql # discharge_records workflow table: Hospital v1 analogue of lab_orders; status enum (draft/signed/revoked); freeze-on-credential trigger; discharge_diagnosis + discharge_medications + procedures + hospital_course + follow_up_instructions + discharge_condition JSONB/TEXT fields; member RLS (hospital org members only). DischargeSummary VC issued on sign.
 │   └── functions/
 │       ├── _shared/
 │       │   ├── cors.ts
@@ -200,6 +201,19 @@ Glyph/
         │   │       ├── normalize/route.ts # POST: call lens-normalize edge fn (LENS_SHARED_SECRET) → persist normalized_results + sanity_flags
         │   │       ├── extract/route.ts  # POST: upload a lab-report photo (consent required, device_info='lens_image_extract') → service-role upload to documents bucket → extract-document (staff JWT, extractOnly=true, Tier B) → return rawResults for UI pre-fill; does NOT save results
         │   │       └── sign/route.ts     # POST: issue LabResult VC (org DID as issuer), freeze order, set status=signed
+        │   ├── hospital/
+        │   │   ├── layout.tsx           # Hospital-staff AuthGuard (checks staff-store, org_type='hospital')
+        │   │   ├── page.tsx             # HOSPITAL: discharge list dashboard
+        │   │   ├── login/page.tsx       # Glyph Hospital staff sign in (email+password, staff-store)
+        │   │   └── discharge/
+        │   │       ├── new/page.tsx     # New discharge form (patient lookup/create + admission date)
+        │   │       └── [id]/page.tsx    # Discharge detail: summary entry + sign → DischargeSummary VC
+        │   ├── api/hospital/
+        │   │   └── discharges/
+        │   │       ├── route.ts         # POST: create draft discharge record (walk-in or known patient)
+        │   │       └── [id]/
+        │   │           ├── route.ts     # POST: save summary fields (diagnosis, meds, condition, dates)
+        │   │           └── sign/route.ts # POST: issue DischargeSummary VC (org DID as issuer, signatory-only), freeze record, set status=signed. No edge fn — pure Next + Supabase.
         │   ├── wallet/[token]/page.tsx  # POCKET v1: patient-facing wallet (calm-presence, Bangla, read-only). Logic: lib/services/wallet-logic.ts (+test). QR issued on note-approval via components/doctor/WalletHandoff.tsx (qrcode dep). Has "Ask about a symptom" entry → /ask.
         │   ├── wallet/[token]/ask/page.tsx # POCKET v2: calm-presence Bangla triage chat. One-time consent notice → guided Q&A (≤3 follow-ups) → routed answer card (pharmacy/doctor/urgent; clinical red ONLY on urgent). Logic in lib/services/triage-logic.ts (+test, 12).
         │   ├── intake/
@@ -231,8 +245,9 @@ Glyph/
         │   ├── services/            # ai, camera, speech, patients, visits, whatsapp, registration(+logic+test),
         │   │                        # consents, documents-logic(+test), wallet-logic(+test), triage-logic(+test), organizations(+logic+test),
         │   │                        # triage-runner (shared symptom-triage engine: red-flag screen → consent → egress-gated `triage` edge fn → clamp → persist; called by BOTH the wallet triage route and the WhatsApp bridge),
-        │   │                        # staff-logic(+test) (centre-staff session: shapeStaffSession, canSign, canEnterResults, role gates),
-        │   │                        # lens-logic(+test) (lab-order helpers: buildLabOrderRow, normalizeRawItem, buildLabResultData, KNOWN_TEST_CATEGORIES, LabResultItem)
+        │   │                        # staff-logic(+test) (org-type-generalized session: shapeStaffSession/requireOrgType/canSign/canEnterResults — guards both Lens centre AND Hospital surfaces; the same shapeStaffSession works for any non-clinic owner org),
+        │   │                        # lens-logic(+test) (lab-order helpers: buildLabOrderRow, normalizeRawItem, buildLabResultData, KNOWN_TEST_CATEGORIES, LabResultItem),
+        │   │                        # hospital-logic(+test) (discharge helpers: buildDischargeRecordRow, buildDischargeSummaryData)
         │   ├── whatsapp/            # WhatsApp bridge: provider/parse/verify/send (ported from Juugadu, 360dialog), window, binding (QR one-time code), router (+tests), process (orchestration) — Leg A. Leg B adds intents, flow, reply, wallet-link modules + intent-aware router handling in-thread triage (reuses lib/services/triage-runner.ts), wallet record requests, and stop-word revoke. Leg C adds media (360dialog download), documents (bucket upload), doc-type (flow: image → consent → type question → extract-document service path). Leg D adds templates (glyph_followup/glyph_appointment_reminder/glyph_doctor_nudge template definitions), schedule (enqueue/drain helpers for scheduled_messages), and sendTemplate (360dialog template send). Routes call into this; clinical thinking stays in edge fns.
         │   ├── stores/              # auth-store, intake-store, consult-store, queue-store, staff-store (centre-staff session + signIn)
         │   ├── supabase/            # client.ts, server.ts, types.ts (Database type — regenerate via gen types)
@@ -292,6 +307,7 @@ From `supabase/migrations/001_initial_schema.sql`. Postgres 15, `uuid-ossp` enab
 | `organizations` | `id`, `name`, `org_type` (clinic/diagnostic_centre/hospital/employer/recruiter/kham_holding), DID/key cols | Migration 011. The general owner (R2). Each clinic has a 1:1 backfilled org (`clinics.organization_id`). RLS: members read their own org. |
 | `memberships` | `user_id → auth.users`, `organization_id → organizations`, `role` (owner/admin/doctor/technologist/signatory/staff) | Migration 011. Who may act for an owner (generalizes `doctors.clinic_id`); lets non-doctor staff log in. UNIQUE(user_id, org). RLS: self-read. |
 | `lab_orders` | `id`, `owner_org_id → organizations`, `patient_id → patients`, `ordered_by → auth.users`, `test_category`, `status` enum (ordered/resulted/signed/revoked), `raw_results JSONB`, `normalized_results JSONB`, `sanity_flags JSONB`, `lab_result_vc_id → credentials` | Migration 012. Lens v1 workflow table. Owner-org-scoped (RLS: members of the org). Freeze-on-credential trigger blocks updates once status=signed. |
+| `discharge_records` | `id`, `owner_org_id → organizations` (hospital), `patient_id → patients`, `status` enum (draft/signed/revoked), `admission_date`, `discharge_date`, `discharge_diagnosis JSONB` ([{text,icd10}]), `discharge_medications JSONB`, `procedures JSONB`, `hospital_course TEXT`, `follow_up_instructions JSONB`, `discharge_condition TEXT`, `created_by → auth.users`, `signatory_user_id → auth.users`, `signed_at`, `credential_id → credentials` | Migration 013. Hospital v1 workflow table. Member RLS (org members only). Freeze-on-credential trigger blocks clinical field mutations once credential_id is set. DischargeSummary VC issued on sign; no projection table (wallet surfacing deferred). |
 
 **Indexes:** on `visits(patient_id|doctor_id|visit_date DESC|status|clinic_id,visit_date)`, `prescriptions(patient_id)`, `lab_reports(patient_id|category)`, `patients(phone|clinic_id)`, `consent_records(patient_id)`, `api_usage_log(visit_id)`.
 
@@ -337,6 +353,10 @@ node scripts/dev-doctor.mjs http://127.0.0.1:54321 <sb_secret_key>   # → docto
 node scripts/create-doctor.mjs <SUPABASE_URL> <SERVICE_KEY> --email .. --password .. \
   --name "Dr. .." --phone 01XXXXXXXXX --clinic "Clinic Name" [--name-bn ..] [--bmdc ..]
 
+# Lens/Hospital org + staff onboarding (local or prod)
+node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> --name "Ibn Sina Diagnostics" --type diagnostic_centre --email staff@example.com --password <pw> --role technologist
+  # Supported org types: diagnostic_centre, hospital. Roles: technologist/signatory/staff/doctor/owner/admin.
+
 # Smoke suites (keys from `supabase start` output locally; for prod:
 # `supabase projects api-keys --project-ref pywgimmcbzwnwcvnvmay -o json`)
 node scripts/smoke-db.mjs <SUPABASE_URL> <sb_secret_key>
@@ -345,6 +365,7 @@ node scripts/smoke-egress.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
 node scripts/smoke-documents.mjs <FUNCTIONS_URL> <SUPABASE_URL> <ANON> <SERVICE>
 # smoke-credentials.mjs: LOCAL ONLY (append-only rows would be permanent on prod)
 node scripts/smoke-lens.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY>    # Lens v1: Section A = DB schema; Section B = full E2E (needs Next + edge fns running)
+node scripts/smoke-hospital.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_KEY> # Hospital v1: Section A = discharge_records schema; Section B = full E2E (needs Next running, NO edge fns needed)
 
 # Prod deploys (in this order when schema is involved)
 supabase db push -p (Get-Content .db-password.glyph-prod.local)   # migrations → prod
