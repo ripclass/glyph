@@ -125,7 +125,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         signatory_user_id: user.id,
         signed_at: new Date().toISOString(),
         credential_id: credential.rowId,
-      } as never)
+      })
       .eq('id', (record as { id: string }).id);
 
     if (updErr) {

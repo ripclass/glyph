@@ -304,7 +304,7 @@ export default function AssessmentDetailPage({ params }: { params: { id: string 
               {signResult?.occupationalHealthVcId ?? (record as { credential_id?: string }).credential_id}
             </p>
           </div>
-        ) : assessmentType ? (
+        ) : (record?.assessment_type || assessmentType) ? (
           <Button onClick={sign} disabled={signing || frozen}>
             {signing ? 'Signing…' : 'Sign & issue OccupationalHealth'}
           </Button>
