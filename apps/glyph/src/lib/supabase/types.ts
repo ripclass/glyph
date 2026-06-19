@@ -1212,6 +1212,82 @@ export type Database = {
           },
         ]
       }
+      specialist_opinions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          credential_id: string | null
+          differential_diagnosis: Json | null
+          id: string
+          opinion: string | null
+          owner_org_id: string
+          patient_id: string
+          presented_record_refs: Json | null
+          recommendations: Json | null
+          referral_reason: string | null
+          signatory_user_id: string | null
+          signed_at: string | null
+          specialty: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          differential_diagnosis?: Json | null
+          id?: string
+          opinion?: string | null
+          owner_org_id: string
+          patient_id: string
+          presented_record_refs?: Json | null
+          recommendations?: Json | null
+          referral_reason?: string | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          specialty?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          differential_diagnosis?: Json | null
+          id?: string
+          opinion?: string | null
+          owner_org_id?: string
+          patient_id?: string
+          presented_record_refs?: Json | null
+          recommendations?: Json | null
+          referral_reason?: string | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          specialty?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "specialist_opinions_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "specialist_opinions_owner_org_id_fkey"
+            columns: ["owner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "specialist_opinions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       triage_sessions: {
         Row: {
           created_at: string
@@ -1768,25 +1844,6 @@ export const Constants = {
   },
 } as const
 
-
-/** Consent categories tracked for PDPO compliance (CHECK constraint) */
-export type ConsentType =
-  | 'recording'
-  | 'data_storage'
-  | 'ai_processing'
-  | 'image_capture'
-  | 'whatsapp_followup'
-  | 'data_sharing';
-
-/** Who provided consent on behalf of the patient (CHECK constraint) */
-export type ConsentGrantedBy = 'patient' | 'attendant' | 'guardian';
-
-/** Waitlist lifecycle (CHECK constraint on waitlist_signups.status) */
-export type WaitlistStatus = 'pending' | 'invited' | 'onboarded' | 'declined';
-
-/** Credential lifecycle (CHECK constraint on credentials.status) */
-export type CredentialStatus = 'active' | 'revoked' | 'superseded';
-
 /** Convenience aliases for Row types */
 export type Clinic = Database['public']['Tables']['clinics']['Row'];
 export type Doctor = Database['public']['Tables']['doctors']['Row'];
@@ -1831,6 +1888,8 @@ export type ClearanceRecord = Database['public']['Tables']['clearance_records'][
 export type ClearanceRecordInsert = Database['public']['Tables']['clearance_records']['Insert'];
 export type AntenatalVisit = Database['public']['Tables']['antenatal_visits']['Row'];
 export type AntenatalVisitInsert = Database['public']['Tables']['antenatal_visits']['Insert'];
+export type SpecialistOpinion = Database['public']['Tables']['specialist_opinions']['Row'];
+export type SpecialistOpinionInsert = Database['public']['Tables']['specialist_opinions']['Insert'];
 
 /** Visit lifecycle (CHECK constraint on visits.status) */
 export type VisitStatus =
@@ -1840,3 +1899,9 @@ export type VisitStatus =
   | 'note_review'
   | 'completed'
   | 'followup_sent';
+
+/** Prescription image source (prescriptions.source CHECK) */
+export type PrescriptionSource = 'photo_historical' | 'photo_current' | 'generated';
+
+/** Lab report image source (lab_reports.source CHECK) */
+export type LabReportSource = 'photo' | 'generated';
