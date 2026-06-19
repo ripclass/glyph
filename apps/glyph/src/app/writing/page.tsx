@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import {
   WRITING_THESIS,
   WRITING_PAPERS,
-  WRITING_ESSAYS,
+  WRITING_ESSAY_CLUSTERS,
+  essaysInCluster,
   type WritingPiece,
 } from "@/lib/landing/writing";
 import { SiteNav, SiteFooter } from "@/components/landing/SiteChrome";
@@ -216,14 +217,42 @@ export default function WritingPage() {
                 <span className="text-ink">02</span> — Essays
               </p>
               <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
-                One idea each. Short enough to read between patients.
+                One idea each, short enough to read between patients, grouped
+                under the paper each follows from.
               </p>
             </Reveal>
 
-            <div className="mt-8">
-              {WRITING_ESSAYS.map((piece) => (
-                <EssayRow key={piece.slug} piece={piece} />
-              ))}
+            <div className="mt-10 space-y-14 md:space-y-16">
+              {WRITING_ESSAY_CLUSTERS.map((cluster) => {
+                const essays = essaysInCluster(cluster);
+                if (essays.length === 0) return null;
+                return (
+                  <Reveal key={cluster.title}>
+                    <div className="flex flex-col gap-1.5 border-b border-bone-line pb-3 md:flex-row md:items-baseline md:justify-between md:gap-4">
+                      <h3 className="font-display text-xl font-medium tracking-[-0.01em] md:text-2xl">
+                        {cluster.title}
+                      </h3>
+                      {cluster.paperSlug && (
+                        <Link
+                          href={`/writing/${cluster.paperSlug}`}
+                          className="group inline-flex items-center gap-1.5 font-mono text-[12px] text-ink-faint transition hover:text-ink"
+                        >
+                          Read the paper
+                          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2} />
+                        </Link>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
+                      {cluster.blurb}
+                    </p>
+                    <div className="mt-3">
+                      {essays.map((piece) => (
+                        <EssayRow key={piece.slug} piece={piece} />
+                      ))}
+                    </div>
+                  </Reveal>
+                );
+              })}
             </div>
           </section>
         </div>

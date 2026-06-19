@@ -1498,3 +1498,57 @@ export const WRITING_ESSAYS = WRITING_PIECES.filter((p) => p.kind === "essay");
 export function getWritingPiece(slug: string): WritingPiece | undefined {
   return WRITING_PIECES.find((p) => p.slug === slug);
 }
+
+/**
+ * Essay clusters shown on the index, in order. Each groups a contiguous
+ * run of essays under the paper (or theme) they follow from, so the long
+ * flat list reads as four clusters plus the module series.
+ */
+export interface EssayCluster {
+  title: string;
+  blurb: string;
+  /** The paper this cluster follows from, linked from the heading. */
+  paperSlug?: string;
+  /** Inclusive essay-number range belonging to this cluster. */
+  range: [number, number];
+}
+
+export const WRITING_ESSAY_CLUSTERS: EssayCluster[] = [
+  {
+    title: "Anatomy of a plastic bag",
+    blurb: "The identity layer, turned every way.",
+    paperSlug: "anatomy-of-a-plastic-bag",
+    range: [1, 9],
+  },
+  {
+    title: "Sovereign by necessity",
+    blurb: "Why the clinical model has to come home.",
+    paperSlug: "sovereign-by-necessity",
+    range: [10, 18],
+  },
+  {
+    title: "Where the model belongs",
+    blurb: "The line between the model, the doctor, and the signature.",
+    paperSlug: "where-the-model-belongs",
+    range: [19, 23],
+  },
+  {
+    title: "Meeting the clinic that exists",
+    blurb: "Designing for the forty-eight-second visit.",
+    paperSlug: "meeting-the-clinic-that-exists",
+    range: [24, 28],
+  },
+  {
+    title: "One spine, every setting",
+    blurb: "How each Glyph surface falls out of the same record.",
+    range: [29, 36],
+  },
+];
+
+/** Essays belonging to a cluster, in order. */
+export function essaysInCluster(cluster: EssayCluster): WritingPiece[] {
+  return WRITING_ESSAYS.filter((e) => {
+    const n = e.number ? parseInt(e.number, 10) : 0;
+    return n >= cluster.range[0] && n <= cluster.range[1];
+  });
+}
