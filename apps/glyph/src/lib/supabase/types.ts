@@ -9,6 +9,94 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      antenatal_visits: {
+        Row: {
+          blood_pressure: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_id: string | null
+          edd: string | null
+          fetal_heart_rate_bpm: number | null
+          fundal_height_cm: number | null
+          gestational_age_weeks: number | null
+          id: string
+          lmp: string | null
+          next_visit_date: string | null
+          owner_org_id: string
+          patient_id: string
+          risk_flags: Json | null
+          signatory_user_id: string | null
+          signed_at: string | null
+          status: string
+          visit_number: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          blood_pressure?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          edd?: string | null
+          fetal_heart_rate_bpm?: number | null
+          fundal_height_cm?: number | null
+          gestational_age_weeks?: number | null
+          id?: string
+          lmp?: string | null
+          next_visit_date?: string | null
+          owner_org_id: string
+          patient_id: string
+          risk_flags?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          visit_number?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          blood_pressure?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          edd?: string | null
+          fetal_heart_rate_bpm?: number | null
+          fundal_height_cm?: number | null
+          gestational_age_weeks?: number | null
+          id?: string
+          lmp?: string | null
+          next_visit_date?: string | null
+          owner_org_id?: string
+          patient_id?: string
+          risk_flags?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          visit_number?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "antenatal_visits_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antenatal_visits_owner_org_id_fkey"
+            columns: ["owner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antenatal_visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_usage_log: {
         Row: {
           created_at: string | null
@@ -1680,22 +1768,6 @@ export const Constants = {
   },
 } as const
 
-// ─── Compatibility tail (hand-written — preserve on every regen) ─────────────
-
-/** Visit lifecycle enum (CHECK constraint on visits.status) */
-export type VisitStatus =
-  | 'intake'
-  | 'intake_complete'
-  | 'in_consultation'
-  | 'note_review'
-  | 'completed'
-  | 'followup_sent';
-
-/** Prescription provenance (CHECK constraint on prescriptions.source) */
-export type PrescriptionSource = 'photo_historical' | 'photo_current' | 'generated';
-
-/** Lab report provenance (CHECK constraint on lab_reports.source) */
-export type LabReportSource = 'photo_historical' | 'photo_current' | 'digital';
 
 /** Consent categories tracked for PDPO compliance (CHECK constraint) */
 export type ConsentType =
@@ -1757,3 +1829,14 @@ export type OccupationalAssessment = Database['public']['Tables']['occupational_
 export type OccupationalAssessmentInsert = Database['public']['Tables']['occupational_assessments']['Insert'];
 export type ClearanceRecord = Database['public']['Tables']['clearance_records']['Row'];
 export type ClearanceRecordInsert = Database['public']['Tables']['clearance_records']['Insert'];
+export type AntenatalVisit = Database['public']['Tables']['antenatal_visits']['Row'];
+export type AntenatalVisitInsert = Database['public']['Tables']['antenatal_visits']['Insert'];
+
+/** Visit lifecycle (CHECK constraint on visits.status) */
+export type VisitStatus =
+  | 'intake'
+  | 'intake_complete'
+  | 'in_consultation'
+  | 'note_review'
+  | 'completed'
+  | 'followup_sent';
