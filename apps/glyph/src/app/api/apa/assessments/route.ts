@@ -29,8 +29,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Access restricted to employer members' }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { patientName, phone, age, gender, assessmentType, existingPatientId } = body ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+  const { patientName, phone, age, gender, assessmentType, existingPatientId } = (body ?? {}) as {
+    patientName?: string; phone?: string; age?: number;
+    gender?: 'male' | 'female' | 'other' | null;
+    assessmentType?: string; existingPatientId?: string;
+  };
 
   const admin = createAdminClient();
 

@@ -33,6 +33,8 @@ export default function AssessmentDetailPage({ params }: { params: { id: string 
   const [restrictions, setRestrictions] = useState<string[]>(['']);
   const [recommendations, setRecommendations] = useState<string[]>(['']);
   const [saving, setSaving] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [signResult, setSignResult] = useState<{ occupationalHealthVcId: string; patientDid: string; orgDid: string } | null>(null);
 
   async function token() {
     const { data: { session } } = await createClient().auth.getSession();
@@ -89,6 +91,25 @@ export default function AssessmentDetailPage({ params }: { params: { id: string 
       toast.error(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sign() {
+    setSigning(true);
+    try {
+      const res = await fetch(`/api/apa/assessments/${params.id}/sign`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      const json = await res.json();
+      if (!json.success) return toast.error(json.error);
+      setSignResult(json.data as { occupationalHealthVcId: string; patientDid: string; orgDid: string });
+      toast.success('Signed');
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sign failed');
+    } finally {
+      setSigning(false);
     }
   }
 
@@ -274,17 +295,21 @@ export default function AssessmentDetailPage({ params }: { params: { id: string 
         </Button>
       )}
 
-      {/* Sign panel — placeholder (Task 4) */}
+      {/* Sign panel */}
       <section className="rounded-xl border border-line bg-white p-4">
-        {record.status === 'signed' ? (
+        {record.status === 'signed' || signResult ? (
           <div className="space-y-1">
-            <p className="text-sm font-medium text-ink">&#x2713; Signed &middot; OccupationalAssessment issued</p>
+            <p className="text-sm font-medium text-ink">&#x2713; Signed &middot; OccupationalHealth issued</p>
             <p className="break-all font-mono text-xs text-clinical-muted">
-              {(record as { credential_id?: string }).credential_id}
+              {signResult?.occupationalHealthVcId ?? (record as { credential_id?: string }).credential_id}
             </p>
           </div>
+        ) : assessmentType ? (
+          <Button onClick={sign} disabled={signing || frozen}>
+            {signing ? 'Signing…' : 'Sign & issue OccupationalHealth'}
+          </Button>
         ) : (
-          <p className="text-sm text-clinical-muted">Signing available in the next release.</p>
+          <p className="text-sm text-clinical-muted">Select an assessment type to enable signing.</p>
         )}
       </section>
     </div>
