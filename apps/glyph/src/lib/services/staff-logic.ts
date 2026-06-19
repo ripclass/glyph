@@ -49,14 +49,16 @@ export function requireOrgType(staff: StaffSession | null, orgType: string): boo
 }
 
 const SIGN_ROLES: StaffRole[] = ['signatory', 'owner', 'admin'];
-const RESULT_ROLES: StaffRole[] = ['technologist', 'signatory', 'owner', 'admin'];
+/** technologist (Lens), doctor (Hospital), and signers may enter/extract results. */
+const RESULT_ROLES: StaffRole[] = ['technologist', 'doctor', 'signatory', 'owner', 'admin'];
 
-/** Only a qualified signatory (or owner/admin) may sign → LabResult credential. */
+/** Only a qualified signatory (or owner/admin) may sign → LabResult/DischargeSummary credential. */
 export function canSign(role: string): boolean {
   return SIGN_ROLES.includes(role as StaffRole);
 }
 
-/** Technologists and signers may enter/extract results. */
+/** Technologists (Lens), doctors (Hospital), and signers may enter/extract results.
+ *  A doctor enters clinical content but cannot sign credentials (see SIGN_ROLES). */
 export function canEnterResults(role: string): boolean {
   return RESULT_ROLES.includes(role as StaffRole);
 }

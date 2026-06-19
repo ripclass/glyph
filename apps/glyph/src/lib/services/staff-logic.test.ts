@@ -50,11 +50,19 @@ describe('role capabilities', () => {
     expect(canSign('owner')).toBe(true);
     expect(canSign('admin')).toBe(true);
     expect(canSign('technologist')).toBe(false);
+    expect(canSign('doctor')).toBe(false);
     expect(canSign('staff')).toBe(false);
   });
-  it('canEnterResults: technologist + signers, not plain staff', () => {
+  it('canEnterResults: technologist + doctor + signers, not plain staff', () => {
     expect(canEnterResults('technologist')).toBe(true);
+    expect(canEnterResults('doctor')).toBe(true);
     expect(canEnterResults('signatory')).toBe(true);
+    expect(canEnterResults('owner')).toBe(true);
+    expect(canEnterResults('admin')).toBe(true);
     expect(canEnterResults('staff')).toBe(false);
+  });
+  it('doctor enters but cannot sign (Hospital flow)', () => {
+    expect(canEnterResults('doctor')).toBe(true);
+    expect(canSign('doctor')).toBe(false);
   });
 });

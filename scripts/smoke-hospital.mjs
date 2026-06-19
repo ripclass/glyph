@@ -134,7 +134,7 @@ if (!appUrl) {
     return { id: u.user.id, email: u.user.email, jwt: session.access_token };
   }
 
-  const staffA    = await staffUser('staff',     orgA.id);
+  const staffA    = await staffUser('doctor',    orgA.id);
   const signerA   = await staffUser('signatory', orgA.id);
   const signerB   = await staffUser('signatory', orgB.id);
 
@@ -165,9 +165,9 @@ if (!appUrl) {
   });
   check('save discharge summary 200', saved.status === 200 && saved.json.success, JSON.stringify(saved.json));
 
-  // ── 3. non-signatory (staff) CANNOT sign (403) ────────────────────────────
+  // ── 3. doctor (enterer) CANNOT sign (403) ────────────────────────────────
   const staffSign = await post(`/api/hospital/discharges/${dischargeId}/sign`, staffA.jwt);
-  check('staff CANNOT sign (403)', staffSign.status === 403, `got ${staffSign.status}`);
+  check('doctor CANNOT sign (403)', staffSign.status === 403, `got ${staffSign.status}`);
 
   // ── 4. signatory signs ────────────────────────────────────────────────────
   const signedRes = await post(`/api/hospital/discharges/${dischargeId}/sign`, signerA.jwt);
