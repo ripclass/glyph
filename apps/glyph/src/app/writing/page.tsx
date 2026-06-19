@@ -183,7 +183,8 @@ export default function WritingPage() {
               className="landing-fade-up mt-8 font-mono text-[13px] text-ink-faint"
               style={{ animationDelay: "0.45s" }}
             >
-              Anatomy of a Plastic Bag, and the nine essays that follow from it.
+              The clinical identity layer, the sovereign model beneath it, and
+              the essays that follow from each.
             </p>
           </header>
 

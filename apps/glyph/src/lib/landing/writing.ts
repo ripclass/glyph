@@ -193,6 +193,159 @@ export const WRITING_PIECES: WritingPiece[] = [
       },
     ],
   },
+  {
+    slug: "sovereign-by-necessity",
+    kind: "paper",
+    title: "Sovereign by necessity",
+    tagline:
+      "Every intelligent moment in Glyph runs today on a foreign frontier model. That is the right way to start, and an impossible way to finish.",
+    readMinutes: 10,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A white paper on KhaM-Med and the case for a clinical model that runs on Bangladeshi terms: its languages, its law, its soil. Why the intelligence behind a country's health system cannot stay on loan, and the staged, honest path off it.",
+    sections: [
+      {
+        index: "01",
+        heading: "Where the intelligence lives today",
+        body: [
+          "Every intelligent moment in the Glyph network runs today on a foreign frontier model. The briefing card the doctor reads before the patient walks in. The plain-Bangla triage that tells a shopkeeper whether his chest pain is a pharmacy problem or an emergency. The draft read of a chest film at a district diagnostic center. All of it, today, is a call to a model trained and hosted in another country.",
+          "That is the correct way to start. Building a national clinical model before you know which tasks matter, on which inputs, at what accuracy, is how you spend three years training the wrong thing. The frontier models are good, they are available now, and they let the network learn what it actually needs before it commits to building its own.",
+          "It is also an impossible way to finish. National health infrastructure whose intelligence lives behind another company's terms of service is infrastructure on loan. The terms can change. The price can change. The access can be revoked over a policy dispute the country was never party to. The 4am triage answer for a mother in Mymensingh should not depend on a billing argument in San Francisco.",
+        ],
+        pullQuote:
+          "The 4am triage answer for a mother in Mymensingh should not depend on a billing argument in San Francisco.",
+      },
+      {
+        index: "02",
+        heading: "Four reasons it cannot stay there",
+        body: [
+          "Four reasons compound, and each on its own would be enough.",
+          "Cost. Frontier inference on every consultation cannot support free care for patients at national scale. The mission depends on routine traffic costing almost nothing to serve, and a per-call fee to a foreign provider, however small, stops being almost nothing once it is multiplied by a country.",
+          "Law. The Personal Data Protection Ordinance of 2025 treats health data as a specially protected category and points toward keeping it in the country. The honest fix for sensitive voice data, a patient describing her symptoms in her own words, is not better redaction before it is shipped abroad. It is not shipping it abroad.",
+          "Language. Frontier models are competent in standard written Bangla and effectively unusable in the speech that matters: Sylheti, Chittagonian, Noakhali, the dialects in which Glyph's actual patients describe their actual symptoms. A model built for an English-speaking clinician in a Western clinic does not become a model for a sixty-eight-year-old in Mymensingh, and no amount of prompting closes that gap.",
+          "Dependency. The first three are practical. The last is structural. A health system is not a thing a country should rent, and the intelligence inside it is the part most worth owning, because it is the part that decides what the system can do and who it can do it for.",
+        ],
+      },
+      {
+        index: "03",
+        heading: "What KhaM-Med is",
+        body: [
+          "KhaM-Med is the clinical model the network is building so the intelligence can come home. It builds on open-weights clinical models, the MedGemma family, that can legally run on servers in Dhaka, with published performance among the best open medical models at a fraction of frontier cost.",
+          "The base already knows board-exam medicine in English. The work is the distance from there to the floor Glyph actually stands on: Bangla and its dialects, the local prescription culture and its 1+0+1 dosing, the brand-to-generic mapping a Bangladeshi doctor carries in his head, the attendant-mediated encounter where a son answers for his mother, the local disease patterns, the report formats of the local diagnostic chains.",
+          "It learns this from consented, de-identified encounters and from licensed and open medical literature, and everything it learns stays in the country. The record belongs to the patient, and what a patient's care teaches the model belongs, in the end, to the people whose care it was. A model trained on the medicine of twenty crore people should serve those people first, and stay theirs.",
+        ],
+      },
+      {
+        index: "04",
+        heading: "Safety gates the handover",
+        body: [
+          "Nothing moves to KhaM-Med because it is cheaper, or because it is ours. A task moves only once it has been shown to match the frontier baseline on evaluation sets built from the real thing: real Bangladeshi films from real machines, real dialect transcripts, real chamber notes. The model earns each task. It is not handed them.",
+          "And the clinical safety rules do not change with the model underneath. KhaM-Med drafts; it does not decide. It produces a briefing for a doctor to read, a triage routing for a patient to act on, a draft read for a radiologist to confirm. The licensed human signs. Escalation stays conservative, because the cost of a missed red flag is not symmetric with the cost of one extra referral. The model that runs in Dhaka is held to exactly the standard the foreign model was, and crosses over only when it meets it.",
+        ],
+        pullQuote: "The model earns each task. It is not handed them.",
+      },
+      {
+        index: "05",
+        heading: "The staged path, said plainly",
+        body: [
+          "The path is staged, and the staging is honest, the same way the identity layer builds trust in declared phases rather than claiming it all at once.",
+          "Today, frontier models carry the complex reasoning while every consented encounter builds toward the model that will one day carry it. Next, fine-tuned models take the structured, high-volume tasks, and the sensitive flows move to in-country processing, which is the milestone the privacy constraints have been waiting on. In the target state, the large majority of routine inference runs through KhaM-Med on Bangladeshi infrastructure, with frontier models retained for the genuinely rare and the genuinely hard.",
+          "No stage pretends to be a later one. While a task is still served by a foreign model, the network says so. When it crosses to KhaM-Med, it crosses because it earned it. The country is told the truth about where its intelligence lives at every step, because a system that lies about that has already given away the thing sovereignty was supposed to protect.",
+        ],
+      },
+      {
+        index: "06",
+        heading: "Sovereign, by necessity",
+        body: [
+          "Sovereignty here is not a slogan and not nationalism. It is a list of practical things that all happen to point the same direction. The answer that arrives at 4am should not be revocable by a foreign vendor. The voice of a woman describing her symptoms should not have to leave the country to be understood. The dialect she speaks should be one the model was built to hear. The cost of serving her should be low enough that her care can be free. And the medicine of a people should belong to those people.",
+          "KhaM is the initials of Khayer and Mamataj. The model carries the name on purpose. It exists so that what twenty crore people teach it stays theirs, in their language, under their law, on their soil. That is not an ideological position. For a national health system, it is the only durable one. Sovereign, by necessity.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "where-the-model-belongs",
+    kind: "paper",
+    title: "Where the model belongs",
+    tagline:
+      "Glyph drafts, briefs, and flags. It never diagnoses and never prescribes. The doctor decides and signs, and that line is built so it cannot blur.",
+    readMinutes: 10,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A white paper on the division of labor between the model, the doctor, and the signature. Where a clinical AI belongs in a country with one doctor for every fifteen hundred people, and why the most useful thing it can do is refuse to be the doctor.",
+    sections: [
+      {
+        index: "01",
+        heading: "The line that cannot blur",
+        body: [
+          "A clinical model in Bangladesh is dropped into one of the most overloaded medical systems on earth. One doctor for every fifteen hundred people, ninety patients in a day, forty-eight seconds a visit. The temptation, for anyone building software into that gap, is obvious: let the machine do more of the deciding. There is so much demand and so little doctor that handing the model the decision looks like mercy.",
+          "It is the one thing the model must never do. Glyph does not diagnose. It does not prescribe. It does not decide. It drafts, it briefs, it flags, it remembers, and then it hands all of that to a licensed human who decides. That is not a legal line at the bottom of a screen. It is the line the whole system is built around, and the engineering exists to make sure it cannot blur.",
+          "Everything that follows is an argument for why that restraint is not timidity. In high-stakes work the model that refuses to decide is the more useful one, and the more honest one, and in the end the only one a doctor can safely lean on.",
+        ],
+        pullQuote:
+          "Handing the model the decision looks like mercy. It is the one thing it must never do.",
+      },
+      {
+        index: "02",
+        heading: "What the model is for",
+        body: [
+          "Refusing to decide is not refusing to work. The model in Glyph works constantly, and all of its work is the kind a forty-eight-second visit has no room for.",
+          "Before the patient walks in, it takes the history, in Bangla, unhurried, in the dialect the patient actually speaks, and reads the plastic bag of old papers into a structured record. It hands the doctor a briefing, red flags first, with the current medications already cross-checked. During the consultation it answers a clinical question with a cited source in seconds, so the doctor does not have to choose between looking something up and seeing the next patient. Afterward it drafts the note in the format Bangladeshi medicine uses, and a plain-Bangla summary for the patient. At a diagnostic center it offers a draft read of a film for a radiologist to confirm.",
+          "Every one of those is preparation and drafting, handed to a human who decides. None of it is the decision. The model is not there to replace the doctor's judgment. It is there to give him back the attention to use it, by doing the reading and the writing and the remembering that the volume has been stealing from him for years.",
+        ],
+      },
+      {
+        index: "03",
+        heading: "Why ninety-five percent accurate is a liability",
+        body: [
+          "There is a number that sells clinical AI and should worry anyone who understands it. Ninety-five percent accurate. In ordinary software that is an excellent result. In a setting where the output is a clinical decision, it describes a machine that produces a confident, plausible error once in every twenty answers.",
+          "The danger is not the five percent. It is the confidence. The model does not flag its wrong answers as wrong. It delivers them in the same fluent, certain voice as the right ones, and nineteen correct answers in a row train the tired doctor at the end of a ninety-patient day to trust the twentieth. An error that announced itself would be safe. A confident error inside a stream of correct ones is the dangerous kind, because the system around it has stopped checking.",
+          "This is why accuracy, however high, is necessary and never sufficient. A model that is right ninety-five or ninety-nine percent of the time is still a model that must never be the last word, because the cases where it is wrong are exactly the cases no one will catch if the model is trusted to decide. The fix is not a better number. It is a human who signs.",
+        ],
+        pullQuote:
+          "An error that announced itself would be safe. A confident error inside a stream of correct ones is the dangerous kind.",
+      },
+      {
+        index: "04",
+        heading: "Decision support is not the decision",
+        body: [
+          "The whole design rests on a distinction that is easy to state and easy to erode: support is not the decision. The briefing informs the doctor; the doctor decides. The triage routes the patient toward care; the patient and the clinician decide. The draft read flags a likely finding; the radiologist decides.",
+          "Hold that line and something useful follows. The model can be wrong and the system stays safe, because the model never acts. Its mistakes are caught at the step where a human reviews them, the way a first draft's mistakes are caught by the editor. The harm from a model error only escapes when the model is allowed to act with no human in the path, and the architecture's first job is to make sure that path does not exist.",
+          "So the line is enforced, not requested. The model has no key. It cannot issue a credential, cannot sign a prescription, cannot complete a diagnosis. Those acts are reserved, in the system itself, to a human holding a key only that human holds. A doctor can ignore the briefing, override the draft, reject the suggested note. What he cannot do is let the model sign in his place, because the model has nothing to sign with.",
+        ],
+      },
+      {
+        index: "05",
+        heading: "The signature is the accountability",
+        body: [
+          "When a doctor approves a note in Glyph, he is not approving the model. He is taking responsibility. He signs the prescription with his own cryptographic key, and in that moment the decision stops being a draft a machine produced and becomes a clinical act a named, licensed human stands behind.",
+          "This is the hinge between this paper and the identity layer. The signature that makes a prescription verifiable at a pharmacy in Khulna is the same signature that makes the AI safe to use in the chamber. They are one act. The doctor's key turns a draft into a decision and a decision into something the rest of the network can trust, and both of those depend on a human having chosen to put his name on it.",
+          "The model drafts a thousand notes a day. Not one of them becomes a prescription until a doctor signs it, and when he does, the accountability is his, traceable, and his alone. That is not a burden the design apologizes for. It is the point. A clinical act with no accountable human behind it is exactly the thing a health system cannot allow, and the signature is how the system guarantees there always is one.",
+        ],
+        pullQuote:
+          "The doctor's key turns a draft into a decision. The model has nothing to sign with.",
+      },
+      {
+        index: "06",
+        heading: "Conservative by design",
+        body: [
+          "One more rule follows from where the model sits, and it shapes every output: the model is tuned to be conservative, because the costs of its two kinds of error are not symmetric.",
+          "Sending a well patient to a doctor wastes a visit. Reassuring a sick one can cost a life. Those are not equivalent mistakes, and a model that treated them as equivalent, optimizing for raw accuracy, would be optimizing for the wrong thing. So Glyph leans the other way on purpose. A triage that cannot be sure escalates. A briefing surfaces the red flag even when it is probably nothing. The model would rather be the cause of one unnecessary referral than the reason one warning went unspoken.",
+          "This is the same instinct as the safest answer a verification system can give, which is to admit it could not check. A clinical model that says see a doctor, I cannot be sure is not failing. It is doing the most responsible thing a tool in its position can do, which is to route the uncertainty to the human who is allowed to resolve it.",
+        ],
+      },
+      {
+        index: "07",
+        heading: "Where the model belongs",
+        body: [
+          "Put all of it together and the answer is precise. The model belongs underneath the doctor, not in his chair. It belongs in the forty-eight seconds before the visit and the minutes after, doing the reading and the drafting and the remembering the visit has no room for. It belongs as the second reader, never the signer. As the draft, never the decision. As the tool that hands a prepared, flagged, cited picture to a human and then steps back.",
+          "The most useful thing a clinical model can do in a country with one doctor for every fifteen hundred people is not to be a doctor. It is to give the overwhelmed doctor who already exists the attention to be one. Glyph does that by doing everything around the decision and never the decision itself. That is where the model belongs, and the system is built so it cannot drift anywhere else.",
+        ],
+      },
+    ],
+  },
 
   /* ── Essays ─────────────────────────────────────────────────── */
   {
@@ -475,6 +628,268 @@ export const WRITING_PIECES: WritingPiece[] = [
           "Revocable means the grant runs in one direction and can be pulled back. The daughter abroad who watches her father's readings sees them because he allowed it, and stops seeing them the moment he withdraws it. Withdrawal is not a request the system may honor later. It is the removal of access, and the next attempt to read fails.",
           "Enforced by cryptography means the guarantee does not depend on KhaM Health being honest or even being alive. A shielded consultation is invisible to a factory-owned device because the factory does not hold the key, not because an app agreed to hide it. This matters most for the people the system exists to protect, because their safety cannot be left resting on a policy that a future owner, or a court order, or a breach could quietly set aside.",
           "The Personal Data Protection Ordinance of 2025 says, in law, that the citizen owns her personal data, that health data is specially protected, and that consent must be explicit. The law arrives with force around 2027. This architecture is that law rendered in cryptography instead of policy, built before the enforcement date, so that compliance is not a feature added under deadline but the shape of the thing from the start. A patient who can grant narrowly, revoke completely, and rely on the keys rather than the company is a patient the ordinance describes and the architecture already serves.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-4am-answer",
+    kind: "essay",
+    number: "10",
+    title: "The 4am answer",
+    tagline:
+      "The intelligence a country relies on at 4am cannot be revocable by a vendor it never sat across a table from.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the availability of a health system's intelligence is a question of sovereignty, not uptime.",
+    sections: [
+      {
+        body: [
+          "A mother in Mymensingh wakes at 4am with her child burning up. She opens the wallet on a shared phone and asks, in her own Bangla, whether this is something to watch through the night or something to move on now. An answer comes back: the fever pattern, the danger signs to check, whether the pharmacy will do or a hospital is needed now. For that one minute, the most important thing in her house is a model's reply.",
+          "Today that reply travels to a server in another country and back. Most nights it works. The question sovereignty asks is not whether it works most nights. It is who decides whether it works at all.",
+          "A foreign frontier model is a product, sold under terms the buyer does not write and cannot appeal. The price can move. The rate limits can tighten. Access can be cut over a sanctions reading, a policy change, or a billing dispute between two companies on the other side of the planet. None of those events have anything to do with the mother in Mymensingh, and every one of them can reach into her 4am.",
+        ],
+        pullQuote:
+          "The question is not whether it works most nights. It is who decides whether it works at all.",
+      },
+      {
+        body: [
+          "A health system is allowed to depend on electricity, on roads, on the mobile network, because those are things the country can, in principle, govern. It should not depend, at the layer that decides whether a sick child is sent to hospital, on a contract it is not a party to. That is the difference between infrastructure and a subscription.",
+          "This is why the intelligence has to come home, even where the foreign model is, today, better. Better is worth a great deal. It is not worth building the country's 4am on a foundation someone else can remove. A model that runs on Bangladeshi servers can be a step behind the frontier and still be the right one, because it answers to the country that depends on it. Availability you control beats capability you rent, at the layer where someone is waiting for an answer in the dark.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-dialect-the-model-cannot-hear",
+    kind: "essay",
+    number: "11",
+    title: "The dialect the model cannot hear",
+    tagline:
+      "A model built for an English-speaking clinic does not become a model for a sixty-eight-year-old in Sylhet. Language is the floor, not a feature.",
+    readMinutes: 5,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why frontier models fluent in Bangla still fail the patients who need them most.",
+    sections: [
+      {
+        body: [
+          "Ask a frontier model a medical question in clean, written Bangla and it answers well. This is the demo that convinces people the language problem is solved. It is not, because the language the demo uses is not the language Glyph's patients speak.",
+          "A patient does not describe her chest pain in textbook Bangla. She describes it in Sylheti, or Chittagonian, or the Noakhali her village speaks, in half-sentences, with the word for a symptom that only exists in her district, mediated by a son who is translating as he goes. The distance between that and standard written Bangla is not an accent. It is a different problem, and frontier models trained mostly on English and a thin slice of formal Bangla fall off it completely.",
+          "The failure is quiet, which makes it worse. The model does not announce that it misheard. It produces a confident, fluent answer to the question it thought it heard, and a confident wrong answer in a triage is more dangerous than no answer at all.",
+        ],
+        pullQuote:
+          "The model does not announce that it misheard. It answers the question it thought it heard.",
+      },
+      {
+        body: [
+          "This is why dialect is not a feature to add later. It is the floor the whole thing stands on. A clinical model for Bangladesh that cannot follow a woman describing her symptoms in the speech she actually uses is not a clinical model for Bangladesh. It is a clinical model for the small, urban, formally literate slice of it, which is the slice that was already best served.",
+          "Closing that gap is most of what building KhaM-Med actually is. Not new medicine, the base already knows board-exam medicine. The work is teaching it to hear the country: the dialects, the local words for pain and fever and dizziness, the way an attendant speaks for a patient, the way a real symptom arrives wrapped in worry and idiom. A model can only learn that from the speech itself, and that speech lives here, in these districts, in these patients' own words. It has to be learned where it is spoken. That is the deepest reason the model has to be built where the patients are.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "free-has-a-cost-structure",
+    kind: "essay",
+    number: "12",
+    title: "Free has a cost structure",
+    tagline:
+      "Free care at national scale needs inference that costs almost nothing. A per-call fee to a foreign vendor is not almost nothing once you multiply it by a country.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why care that is free for the patient forces a model the country owns.",
+    sections: [
+      {
+        body: [
+          "Pocket is free for patients, permanently. Maa is free to mothers. Pharmacy verification is free at the counter. These are not pricing decisions that can be revisited. They are load-bearing, because the people the system exists for are the people any fee would exclude first, and a health system that prices out the poorest has failed at the one thing it was for.",
+          "Free for the patient does not mean free to run. Every triage answer, every briefing, every draft read costs something to compute. When that computation is a call to a foreign frontier model, it carries a per-call fee. The fee is small. It is also multiplied by a country, every day, forever, and small times a country is not small.",
+        ],
+        pullQuote: "Small, times a country, every day, forever, is not small.",
+      },
+      {
+        body: [
+          "This is the economic reason the model has to come home, and it is not a rounding error. A mission funded to serve tens of millions of free interactions cannot rest on a marginal cost that scales linearly with use and is set by a vendor abroad. The arithmetic does not close. Either the free promise breaks, or the cost of one more answer has to fall toward zero, and the only way it falls toward zero is a model the network runs on its own infrastructure, where the marginal cost of one more answer is electricity, not a metered call.",
+          "So the free promise and the sovereign model are the same decision seen from two sides. You cannot keep care free at national scale on rented intelligence, and you cannot justify owning the intelligence without the scale that free access creates. KhaM-Med is what lets the free promise survive contact with the bill.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "dont-redact-it-dont-send-it",
+    kind: "essay",
+    number: "13",
+    title: "Don't redact it, don't send it",
+    tagline:
+      "The honest answer to a woman's voice describing her symptoms is not to redact it before shipping it abroad. It is not to ship it abroad.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the honest fix for sensitive health data is not better scrubbing.",
+    sections: [
+      {
+        body: [
+          "Every system that sends health data to a foreign model has a slide about de-identification. Names stripped, phone numbers masked, identifiers removed before the data leaves. It is real work and it is worth doing, and it is not the same thing as safety.",
+          "A woman describing her symptoms in a voice note is not a row with a name field to blank out. Her voice is identifying. Her dialect places her. The details of her complaint, the village clinic she mentions, the relative who brought her, reassemble into a person no matter how many fields are masked. Free text and recorded speech are the hardest things to de-identify and the easiest to re-identify, and the most sensitive health disclosures arrive in exactly that form.",
+        ],
+        pullQuote:
+          "Free text and recorded speech are the hardest things to de-identify and the easiest to re-identify.",
+      },
+      {
+        body: [
+          "The Personal Data Protection Ordinance of 2025 treats health data as a specially protected category and points toward keeping it in the country. Read honestly, that is not a rule that better redaction satisfies. It is a rule about where the data goes.",
+          "So the honest fix is the blunt one. The most sensitive flows, the recorded voice, the free-text symptom story, the stigmatized consultation, do not get scrubbed harder and shipped. They get processed in the country, on infrastructure under the country's law, by a model that does not phone abroad. De-identification stays the floor for what must briefly leave. But the milestone KhaM-Med exists to reach is the one where the sensitive data does not leave at all, because the only data you can be certain was not mishandled abroad is the data that never went.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "infrastructure-on-loan",
+    kind: "essay",
+    number: "14",
+    title: "Infrastructure on loan",
+    tagline:
+      "A health system is not a thing a country should rent. The intelligence inside it is the part most worth owning.",
+    readMinutes: 5,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why dependency, not capability, is the deepest reason to build the model at home.",
+    sections: [
+      {
+        body: [
+          "The cost argument, the language argument, and the privacy argument are all practical. Each could, in principle, be answered another way: negotiate a better rate, fine-tune harder, redact more. The last argument cannot be answered another way, because it is not practical. It is structural.",
+          "When a health system's intelligence runs on a foreign vendor, the vendor holds a lever on the system, whether or not it ever pulls it. The lever is the terms of service: a document the country did not write, that can be changed without its consent, and that governs the layer deciding what care millions of people receive. A single page on a company's website becomes a single point of failure for a nation's health.",
+        ],
+        pullQuote:
+          "A terms-of-service page becomes a single point of failure for a nation's health.",
+      },
+      {
+        body: [
+          "Countries already know this instinct elsewhere. They do not run the power grid on a generator they cannot service, or the payment system on rails they cannot govern. Health was slower to see as infrastructure because for so long it was paper and people, with no central thing to depend on or lose. The moment intelligence becomes the thing the system leans on, the same rule applies: the part you lean on is the part you must be able to keep.",
+          "This is why owning the model is not a luxury to reach for once everything else works. It is the point at which a clinical AI stops being a clever product and becomes infrastructure a country can build on. A rented mind can be a fine way to start, to prove what works and learn what the country needs. It is not a thing to found a health system on, because the one property infrastructure must have, that it stays, is the one property a rental can never promise.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-model-earns-its-tasks",
+    kind: "essay",
+    number: "15",
+    title: "The model earns its tasks",
+    tagline:
+      "A task crosses to the home-built model only when it matches the frontier on real Bangladeshi films, transcripts, and notes. The model earns each one.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why nothing moves to KhaM-Med because it is cheaper or because it is ours.",
+    sections: [
+      {
+        body: [
+          "There is an obvious way to ruin a sovereign-model project: move tasks to your own model because it is yours, before it is ready, and call the downgrade independence. A cheaper, worse answer in a triage is not a sovereignty win. It is a patient harmed in the name of a principle, which is the worst way to harm one.",
+          "So the rule is the opposite, and it is strict. A task moves from a frontier model to KhaM-Med only once KhaM-Med has been shown to match the frontier on that task, measured on evaluation sets built from the real thing: real Bangladeshi films from the actual machines in the actual centers, real dialect transcripts from real intakes, real chamber notes a real doctor wrote and corrected. Not benchmarks borrowed from abroad. The country's own work, scored honestly.",
+        ],
+        pullQuote:
+          "A cheaper, worse answer is not a sovereignty win. It is a patient harmed in the name of a principle.",
+      },
+      {
+        body: [
+          "This is slower than flipping a switch, and it is meant to be. It means some tasks stay on a foreign model for a long time, because that is where they perform best for now, and the patient comes before the principle every time the two are in tension. Sovereignty is the destination. Safety is the constraint that sets the pace.",
+          "It also means that when a task does cross over, the claim attached to it is real: KhaM-Med reads this film as well as the frontier did, on films like the ones it will actually see. That is a sentence the network can stand behind, because it was earned on the country's own evidence, not asserted because the model wears the right flag. A home-built model that has to earn each task is worth more than one that was simply trusted, and it is the only kind that deserves to be.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "the-staged-truth",
+    kind: "essay",
+    number: "16",
+    title: "The staged truth",
+    tagline:
+      "The country is told the truth about where its intelligence lives at every step. A system that lies about that has already given away what sovereignty was for.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the migration to a sovereign model is declared in phases, and no phase pretends to be a later one.",
+    sections: [
+      {
+        body: [
+          "It is tempting to announce a sovereign clinical model as a finished thing, because the finished thing is the inspiring one, and because admitting that most of the intelligence still runs abroad sounds like an admission of failure. It is not. It is the truth, and the truth is the whole asset here.",
+          "So the path is stated in declared phases, the same way the identity layer builds a doctor's credential from self-asserted to council-anchored without ever pretending an early phase is a late one. Today, frontier models carry the hard reasoning while the home model is built toward. Next, the structured, high-volume tasks move in-country, and with them the sensitive flows. In the target state, the bulk of routine inference runs on Bangladeshi infrastructure, with frontier models kept for the genuinely rare and hard.",
+        ],
+        pullQuote: "The truth is the whole asset here.",
+      },
+      {
+        body: [
+          "What makes this honest is the rule that holds across all of it: while a task is still served by a foreign model, the network says so. It does not let a sovereignty claim run ahead of the engineering. A funder, a regulator, or a doctor can ask where any given answer is computed today and get a straight answer, including the ones still abroad.",
+          "This matters more than it seems, because sovereignty is a claim about trust, and an exaggerated claim about trust does more damage than no claim at all. If the country is told its data stays home and then learns it did not, the loss is not just that one breach. It is the credibility of every future assurance. A staged path told plainly is slower to boast about and impossible to be caught lying about, and for infrastructure a country's health depends on, the second property is the one that counts.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "open-weights-on-purpose",
+    kind: "essay",
+    number: "17",
+    title: "Open weights, on purpose",
+    tagline:
+      "A model you can legally host in Dhaka beats a better one you can only reach by sending the country's health data out to use it.",
+    readMinutes: 4,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why KhaM-Med is built on open weights, and why that choice is the boring kind.",
+    sections: [
+      {
+        body: [
+          "KhaM-Med builds on the MedGemma family, open-weights clinical models. The word that matters is open. Open weights mean the model itself can be downloaded, inspected, and run on servers the network controls, inside the country, under the country's law. A closed frontier model, however capable, can only be reached by sending data to someone else's servers to be answered there.",
+          "For most applications that distinction is academic. For national health infrastructure it is the whole game. A model you can host is a model whose data path you govern, whose availability you own, whose cost is your electricity rather than someone's invoice. A model you can only call is, by definition, a dependency you cannot remove.",
+        ],
+        pullQuote:
+          "A model you can host is a model whose data path you govern. A model you can only call is a dependency you cannot remove.",
+      },
+      {
+        body: [
+          "Choosing open weights over the most capable closed model is the same kind of choice as did:web over a blockchain, or Ed25519 over something exotic. It trades a little raw capability for control, for hostability, for the ability to keep the thing running without anyone's permission. It is the boring choice, and boring is the right instinct for infrastructure.",
+          "The published performance of the open clinical models is already strong, among the best open medical models, at a fraction of frontier cost, and the gap to the closed frontier is real but narrowing. It is also the wrong thing to optimize for. The right thing is a model good enough for the task that the country can actually own. KhaM-Med starts from open weights because a model you can hold in your own hands, in your own country, under your own law, is worth more than a better one you can only borrow.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "what-the-people-teach-it-stays-theirs",
+    kind: "essay",
+    number: "18",
+    title: "What the people teach it stays theirs",
+    tagline:
+      "The record belongs to the patient. What a patient's care teaches the model belongs, in the end, to the people whose care it was.",
+    readMinutes: 5,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "Why the medicine of twenty crore people should belong to those people.",
+    sections: [
+      {
+        body: [
+          "Every other essay in this set is an argument from necessity: cost, language, law, availability, control. This one is an argument from ownership, and it is the reason the others are worth the trouble.",
+          "A clinical model learns from care. It gets better because real encounters, with consent, teach it what real medicine in this country looks like: how a fever presents here, how a prescription is written here, what a chest film from a district machine actually shows. The learning is real, and the question no one usually asks out loud is who it belongs to.",
+          "The answer this network gives is the same as its answer for the record itself. The record belongs to the patient. And what a patient's care teaches the model belongs, in the end, to the people whose care it was. A model built on the medicine of twenty crore people is, in a real sense, theirs, and it should serve them first.",
+        ],
+        pullQuote:
+          "A model built on the medicine of twenty crore people is, in a real sense, theirs.",
+      },
+      {
+        body: [
+          "This is why everything the model learns stays in the country, and why the data behind it is consented and de-identified rather than quietly taken. Not as a compliance posture, but because the alternative, a model trained on a people's medicine and then owned somewhere else, answering to someone else, priced by someone else, is exactly the dependency the whole project exists to refuse.",
+          "Sovereignty, in the end, is not about flags. It is this: that the knowledge a country's own sickness and care produce should accrue to that country, in its language, under its law, on its soil, and serve the next patient who walks into the next chamber. KhaM carries the names of two people. The model exists so that what twenty crore more teach it stays theirs.",
         ],
       },
     ],
