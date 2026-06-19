@@ -25,6 +25,13 @@
  *     --signer-email s@employer.bd --signer-password .. --signer-name "Dr. Signatory" \
  *     --staff-email d@employer.bd --staff-password .. --staff-name "APA Doctor"
  *
+ * Usage (recruiter):
+ *   node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> \
+ *     --type recruiter \
+ *     --name "GAMCA Medical Centre" [--district Dhaka] [--phone 02...] \
+ *     --signer-email s@recruiter.bd --signer-password .. --signer-name "Dr. Signatory" \
+ *     --staff-email d@recruiter.bd --staff-password .. --staff-name "Medical Officer"
+ *
  * Note: --type clinic is refused — use create-doctor.mjs for clinic onboarding.
  */
 
@@ -40,12 +47,12 @@ const serviceKey = process.argv[3];
 const orgType = arg('--type');
 const name = arg('--name');
 
-const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer'];
+const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer', 'recruiter'];
 
 if (!url || !serviceKey || !orgType || !name) {
   console.error(
     'usage: node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> ' +
-    '--type hospital|diagnostic_centre|employer --name ".." [--district ..] [--phone ..] ' +
+    '--type hospital|diagnostic_centre|employer|recruiter --name ".." [--district ..] [--phone ..] ' +
     '--signer-email .. --signer-password .. --signer-name .. ' +
     '--staff-email .. --staff-password .. --staff-name ..'
   );
@@ -103,8 +110,8 @@ async function addStaff(emailFlag, pwFlag, nameFlag, role) {
 // signatory role is shared across org types
 await addStaff('--signer-email', '--signer-password', '--signer-name', 'signatory');
 
-// hospital/employer doctors enter clinical content; technologists enter results for diagnostic centres
-const staffRole = (orgType === 'hospital' || orgType === 'employer') ? 'doctor' : 'technologist';
+// hospital/employer/recruiter doctors enter clinical content; technologists enter results for diagnostic centres
+const staffRole = (orgType === 'hospital' || orgType === 'employer' || orgType === 'recruiter') ? 'doctor' : 'technologist';
 await addStaff('--staff-email', '--staff-password', '--staff-name', staffRole);
 
 console.log('DONE');
