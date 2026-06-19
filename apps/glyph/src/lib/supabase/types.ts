@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -55,6 +55,82 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clearance_records: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          credential_id: string | null
+          destination_country: string | null
+          findings: Json | null
+          fitness_status: string | null
+          id: string
+          owner_org_id: string
+          patient_id: string
+          purpose: string | null
+          restrictions: Json | null
+          signatory_user_id: string | null
+          signed_at: string | null
+          status: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          destination_country?: string | null
+          findings?: Json | null
+          fitness_status?: string | null
+          id?: string
+          owner_org_id: string
+          patient_id: string
+          purpose?: string | null
+          restrictions?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          destination_country?: string | null
+          findings?: Json | null
+          fitness_status?: string | null
+          id?: string
+          owner_org_id?: string
+          patient_id?: string
+          purpose?: string | null
+          restrictions?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clearance_records_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clearance_records_owner_org_id_fkey"
+            columns: ["owner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clearance_records_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -1604,8 +1680,6 @@ export const Constants = {
   },
 } as const
 
-
-
 // ─── Compatibility tail (hand-written — preserve on every regen) ─────────────
 
 /** Visit lifecycle enum (CHECK constraint on visits.status) */
@@ -1681,3 +1755,5 @@ export type ScheduledMessage = Database['public']['Tables']['scheduled_messages'
 export type ScheduledMessageInsert = Database['public']['Tables']['scheduled_messages']['Insert'];
 export type OccupationalAssessment = Database['public']['Tables']['occupational_assessments']['Row'];
 export type OccupationalAssessmentInsert = Database['public']['Tables']['occupational_assessments']['Insert'];
+export type ClearanceRecord = Database['public']['Tables']['clearance_records']['Row'];
+export type ClearanceRecordInsert = Database['public']['Tables']['clearance_records']['Insert'];
