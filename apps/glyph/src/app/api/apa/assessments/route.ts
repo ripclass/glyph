@@ -29,8 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Access restricted to employer members' }, { status: 403 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
