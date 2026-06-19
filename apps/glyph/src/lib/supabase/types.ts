@@ -281,6 +281,88 @@ export type Database = {
         }
         Relationships: []
       }
+      discharge_records: {
+        Row: {
+          admission_date: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_id: string | null
+          discharge_condition: string | null
+          discharge_date: string | null
+          discharge_diagnosis: Json | null
+          discharge_medications: Json | null
+          follow_up_instructions: Json | null
+          hospital_course: string | null
+          id: string
+          owner_org_id: string
+          patient_id: string
+          procedures: Json | null
+          signatory_user_id: string | null
+          signed_at: string | null
+          status: string
+        }
+        Insert: {
+          admission_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          discharge_condition?: string | null
+          discharge_date?: string | null
+          discharge_diagnosis?: Json | null
+          discharge_medications?: Json | null
+          follow_up_instructions?: Json | null
+          hospital_course?: string | null
+          id?: string
+          owner_org_id: string
+          patient_id: string
+          procedures?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+        }
+        Update: {
+          admission_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          discharge_condition?: string | null
+          discharge_date?: string | null
+          discharge_diagnosis?: Json | null
+          discharge_medications?: Json | null
+          follow_up_instructions?: Json | null
+          hospital_course?: string | null
+          id?: string
+          owner_org_id?: string
+          patient_id?: string
+          procedures?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discharge_records_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_records_owner_org_id_fkey"
+            columns: ["owner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discharge_records_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           bmdc_reg_no: string | null
@@ -1523,4 +1605,3 @@ export type WhatsappLink = Database['public']['Tables']['whatsapp_links']['Row']
 export type WhatsappLinkInsert = Database['public']['Tables']['whatsapp_links']['Insert'];
 export type ScheduledMessage = Database['public']['Tables']['scheduled_messages']['Row'];
 export type ScheduledMessageInsert = Database['public']['Tables']['scheduled_messages']['Insert'];
-
