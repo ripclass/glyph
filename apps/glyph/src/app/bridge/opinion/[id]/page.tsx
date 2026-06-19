@@ -17,6 +17,7 @@ export default function SpecialistOpinionDetailPage({ params }: { params: { id: 
   const [recommendations, setRecommendations] = useState<string[]>(['']);
   const [differentialDiagnosis, setDifferentialDiagnosis] = useState<DxRow[]>([{ text: '', icd10: '' }]);
   const [saving, setSaving] = useState(false);
+  const [signing, setSigning] = useState(false);
   const [vcId, setVcId] = useState<string | null>(null);
 
   async function token() {
@@ -78,6 +79,25 @@ export default function SpecialistOpinionDetailPage({ params }: { params: { id: 
       toast.error(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sign() {
+    setSigning(true);
+    try {
+      const res = await fetch(`/api/bridge/opinions/${params.id}/sign`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      const json = await res.json() as { success: boolean; error?: string; data?: { specialistOpinionVcId: string } };
+      if (!json.success) return toast.error(json.error ?? 'Sign failed');
+      setVcId(json.data?.specialistOpinionVcId ?? null);
+      toast.success('SpecialistOpinion credential issued');
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sign failed');
+    } finally {
+      setSigning(false);
     }
   }
 
@@ -224,7 +244,7 @@ export default function SpecialistOpinionDetailPage({ params }: { params: { id: 
         </Button>
       )}
 
-      {/* Sign panel — placeholder (Task 4); gated on specialty + opinion present */}
+      {/* Sign panel */}
       <section className="rounded-xl border border-line bg-white p-4">
         {isSigned ? (
           <div className="space-y-1">
@@ -243,10 +263,10 @@ export default function SpecialistOpinionDetailPage({ params }: { params: { id: 
             <Button
               variant="accent"
               className="w-full"
-              disabled={!canSign || frozen}
-              onClick={() => toast.info('Sign route coming in Task 4')}
+              disabled={!canSign || frozen || signing}
+              onClick={sign}
             >
-              Sign &amp; issue SpecialistOpinion
+              {signing ? 'Signing…' : 'Sign & issue SpecialistOpinion'}
             </Button>
           </div>
         )}
