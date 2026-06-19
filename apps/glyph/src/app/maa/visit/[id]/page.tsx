@@ -19,6 +19,8 @@ export default function AntenatalVisitDetailPage({ params }: { params: { id: str
   const [nextVisitDate, setNextVisitDate] = useState('');
   const [riskFlags, setRiskFlags] = useState<string[]>(['']);
   const [saving, setSaving] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [vcId, setVcId] = useState<string | null>(null);
 
   async function token() {
     const { data: { session } } = await createClient().auth.getSession();
@@ -80,9 +82,29 @@ export default function AntenatalVisitDetailPage({ params }: { params: { id: str
     }
   }
 
+  async function sign() {
+    setSigning(true);
+    try {
+      const res = await fetch(`/api/maa/visits/${params.id}/sign`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      const json = await res.json() as { success: boolean; error?: string; data?: { antenatalRecordVcId: string } };
+      if (!json.success) return toast.error(json.error ?? 'Sign failed');
+      setVcId(json.data?.antenatalRecordVcId ?? null);
+      toast.success('AntenatalRecord credential issued');
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sign failed');
+    } finally {
+      setSigning(false);
+    }
+  }
+
   if (!record) return <p className="text-sm text-clinical-muted">Loading…</p>;
 
   const frozen = Boolean((record as { credential_id?: string | null }).credential_id);
+  const isSigned = record.status === 'signed';
   const motherName = (record.patients as { name: string } | null)?.name ?? 'Mother';
 
   return (
@@ -216,21 +238,31 @@ export default function AntenatalVisitDetailPage({ params }: { params: { id: str
         </Button>
       )}
 
-      {/* Sign panel placeholder — Task 4 */}
-      {record && (
-        <section className="rounded-xl border border-line bg-white p-4">
-          {record.status === 'signed' ? (
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-ink">&#x2713; Signed &middot; AntenatalRecord issued</p>
-              <p className="break-all font-mono text-xs text-clinical-muted">
-                {(record as { credential_id?: string }).credential_id}
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-clinical-muted">Sign &amp; issue AntenatalRecord — coming in Task 4.</p>
-          )}
-        </section>
-      )}
+      {/* Sign panel */}
+      <section className="rounded-xl border border-line bg-white p-4">
+        {isSigned ? (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-ink">&#x2713; Signed &middot; AntenatalRecord issued</p>
+            <p className="break-all font-mono text-xs text-clinical-muted">
+              {vcId ?? (record as { credential_id?: string }).credential_id}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm text-clinical-muted">
+              Issue a signed AntenatalRecord verifiable credential for this visit.
+            </p>
+            <Button
+              variant="accent"
+              className="w-full"
+              onClick={sign}
+              disabled={signing}
+            >
+              {signing ? 'Signing…' : 'Sign & issue AntenatalRecord'}
+            </Button>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
