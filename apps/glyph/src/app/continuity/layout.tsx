@@ -25,7 +25,7 @@ function ContinuityChrome({ children }: { children: React.ReactNode }) {
 }
 
 /** Guards /continuity/* on a recruiter membership. Mirrors ApaGuard but redirects to /continuity/login.
- * NOTE: This is the 4th inline owner-guard (after /center, /hospital, /apa).
+ * NOTE: This is the 4th inline owner-guard (after /center, /hospital, /karigor).
  * TODO: extract a shared StaffGuard<orgType> component now that 4 surfaces exist. */
 function ContinuityGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

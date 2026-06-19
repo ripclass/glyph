@@ -71,7 +71,7 @@ export default function AssessmentDetailPage({ params }: { params: { id: string 
   async function save() {
     setSaving(true);
     try {
-      const res = await fetch(`/api/apa/assessments/${params.id}`, {
+      const res = await fetch(`/api/karigor/assessments/${params.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
         body: JSON.stringify({
@@ -97,7 +97,7 @@ export default function AssessmentDetailPage({ params }: { params: { id: string 
   async function sign() {
     setSigning(true);
     try {
-      const res = await fetch(`/api/apa/assessments/${params.id}/sign`, {
+      const res = await fetch(`/api/karigor/assessments/${params.id}/sign`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${await token()}` },
       });

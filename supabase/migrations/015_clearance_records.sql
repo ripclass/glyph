@@ -2,7 +2,7 @@
 -- GLYPH — Continuity v1: clearance-records workflow (migration 015)
 -- Additive, owner-org-scoped (org_type='recruiter'). The recruiter analogue of
 -- occupational_assessments (014): mutable workflow; the canonical record is the
--- ClearanceRecord credential. Chamber/Lens/Hospital/Apa untouched.
+-- ClearanceRecord credential. Chamber/Lens/Hospital/Karigor untouched.
 -- ============================================================
 CREATE TABLE clearance_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

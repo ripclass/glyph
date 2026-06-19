@@ -29,7 +29,7 @@ export default function ApaLoginPage() {
         return;
       }
       toast.success(staff.orgName);
-      router.push('/apa');
+      router.push('/karigor');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Sign-in failed');
     } finally {
@@ -40,7 +40,7 @@ export default function ApaLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-clinical-bg p-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl border border-line bg-white p-6">
-        <h1 className="text-lg font-semibold text-ink">Glyph Apa sign in</h1>
+        <h1 className="text-lg font-semibold text-ink">Glyph Karigor sign in</h1>
         <Input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" className="w-full" disabled={submitting}>

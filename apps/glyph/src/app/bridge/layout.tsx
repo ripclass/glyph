@@ -25,7 +25,7 @@ function BridgeChrome({ children }: { children: React.ReactNode }) {
 }
 
 /** Guards /bridge/* on a specialist_panel membership. Mirrors MaaGuard but for specialist_panel org type.
- * NOTE: This is the 6th inline owner-guard (after /center, /hospital, /apa, /continuity, /maa).
+ * NOTE: This is the 6th inline owner-guard (after /center, /hospital, /karigor, /continuity, /maa).
  * TODO: extract a shared StaffGuard<orgType> component now that 6 surfaces exist. */
 function BridgeGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

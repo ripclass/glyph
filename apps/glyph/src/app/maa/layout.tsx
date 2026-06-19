@@ -25,7 +25,7 @@ function MaaChrome({ children }: { children: React.ReactNode }) {
 }
 
 /** Guards /maa/* on a program membership. Mirrors ContinuityGuard but redirects to /maa/login.
- * NOTE: This is the 5th inline owner-guard (after /center, /hospital, /apa, /continuity).
+ * NOTE: This is the 5th inline owner-guard (after /center, /hospital, /karigor, /continuity).
  * TODO: extract a shared StaffGuard<orgType> component now that 5 surfaces exist. */
 function MaaGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

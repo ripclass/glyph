@@ -23,7 +23,7 @@
  *     --type employer \
  *     --name "Beximco RMG Unit 4" [--district Dhaka] [--phone 02...] \
  *     --signer-email s@employer.bd --signer-password .. --signer-name "Dr. Signatory" \
- *     --staff-email d@employer.bd --staff-password .. --staff-name "APA Doctor"
+ *     --staff-email d@employer.bd --staff-password .. --staff-name "Karigor Doctor"
  *
  * Usage (recruiter):
  *   node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> \

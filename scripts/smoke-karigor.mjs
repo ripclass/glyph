@@ -1,12 +1,12 @@
 /**
- * Live-DB + route E2E smoke for Apa v1 (migration 014 + the occupational-assessment pipeline).
+ * Live-DB + route E2E smoke for Karigor v1 (migration 014 + the occupational-assessment pipeline).
  *
  * Section A (service-role): occupational_assessments schema, status CHECK, freeze-on-credential.
  * Section B (added in Task 5): full assessment→sign→wallet→verify over the live Next routes,
  *   plus two-employer RLS isolation.
  *
  * Run on a LOCAL Supabase (keys from `supabase status -o env`):
- *   node scripts/smoke-apa.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_ROLE_KEY>
+ *   node scripts/smoke-karigor.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_ROLE_KEY>
  * (APP_URL unused until Section B; pass http://localhost:3000.)
  */
 
@@ -14,7 +14,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const [appUrl, url, anonKey, serviceKey] = process.argv.slice(2);
 if (!url || !anonKey || !serviceKey) {
-  console.error('usage: node scripts/smoke-apa.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_ROLE_KEY>');
+  console.error('usage: node scripts/smoke-karigor.mjs <APP_URL> <SUPABASE_URL> <ANON_KEY> <SERVICE_ROLE_KEY>');
   process.exit(2);
 }
 
@@ -29,7 +29,7 @@ function check(label, ok, detail = '') {
 // ===== Section A: occupational_assessments schema + constraints =====
 const { data: employer, error: employerErr } = await db
   .from('organizations')
-  .insert({ name: 'Apa Smoke Employer', org_type: 'employer' })
+  .insert({ name: 'Karigor Smoke Employer', org_type: 'employer' })
   .select('id')
   .single();
 if (!employer) {
@@ -39,7 +39,7 @@ if (!employer) {
 
 const { data: pat, error: patErr } = await db
   .from('patients')
-  .insert({ owner_org_id: employer.id, clinic_id: null, name: 'Apa Smoke Worker' })
+  .insert({ owner_org_id: employer.id, clinic_id: null, name: 'Karigor Smoke Worker' })
   .select('id')
   .single();
 if (!pat) {
@@ -85,7 +85,7 @@ await db.from('organizations').delete().eq('id', employer.id);
 
 console.log('\nSection A complete.');
 
-// ===== Section B: full Apa pipeline over the live Next routes =====
+// ===== Section B: full Karigor pipeline over the live Next routes =====
 //
 // /api/verify contract (read from apps/glyph/src/app/api/verify/route.ts):
 //   POST { vcId }  with Authorization: Bearer <jwt>
@@ -113,14 +113,14 @@ if (!appUrl) {
   // ── fixtures ──────────────────────────────────────────────────────────────
   const { data: orgA, error: orgAErr } = await db
     .from('organizations')
-    .insert({ name: 'Apa Smoke Employer A (SB)', org_type: 'employer' })
+    .insert({ name: 'Karigor Smoke Employer A (SB)', org_type: 'employer' })
     .select('id')
     .single();
   if (!orgA) { check('Section B setup: create employer org A', false, orgAErr?.message); process.exit(1); }
 
   const { data: orgB, error: orgBErr } = await db
     .from('organizations')
-    .insert({ name: 'Apa Smoke Employer B (SB)', org_type: 'employer' })
+    .insert({ name: 'Karigor Smoke Employer B (SB)', org_type: 'employer' })
     .select('id')
     .single();
   if (!orgB) { check('Section B setup: create employer org B', false, orgBErr?.message); process.exit(1); }
@@ -129,7 +129,7 @@ if (!appUrl) {
   async function staffUser(role, orgId) {
     const tag = `${role}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const { data: u, error: uErr } = await db.auth.admin.createUser({
-      email: `apa-${tag}@glyph.local`,
+      email: `karigor-${tag}@glyph.local`,
       password: pw,
       email_confirm: true,
     });
@@ -157,8 +157,8 @@ if (!appUrl) {
   let   createdPatId        = null;
 
   // ── 1. create assessment (walk-in worker) ────────────────────────────────
-  const created = await post('/api/apa/assessments', doctorA.jwt, {
-    patientName: 'Apa Smoke Worker',
+  const created = await post('/api/karigor/assessments', doctorA.jwt, {
+    patientName: 'Karigor Smoke Worker',
   });
   check('create assessment 200', created.status === 200 && created.json.success, JSON.stringify(created.json));
   const assessmentId = created.json.data?.assessmentId ?? null;
@@ -169,7 +169,7 @@ if (!appUrl) {
   // ── 2. save assessment fields ────────────────────────────────────────────
   // doctor role is in RESULT_ROLES — allowed to save.
   // assessment_type must be set before signing (server enforces this).
-  const saved = await post(`/api/apa/assessments/${assessmentId}`, signerA.jwt, {
+  const saved = await post(`/api/karigor/assessments/${assessmentId}`, signerA.jwt, {
     assessment_type: 'periodic',
     fitness_for_role: 'fit',
     exposures: ['cotton dust', 'noise'],
@@ -177,11 +177,11 @@ if (!appUrl) {
   check('save assessment fields 200', saved.status === 200 && saved.json.success, JSON.stringify(saved.json));
 
   // ── 3. doctor (non-signer) CANNOT sign (403) ─────────────────────────────
-  const doctorSign = await post(`/api/apa/assessments/${assessmentId}/sign`, doctorA.jwt);
+  const doctorSign = await post(`/api/karigor/assessments/${assessmentId}/sign`, doctorA.jwt);
   check('doctor CANNOT sign (403)', doctorSign.status === 403, `got ${doctorSign.status}`);
 
   // ── 4. signatory signs ────────────────────────────────────────────────────
-  const signedRes = await post(`/api/apa/assessments/${assessmentId}/sign`, signerA.jwt);
+  const signedRes = await post(`/api/karigor/assessments/${assessmentId}/sign`, signerA.jwt);
   check('signatory signs → OccupationalHealth VC', signedRes.json.success && Boolean(signedRes.json.data?.occupationalHealthVcId), JSON.stringify(signedRes.json));
   const vcId = signedRes.json.data?.occupationalHealthVcId ?? null;
 

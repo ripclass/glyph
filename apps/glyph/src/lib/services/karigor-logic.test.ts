@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAssessmentRow, buildOccupationalHealthData } from './apa-logic';
+import { buildAssessmentRow, buildOccupationalHealthData } from './karigor-logic';
 import { validateClinicalCredential } from '@kham/schemas-clinical';
 
 describe('buildAssessmentRow', () => {

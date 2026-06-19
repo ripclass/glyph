@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createOwnedPatient } from '@/lib/services/organizations';
-import { buildAssessmentRow } from '@/lib/services/apa-logic';
+import { buildAssessmentRow } from '@/lib/services/karigor-logic';
 import { shapeStaffSession, requireOrgType } from '@/lib/services/staff-logic';
 import type { Database } from '@/lib/supabase/types';
 
-/** POST /api/apa/assessments — create a draft occupational assessment for a known or walk-in worker. */
+/** POST /api/karigor/assessments — create a draft occupational assessment for a known or walk-in worker. */
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return NextResponse.json({ success: false, error: 'Missing authorization header' }, { status: 401 });

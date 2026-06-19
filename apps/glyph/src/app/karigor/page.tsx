@@ -28,12 +28,12 @@ export default function ApaDashboard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-ink">Assessments</h1>
-        <Link href="/apa/assessment/new"><Button>New assessment</Button></Link>
+        <Link href="/karigor/assessment/new"><Button>New assessment</Button></Link>
       </div>
       <ul className="space-y-2">
         {records.map((r) => (
           <li key={r.id}>
-            <Link href={`/apa/assessment/${r.id}`} className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3">
+            <Link href={`/karigor/assessment/${r.id}`} className="flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3">
               <span className="text-ink">{r.patients?.name ?? '—'}</span>
               <span className="rounded-full bg-glyph-50 px-2 py-0.5 text-xs text-ink">{r.status}</span>
             </Link>

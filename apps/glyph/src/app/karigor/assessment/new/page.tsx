@@ -33,7 +33,7 @@ export default function NewAssessmentPage() {
     try {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/apa/assessments', {
+      const res = await fetch('/api/karigor/assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({
@@ -46,7 +46,7 @@ export default function NewAssessmentPage() {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
-      router.push(`/apa/assessment/${json.data.assessmentId}`);
+      router.push(`/karigor/assessment/${json.data.assessmentId}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not create assessment');
     } finally {

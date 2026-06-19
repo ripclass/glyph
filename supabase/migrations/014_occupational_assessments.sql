@@ -1,5 +1,5 @@
 -- ============================================================
--- GLYPH — Apa v1: occupational-assessments workflow (migration 014)
+-- GLYPH — Karigor v1: occupational-assessments workflow (migration 014)
 -- Additive, owner-org-scoped (org_type='employer'). The employer analogue of
 -- discharge_records (013): mutable workflow; the canonical record is the
 -- OccupationalAssessment credential. Chamber/Lens/Hospital untouched.

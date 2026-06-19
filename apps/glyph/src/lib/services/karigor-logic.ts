@@ -1,4 +1,4 @@
-/** @fileoverview Pure builders for Glyph Apa (garment occupational-health). Mirrors hospital-logic. */
+/** @fileoverview Pure builders for Glyph Karigor (garment occupational-health). Mirrors hospital-logic. */
 import type { OccupationalHealthData } from '@kham/schemas-clinical';
 
 export interface BuildAssessmentRowInput { ownerOrgId: string; patientId: string; createdBy: string; }

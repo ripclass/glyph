@@ -1,6 +1,6 @@
 /**
  * @fileoverview Sign a medical clearance record — issue the MedicalClearance credential
- * (issuer = recruiter org DID). Mirrors the Apa sign route exactly; deltas:
+ * (issuer = recruiter org DID). Mirrors the Karigor sign route exactly; deltas:
  *   - org-type gate: requireOrgType(staff,'recruiter')
  *   - payload: buildMedicalClearanceData (not buildOccupationalHealthData)
  *   - type: 'medical_clearance' (not 'occupational_health')

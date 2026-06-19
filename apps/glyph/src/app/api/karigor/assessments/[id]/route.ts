@@ -30,7 +30,7 @@ async function resolveStaffAssessment(authHeader: string, assessmentId: string) 
   return { user, staff, admin, assessment };
 }
 
-/** POST /api/apa/assessments/[id] — save assessment fields onto a draft record. */
+/** POST /api/karigor/assessments/[id] — save assessment fields onto a draft record. */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return NextResponse.json({ success: false, error: 'Missing authorization header' }, { status: 401 });

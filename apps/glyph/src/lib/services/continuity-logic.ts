@@ -1,4 +1,4 @@
-/** @fileoverview Pure builders for Glyph Continuity (migrant medical clearance). Mirrors apa-logic. */
+/** @fileoverview Pure builders for Glyph Continuity (migrant medical clearance). Mirrors karigor-logic. */
 import type { MedicalClearanceData } from '@kham/schemas-clinical';
 
 export interface BuildClearanceRowInput { ownerOrgId: string; patientId: string; createdBy: string; }

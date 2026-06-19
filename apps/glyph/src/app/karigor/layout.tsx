@@ -13,7 +13,7 @@ function ApaChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-clinical-bg">
       <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
-        <Link href="/apa" className="font-semibold text-ink">{staff?.orgName ?? 'Glyph Apa'}</Link>
+        <Link href="/karigor" className="font-semibold text-ink">{staff?.orgName ?? 'Glyph Karigor'}</Link>
         <div className="flex items-center gap-3 text-sm text-clinical-muted">
           <span>{staff?.role}</span>
           <Button variant="ghost" onClick={() => void signOut()}>Sign out</Button>
@@ -24,7 +24,7 @@ function ApaChrome({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Guards /apa/* on an employer membership. Mirrors HospitalGuard but redirects to /apa/login.
+/** Guards /karigor/* on an employer membership. Mirrors HospitalGuard but redirects to /karigor/login.
  * NOTE: This is the 3rd inline owner-guard (after /center and /hospital).
  * TODO: extract a shared StaffGuard<orgType> component when a 4th surface is added. */
 function ApaGuard({ children }: { children: React.ReactNode }) {
@@ -42,10 +42,10 @@ function ApaGuard({ children }: { children: React.ReactNode }) {
   }, [checkStaffSession]);
 
   useEffect(() => {
-    // If session loaded but no staff, or staff exists but wrong org type → redirect to apa login.
+    // If session loaded but no staff, or staff exists but wrong org type → redirect to karigor login.
     if (checkedRef.current && !isLoading) {
       if (!staff || !requireOrgType(staff, 'employer')) {
-        router.replace('/apa/login');
+        router.replace('/karigor/login');
       }
     }
   }, [isLoading, staff, router]);
@@ -64,7 +64,7 @@ function ApaGuard({ children }: { children: React.ReactNode }) {
 export default function ApaLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   // Exempt the login page from ApaGuard to prevent a redirect loop.
-  if (pathname === '/apa/login') {
+  if (pathname === '/karigor/login') {
     return <>{children}</>;
   }
   return <ApaGuard>{children}</ApaGuard>;

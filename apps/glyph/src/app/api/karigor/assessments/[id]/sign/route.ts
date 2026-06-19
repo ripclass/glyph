@@ -6,13 +6,13 @@
  *   - type: 'occupational_health' (not 'discharge_summary')
  *   - NO rebuildProjections — no projection table; wallet surfacing deferred
  *
- * POST /api/apa/assessments/[id]/sign
+ * POST /api/karigor/assessments/[id]/sign
  *
  * Auth → ensureEntityIdentity → issueCredential → status update.
  * Issuer = employer organisation DID. Subject = patient DID.
  * One-shot: 409 when record.credential_id is already set.
  *
- * @module app/api/apa/assessments/[id]/sign/route
+ * @module app/api/karigor/assessments/[id]/sign/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,12 +21,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { ensureEntityIdentity } from '@/lib/identity/ensure-identity';
 import { issueCredential } from '@/lib/identity/issue';
 import { shapeStaffSession, requireOrgType, canSign } from '@/lib/services/staff-logic';
-import { buildOccupationalHealthData } from '@/lib/services/apa-logic';
+import { buildOccupationalHealthData } from '@/lib/services/karigor-logic';
 import type { Database } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
 
-/** POST /api/apa/assessments/[id]/sign — issue the OccupationalHealth credential (issuer=org). */
+/** POST /api/karigor/assessments/[id]/sign — issue the OccupationalHealth credential (issuer=org). */
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authHeader = req.headers.get('Authorization');
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     });
   } catch (err) {
-    console.error('[apa/sign] Error:', err);
+    console.error('[karigor/sign] Error:', err);
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : 'Internal error' },
       { status: 500 }
