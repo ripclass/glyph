@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -684,6 +684,82 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      occupational_assessments: {
+        Row: {
+          assessment_type: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_id: string | null
+          exposures: Json | null
+          findings: Json | null
+          fitness_for_role: string | null
+          id: string
+          owner_org_id: string
+          patient_id: string
+          recommendations: Json | null
+          restrictions: Json | null
+          signatory_user_id: string | null
+          signed_at: string | null
+          status: string
+        }
+        Insert: {
+          assessment_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          exposures?: Json | null
+          findings?: Json | null
+          fitness_for_role?: string | null
+          id?: string
+          owner_org_id: string
+          patient_id: string
+          recommendations?: Json | null
+          restrictions?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+        }
+        Update: {
+          assessment_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_id?: string | null
+          exposures?: Json | null
+          findings?: Json | null
+          fitness_for_role?: string | null
+          id?: string
+          owner_org_id?: string
+          patient_id?: string
+          recommendations?: Json | null
+          restrictions?: Json | null
+          signatory_user_id?: string | null
+          signed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occupational_assessments_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "occupational_assessments_owner_org_id_fkey"
+            columns: ["owner_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "occupational_assessments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -1529,12 +1605,10 @@ export const Constants = {
 } as const
 
 
-// ════════════════════════════════════════════════════════════════
-// Compatibility tail (hand-maintained) — value unions for CHECK
-// constraints and convenience aliases used across the app.
-// ════════════════════════════════════════════════════════════════
 
-/** Visit lifecycle statuses (CHECK constraint on visits.status) */
+// ─── Compatibility tail (hand-written — preserve on every regen) ─────────────
+
+/** Visit lifecycle enum (CHECK constraint on visits.status) */
 export type VisitStatus =
   | 'intake'
   | 'intake_complete'
@@ -1605,3 +1679,5 @@ export type WhatsappLink = Database['public']['Tables']['whatsapp_links']['Row']
 export type WhatsappLinkInsert = Database['public']['Tables']['whatsapp_links']['Insert'];
 export type ScheduledMessage = Database['public']['Tables']['scheduled_messages']['Row'];
 export type ScheduledMessageInsert = Database['public']['Tables']['scheduled_messages']['Insert'];
+export type OccupationalAssessment = Database['public']['Tables']['occupational_assessments']['Row'];
+export type OccupationalAssessmentInsert = Database['public']['Tables']['occupational_assessments']['Insert'];
