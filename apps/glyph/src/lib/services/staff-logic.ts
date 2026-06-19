@@ -24,7 +24,7 @@ interface MembershipRow {
   organizations: { id: string; name: string; org_type: string } | null;
 }
 
-const OWNER_ORG_TYPES = ['diagnostic_centre', 'hospital', 'employer', 'recruiter', 'kham_holding'] as const;
+const OWNER_ORG_TYPES = ['diagnostic_centre', 'hospital', 'employer', 'recruiter', 'kham_holding', 'program'] as const;
 
 /** Picks the first non-clinic owner membership and shapes its session. */
 export function shapeStaffSession(rows: MembershipRow[] | null | undefined): StaffSession | null {

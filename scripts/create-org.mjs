@@ -32,6 +32,13 @@
  *     --signer-email s@recruiter.bd --signer-password .. --signer-name "Dr. Signatory" \
  *     --staff-email d@recruiter.bd --staff-password .. --staff-name "Medical Officer"
  *
+ * Usage (program):
+ *   node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> \
+ *     --type program \
+ *     --name "BRAC Maternal Program" [--district Dhaka] [--phone 02...] \
+ *     --signer-email s@prog.bd --signer-password .. --signer-name "Dr. Signatory" \
+ *     --staff-email d@prog.bd --staff-password .. --staff-name "Antenatal Doctor"
+ *
  * Note: --type clinic is refused — use create-doctor.mjs for clinic onboarding.
  */
 
@@ -47,12 +54,12 @@ const serviceKey = process.argv[3];
 const orgType = arg('--type');
 const name = arg('--name');
 
-const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer', 'recruiter'];
+const ALLOWED_TYPES = ['hospital', 'diagnostic_centre', 'employer', 'recruiter', 'program'];
 
 if (!url || !serviceKey || !orgType || !name) {
   console.error(
     'usage: node scripts/create-org.mjs <SUPABASE_URL> <SERVICE_KEY> ' +
-    '--type hospital|diagnostic_centre|employer|recruiter --name ".." [--district ..] [--phone ..] ' +
+    '--type hospital|diagnostic_centre|employer|recruiter|program --name ".." [--district ..] [--phone ..] ' +
     '--signer-email .. --signer-password .. --signer-name .. ' +
     '--staff-email .. --staff-password .. --staff-name ..'
   );
@@ -110,8 +117,8 @@ async function addStaff(emailFlag, pwFlag, nameFlag, role) {
 // signatory role is shared across org types
 await addStaff('--signer-email', '--signer-password', '--signer-name', 'signatory');
 
-// hospital/employer/recruiter doctors enter clinical content; technologists enter results for diagnostic centres
-const staffRole = (orgType === 'hospital' || orgType === 'employer' || orgType === 'recruiter') ? 'doctor' : 'technologist';
+// hospital/employer/recruiter/program doctors enter clinical content; technologists enter results for diagnostic centres
+const staffRole = (orgType === 'hospital' || orgType === 'employer' || orgType === 'recruiter' || orgType === 'program') ? 'doctor' : 'technologist';
 await addStaff('--staff-email', '--staff-password', '--staff-name', staffRole);
 
 console.log('DONE');

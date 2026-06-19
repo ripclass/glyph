@@ -25,6 +25,12 @@ describe('shapeStaffSession', () => {
     expect(s).toEqual({ userId: 'u1', orgId: 'h1', orgName: 'Shante Hospital', orgType: 'hospital', role: 'signatory' });
   });
 
+  it('picks a program membership and shapes a session with orgType program', () => {
+    const program = row({ organizations: { id: 'p1', name: 'BRAC Maternal Program', org_type: 'program' }, role: 'doctor' });
+    const s = shapeStaffSession([program]);
+    expect(s).toEqual({ userId: 'u1', orgId: 'p1', orgName: 'BRAC Maternal Program', orgType: 'program', role: 'doctor' });
+  });
+
   it('prefers the non-clinic owner membership when both exist', () => {
     const clinic = row({ organizations: { id: 'c1', name: 'Clinic', org_type: 'clinic' }, role: 'doctor' });
     const s = shapeStaffSession([clinic, row()]);
