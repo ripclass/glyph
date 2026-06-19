@@ -30,9 +30,15 @@ CREATE OR REPLACE FUNCTION discharge_records_frozen()
 RETURNS TRIGGER AS $$
 BEGIN
   IF OLD.credential_id IS NOT NULL AND (
-       NEW.discharge_diagnosis   IS DISTINCT FROM OLD.discharge_diagnosis
-    OR NEW.discharge_medications IS DISTINCT FROM OLD.discharge_medications
-    OR NEW.credential_id         IS DISTINCT FROM OLD.credential_id
+       NEW.discharge_diagnosis      IS DISTINCT FROM OLD.discharge_diagnosis
+    OR NEW.discharge_medications    IS DISTINCT FROM OLD.discharge_medications
+    OR NEW.credential_id            IS DISTINCT FROM OLD.credential_id
+    OR NEW.procedures               IS DISTINCT FROM OLD.procedures
+    OR NEW.hospital_course          IS DISTINCT FROM OLD.hospital_course
+    OR NEW.follow_up_instructions   IS DISTINCT FROM OLD.follow_up_instructions
+    OR NEW.discharge_condition      IS DISTINCT FROM OLD.discharge_condition
+    OR NEW.admission_date           IS DISTINCT FROM OLD.admission_date
+    OR NEW.discharge_date           IS DISTINCT FROM OLD.discharge_date
   ) THEN
     RAISE EXCEPTION 'discharge record is credentialed and frozen: amend by issuing a new credential';
   END IF;

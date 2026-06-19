@@ -96,8 +96,8 @@ async function addStaff(emailFlag, pwFlag, nameFlag, role) {
 // signatory role is shared across org types
 await addStaff('--signer-email', '--signer-password', '--signer-name', 'signatory');
 
-// staff role for hospitals; technologist for diagnostic centres
-const staffRole = orgType === 'hospital' ? 'staff' : 'technologist';
+// hospital doctors enter clinical content; technologists enter results for diagnostic centres
+const staffRole = orgType === 'hospital' ? 'doctor' : 'technologist';
 await addStaff('--staff-email', '--staff-password', '--staff-name', staffRole);
 
 console.log('DONE');
