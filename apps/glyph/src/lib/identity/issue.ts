@@ -38,6 +38,11 @@ const CREDENTIAL_NAMES: Record<ClinicalCredentialType, string> = {
   prescription: 'Prescription',
   lab_result: 'Lab Result',
   dispensing_event: 'Dispensing Event',
+  discharge_summary: 'Discharge Summary',
+  medical_clearance: 'Medical Clearance',
+  occupational_health: 'Occupational Health Record',
+  antenatal_record: 'Antenatal Record',
+  specialist_opinion: 'Specialist Opinion',
 };
 
 export interface IssueCredentialInput {

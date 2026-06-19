@@ -5,6 +5,11 @@ import { visitNoteData } from "./visit-note";
 import { prescriptionData } from "./prescription";
 import { labResultData } from "./lab-result";
 import { dispensingEventData } from "./dispensing-event";
+import { dischargeSummaryData } from "./discharge-summary";
+import { medicalClearanceData } from "./medical-clearance";
+import { occupationalHealthData } from "./occupational-health";
+import { antenatalRecordData } from "./antenatal-record";
+import { specialistOpinionData } from "./specialist-opinion";
 
 /**
  * The registry binds each clinical credential type to its Zod schema and the
@@ -53,6 +58,36 @@ export const CLINICAL_CREDENTIALS = {
     vcType: "DispensingEventCredential",
     context: CLINICAL_CONTEXT_V1,
     schema: dispensingEventData,
+  },
+  discharge_summary: {
+    credentialType: "discharge_summary",
+    vcType: "DischargeSummaryCredential",
+    context: CLINICAL_CONTEXT_V1,
+    schema: dischargeSummaryData,
+  },
+  medical_clearance: {
+    credentialType: "medical_clearance",
+    vcType: "MedicalClearanceCredential",
+    context: CLINICAL_CONTEXT_V1,
+    schema: medicalClearanceData,
+  },
+  occupational_health: {
+    credentialType: "occupational_health",
+    vcType: "OccupationalHealthCredential",
+    context: CLINICAL_CONTEXT_V1,
+    schema: occupationalHealthData,
+  },
+  antenatal_record: {
+    credentialType: "antenatal_record",
+    vcType: "AntenatalRecordCredential",
+    context: CLINICAL_CONTEXT_V1,
+    schema: antenatalRecordData,
+  },
+  specialist_opinion: {
+    credentialType: "specialist_opinion",
+    vcType: "SpecialistOpinionCredential",
+    context: CLINICAL_CONTEXT_V1,
+    schema: specialistOpinionData,
   },
 } as const satisfies Record<string, ClinicalCredentialDef>;
 

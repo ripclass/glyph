@@ -32,7 +32,7 @@ Monorepo: npm workspaces `apps/*` + `packages/*`. Node >=20.
 |---|---|---|
 | `apps/glyph` | `glyph-web` | The Next.js 14 PWA (was `web/` before the Phase 2 restructure) |
 | `packages/identity` | `@kham/identity` | Shared identity envelope lifted from EIN: Ed25519 (`@noble/ed25519` v3), did:web, VC sign/verify/issue, JCS canonicalization. Framework-agnostic, no DB. Gated by 7 trust-root tests. |
-| `packages/schemas-clinical` | `@kham/schemas-clinical` | Zod schemas for clinical VC *payloads* (`credentialSubject.data`): PhysicianRegistration, VisitNote (CC/O-E/Ix/Rx/Advice), Prescription (1+0+1 dosing), LabResult, DispensingEvent + shared envelope/registry. |
+| `packages/schemas-clinical` | `@kham/schemas-clinical` | Zod schemas for clinical VC *payloads* (`credentialSubject.data`): PhysicianRegistration, VisitNote (CC/O-E/Ix/Rx/Advice), Prescription (1+0+1 dosing), LabResult, DispensingEvent + shared envelope/registry. **Five reserved demo-grade shapes (2026-06-19, module-map):** DischargeSummary (Hospital), MedicalClearance (Continuity), OccupationalHealth (Karigor), AntenatalRecord (Maa), SpecialistOpinion (Bridge). Deepen when each module is built. |
 
 Both packages are TS-source packages (`main: ./src/index.ts`) consumed via `transpilePackages` in `apps/glyph/next.config.js`. Inside packages use **relative imports** (no `@/*` alias); private-key ops are server-only **by convention, guarded at the app boundary** (no `server-only` import — that was deliberately dropped at extraction).
 

@@ -67,16 +67,57 @@ const GOOD: Record<ClinicalCredentialType, unknown> = {
     prescriptionRef: "urn:uuid:abc",
     dispensedItems: [{ drug: "Napa 500mg", quantity: "10 tablets" }],
   },
+  discharge_summary: {
+    encounterDate: "2026-06-14",
+    hospital: { name: "Square Hospitals Ltd", identifier: "DGHS-1234" },
+    admissionDate: "2026-06-10",
+    dischargeDate: "2026-06-14",
+    dischargeDiagnosis: [{ text: "Dengue fever", icd10: "A90" }],
+    dischargeMedications: [{ name: "Napa", frequency: "1+1+1" }],
+    dischargeCondition: "recovered",
+  },
+  medical_clearance: {
+    encounterDate: "2026-06-14",
+    assessingFacility: { name: "GAMCA Medical Centre", identifier: "GAMCA-77" },
+    purpose: "overseas_employment",
+    fitnessStatus: "fit",
+    destinationCountry: "UAE",
+  },
+  occupational_health: {
+    encounterDate: "2026-06-14",
+    employer: { name: "Beximco RMG Unit 4" },
+    assessmentType: "periodic",
+    fitnessForRole: "fit",
+  },
+  antenatal_record: {
+    encounterDate: "2026-06-14",
+    provider: { name: "CHW Ruma Begum" },
+    visitNumber: 2,
+    gestationalAgeWeeks: 24,
+    bloodPressure: "110/70",
+  },
+  specialist_opinion: {
+    encounterDate: "2026-06-14",
+    specialist: { name: "Dr. A. Oncologist", identifier: "UK-GMC-998" },
+    specialty: "Oncology",
+    opinion: "Findings consistent with early-stage disease; biopsy advised.",
+    recommendations: ["Core-needle biopsy", "Staging CT"],
+  },
 };
 
 describe("clinical credential schemas", () => {
-  it("registry covers exactly the five M2 credential types", () => {
+  it("registry covers the five M2 types plus five reserved credential shapes", () => {
     expect(Object.keys(CLINICAL_CREDENTIALS).sort()).toEqual(
       [
+        "antenatal_record",
+        "discharge_summary",
         "dispensing_event",
         "lab_result",
+        "medical_clearance",
+        "occupational_health",
         "physician_registration",
         "prescription",
+        "specialist_opinion",
         "visit_note",
       ].sort(),
     );
@@ -126,6 +167,18 @@ describe("clinical credential schemas", () => {
       locale: string;
     };
     expect(parsed.locale).toBe("bn");
+  });
+
+  it("rejects a discharge_summary missing required dischargeDiagnosis", () => {
+    expect(() =>
+      validateClinicalCredential("discharge_summary", {
+        encounterDate: "2026-06-14",
+        hospital: { name: "Square Hospitals Ltd" },
+        admissionDate: "2026-06-10",
+        dischargeDate: "2026-06-14",
+        // dischargeDiagnosis intentionally omitted
+      }),
+    ).toThrow(ZodError);
   });
 
   it("BD_DOSING_PATTERN matches English and Bangla tri-slot dosing", () => {
