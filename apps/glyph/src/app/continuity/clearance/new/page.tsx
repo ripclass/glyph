@@ -8,11 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const PURPOSE_OPTIONS = [
-  { value: '', label: 'Purpose (optional)' },
-  { value: 'employment_abroad', label: 'Employment abroad' },
-  { value: 'visa_medical', label: 'Visa medical' },
-  { value: 'pre_deployment', label: 'Pre-deployment' },
+  { value: 'overseas_employment', label: 'Overseas employment' },
+  { value: 'pre_employment', label: 'Pre-employment' },
   { value: 'periodic', label: 'Periodic' },
+  { value: 'general', label: 'General' },
 ];
 
 export default function NewClearancePage() {
@@ -22,7 +21,7 @@ export default function NewClearancePage() {
     phone: '',
     age: '',
     gender: '',
-    purpose: '',
+    purpose: 'overseas_employment',
   });
   const [submitting, setSubmitting] = useState(false);
 

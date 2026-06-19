@@ -8,18 +8,18 @@ import { Input } from '@/components/ui/input';
 
 const PURPOSE_OPTIONS = [
   { value: '', label: 'Select purpose…' },
-  { value: 'employment_abroad', label: 'Employment abroad' },
-  { value: 'visa_medical', label: 'Visa medical' },
-  { value: 'pre_deployment', label: 'Pre-deployment' },
+  { value: 'overseas_employment', label: 'Overseas employment' },
+  { value: 'pre_employment', label: 'Pre-employment' },
   { value: 'periodic', label: 'Periodic' },
+  { value: 'general', label: 'General' },
 ];
 
 const FITNESS_STATUS_OPTIONS = [
   { value: '', label: 'Select fitness status…' },
   { value: 'fit', label: 'Fit' },
   { value: 'fit_with_restrictions', label: 'Fit with restrictions' },
+  { value: 'temporarily_unfit', label: 'Temporarily unfit' },
   { value: 'unfit', label: 'Unfit' },
-  { value: 'pending_review', label: 'Pending review' },
 ];
 
 interface FindingRow { testName: string; value: string; unit: string; referenceRange: string }
