@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+interface SignResult { dischargeSummaryVcId: string; patientDid: string; orgDid: string }
+
 interface DiagnosisRow { text: string; icd10: string }
 interface MedicationRow { name: string; frequency: string }
 
@@ -29,6 +31,8 @@ export default function DischargeDetailPage({ params }: { params: { id: string }
   const [dischargeDate, setDischargeDateState] = useState('');
   const [hospitalCourse, setHospitalCourse] = useState('');
   const [saving, setSaving] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [signResult, setSignResult] = useState<SignResult | null>(null);
 
   async function token() {
     const { data: { session } } = await createClient().auth.getSession();
@@ -86,6 +90,25 @@ export default function DischargeDetailPage({ params }: { params: { id: string }
       toast.error(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sign() {
+    setSigning(true);
+    try {
+      const res = await fetch(`/api/hospital/discharges/${params.id}/sign`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      const json = await res.json();
+      if (!json.success) return toast.error(json.error);
+      setSignResult(json.data as SignResult);
+      toast.success('Signed');
+      void load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Sign failed');
+    } finally {
+      setSigning(false);
     }
   }
 
@@ -254,11 +277,22 @@ export default function DischargeDetailPage({ params }: { params: { id: string }
         </Button>
       )}
 
-      {/* Sign panel placeholder — Task 6 */}
-      <section className="rounded-xl border border-dashed border-line bg-white p-4 opacity-60">
-        <p className="text-sm text-clinical-muted">
-          Sign &amp; issue credential — coming in Task 6
-        </p>
+      {/* Sign panel */}
+      <section className="rounded-xl border border-line bg-white p-4">
+        {record.status === 'signed' || signResult ? (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-ink">&#x2713; Signed &middot; DischargeSummary issued</p>
+            <p className="break-all font-mono text-xs text-clinical-muted">
+              {signResult?.dischargeSummaryVcId ?? record.credential_id}
+            </p>
+          </div>
+        ) : diagnoses.filter((d) => d.text).length > 0 ? (
+          <Button onClick={sign} disabled={signing || frozen}>
+            {signing ? 'Signing…' : 'Sign & issue DischargeSummary'}
+          </Button>
+        ) : (
+          <p className="text-sm text-clinical-muted">Enter at least one discharge diagnosis to enable signing.</p>
+        )}
       </section>
     </div>
   );
