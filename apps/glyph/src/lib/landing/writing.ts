@@ -421,6 +421,91 @@ export const WRITING_PIECES: WritingPiece[] = [
       },
     ],
   },
+  {
+    slug: "the-anonymous-us",
+    kind: "paper",
+    title: "The anonymous us",
+    tagline:
+      "On the road, with no 911 and no loved one near, your life is in the hands of strangers who owe you nothing and stop anyway. Name that. Then give it hands.",
+    readMinutes: 11,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A white paper on emergency care in a country with no working dispatch: the uncredited generosity of strangers as Bangladesh's real first response, and how a scannable identity turns it into something that routes, alerts, and remembers, without ever handing a stranger your health.",
+    sections: [
+      {
+        index: "01",
+        heading: "The thing we rely on and never name",
+        body: [
+          "A man goes down on a street in Dhaka. A mother collapses in a bus. A rider is hit at a junction. No siren is coming, because the number you would call does not reliably answer. What happens next is the same thing that happens a thousand times a day across the country: strangers stop. They lift him. They find a car, a rickshaw, a CNG. They carry him to whichever hospital someone half-remembers, with their own hands, on their own time, for a person they have never met and will never see again.",
+          "Every Bangladeshi knows this is true. Most of us have been on one side of it, and many on both. And yet there is no name for it, no line in a budget, no box on an org chart. The country's real emergency system is not the ambulance and not the hotline. It is the uncredited, unorganized, reflexive generosity of strangers. Call it the anonymous us.",
+          "The kindness of strangers is not a sentiment here. It is infrastructure. The question this paper asks is small and practical: if that is the system we actually have, what is the least we can do to help it work?",
+        ],
+        pullQuote:
+          "The country's real emergency system is the uncredited generosity of strangers. The kindness of strangers is not a sentiment here. It is infrastructure.",
+      },
+      {
+        index: "02",
+        heading: "What the anonymous us is flying blind on",
+        body: [
+          "The strangers who stop are not short on willingness. They are short on information, and they always have been. Three things they do not know, and cannot find out, in the minute that matters.",
+          "Where to take him. The nearest hospital may be the wrong one, or jammed behind traffic, or shut. The helper guesses, and a guess on a bad road can cost the patient the hour that decided whether he lived.",
+          "Who to tell. The man's wife does not know. His family does not know. He arrives alone, and the people who could speak for him, who know his heart condition and his medicines, are unreachable, because no one has their number and he cannot give it.",
+          "What is wrong with him. He arrives at the hospital as a stranger to the hospital too. The duty doctor starts from zero, at night, in a corridor, on a body that cannot answer. The record that would have warned them is in a plastic bag at home, if it exists at all.",
+          "So the generosity is real and the outcome is still a coin toss, because willingness without information is just a faster way to the wrong door.",
+        ],
+      },
+      {
+        index: "03",
+        heading: "A code that turns a bystander into a dispatcher",
+        body: [
+          "The patient is already carrying the one thing that could close all three gaps: a phone. So the fix is a small, scannable emergency code, sitting on the phone's lock screen and on a printed card in the wallet, readable without unlocking anything.",
+          "A stranger scans it. Not to read the record. To act. In the seconds after that scan, three things happen at once: the helper is told where to run, nearby hospitals are told someone is coming, and the family is told it happened. The bystander who stopped, with no training and no authority, becomes the dispatcher the country never built.",
+          "This is the whole idea. The country was always going to be saved by strangers. This hands them a map, a phone line, and a destination, in the moment they have already decided to help.",
+        ],
+        pullQuote:
+          "A stranger scans it. Not to read the record. To act. The bystander becomes the dispatcher the country never built.",
+      },
+      {
+        index: "04",
+        heading: "One scan, and what each person gets",
+        body: [
+          "The design turns on a single distinction: the same scan tells different people different things, and the stranger is told the least.",
+          "To the stranger, the scan shows a destination and a thank-you, and no medical data at all. Nearest hospital, directions, a line that says the hospitals and the family have been alerted, and the words: thank you for stopping. The helper does not need the diagnosis to save the life. He needs to know where to run.",
+          "To nearby hospitals, the scan sends a brief, time-boxed alert with only the basics, so the emergency room can begin to prepare before the patient is through the door. And it does not bet on one hospital. It lights up several at once, because the closest one may be unreachable behind a jam while the second-closest is clear. Whichever can respond, responds.",
+          "To the family, the scan fires a message to the contacts the patient chose in advance: an emergency code was scanned, near here, at this time. Within minutes a relative is reachable, and the person who arrived alone is no longer alone.",
+          "And every scan is logged and the patient is told it happened, so the system is accountable to the one person it is about.",
+        ],
+        pullQuote:
+          "The helper does not need the diagnosis to save the life. He needs to know where to run.",
+      },
+      {
+        index: "05",
+        heading: "Why the stranger sees nothing",
+        body: [
+          "It would be easier to make the scan show everything, and it would be a catastrophe. A code on a phone that displayed a person's blood type, diagnoses, and medicines to anyone who pointed a camera at it would be a gift to every thief, blackmailer, and curious passerby. The most identifying thing a person owns cannot be the most exposed.",
+          "So the stranger is shown a destination, and nothing else. The clinical basics travel only to the hospitals and the family, in a minimal form, for a few hours, audited, and the patient is notified each time. This is the same rule the rest of the network runs on: the record belongs to the patient and is locked to keys the patient holds. An emergency scan does not open the record. It pages for help. The lock never comes off, even at the worst moment, because the worst moment is exactly when the wrong person is most likely to be holding the phone.",
+        ],
+      },
+      {
+        index: "06",
+        heading: "What it is, said honestly",
+        body: [
+          "This is a help layer, not a miracle, and the honesty is part of the safety. The basics are what the patient entered themselves, so every screen that shows them says, plainly, self-reported, verify on arrival. A stale allergy or an old medication list that is trusted blindly could harm rather than help, so nothing here asks a clinician to trust it blindly.",
+          "The routing says directions to the nearest hospital, never this hospital will treat you, because the nearest hospital may be closed, or full, or unable to handle what is wrong. And this is not a 911. It dispatches no ambulance. What it does is make the ambulance the country already has, which is strangers and the phones in their pockets, better aimed and less alone.",
+          "It also reaches only the hospitals that have joined the network, and only works if the patient is carrying their code. On the day it launches, in a given place, that may be very few hospitals and very few patients. The honest claim is not coverage. It is that a person who is found by a stranger is no longer found by a stranger with nothing.",
+        ],
+      },
+      {
+        index: "07",
+        heading: "Name it, and give it hands",
+        body: [
+          "Return to the man on the road. He will never know who scanned his code, and the stranger will usually never learn whether he lived, unless they leave a number for the one message worth sending afterward: the person you helped is okay, thank you. That message is small and it is the whole point. It closes a loop that has been open in this country for as long as strangers have been stopping for strangers.",
+          "We are not inventing the rescuer. The rescuer already exists, on every road, unpaid and unthanked. What has been missing is everything around the act: where to go, who to tell, what to know, and a word of gratitude at the end. Name the anonymous us, the thing we have always relied on and never credited, and give it the smallest possible set of tools to do well what it was already doing for free. That is the work. The strangers will keep stopping. This just makes sure that when they do, they are no longer carrying someone into the dark.",
+        ],
+      },
+    ],
+  },
 
   /* ── Essays ─────────────────────────────────────────────────── */
   {
