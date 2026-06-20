@@ -23,8 +23,8 @@ describe("decideRoute", () => {
   it("unbound + a 6-digit code → bind", () => {
     expect(decideRoute(inbound({ text: "my code 482910" }), { bound: false, activeFlow: "idle" })).toEqual({ kind: "bind", code: "482910" });
   });
-  it("unbound + no code → onboard", () => {
-    expect(decideRoute(inbound({ text: "hi" }), { bound: false, activeFlow: "idle" }).kind).toBe("onboard");
+  it("unbound + no code → onboard_start", () => {
+    expect(decideRoute(inbound({ text: "hi" }), { bound: false, activeFlow: "idle" })).toEqual({ kind: "onboard_start", firstMessage: "hi" });
   });
   it("bound idle + symptom → triage_start", () => {
     expect(decideRoute(inbound({ text: "তিন দিন ধরে জ্বর" }), idle)).toEqual({ kind: "triage_start", symptom: "তিন দিন ধরে জ্বর" });
@@ -74,5 +74,26 @@ describe("decideRoute", () => {
   });
   it("mid-triage + image → help (don't interrupt triage)", () => {
     expect(decideRoute(inbound({ kind: "image", mediaId: "m" }), { bound: true, activeFlow: "triage" }).kind).toBe("help");
+  });
+});
+
+const text = (t: string) => ({ kind: "text" as const, text: t, fromWaId: "x", providerMessageId: "p" });
+
+describe("front door (unbound)", () => {
+  it("first non-code text starts onboarding", () => {
+    expect(decideRoute(text("মাথা ব্যথা"), { bound: false, activeFlow: "idle" }))
+      .toEqual({ kind: "onboard_start", firstMessage: "মাথা ব্যথা" });
+  });
+  it("a 6-digit code still binds (Chamber path preserved)", () => {
+    expect(decideRoute(text("123456"), { bound: false, activeFlow: "idle" }))
+      .toEqual({ kind: "bind", code: "123456" });
+  });
+  it("consent state routes the affirmative reply", () => {
+    expect(decideRoute(text("হ্যাঁ"), { bound: false, activeFlow: "awaiting_onboard_consent" }))
+      .toEqual({ kind: "onboard_consent_reply", agreed: true });
+  });
+  it("subject state parses the choice", () => {
+    expect(decideRoute(text("১"), { bound: false, activeFlow: "awaiting_onboard_subject" }))
+      .toEqual({ kind: "onboard_subject_reply", choice: "self" });
   });
 });

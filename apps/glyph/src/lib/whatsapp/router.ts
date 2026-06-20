@@ -2,10 +2,13 @@ import type { NormalizedInbound } from "./types";
 import { extractBindCode } from "./binding";
 import { isAffirmative, isStopWord, isRecordRequest } from "./intents";
 import { parseDocType, type DocType } from "./doc-type";
+import { parseSubjectChoice } from "./front-door";
 
 export type RouteAction =
   | { kind: "ignore"; reason: string }
-  | { kind: "onboard" }
+  | { kind: "onboard_start"; firstMessage: string }
+  | { kind: "onboard_consent_reply"; agreed: boolean }
+  | { kind: "onboard_subject_reply"; choice: "self" | "family" | null }
   | { kind: "bind"; code: string }
   | { kind: "triage_start"; symptom: string }
   | { kind: "triage_continue"; answer: string }
@@ -33,8 +36,19 @@ export function decideRoute(inbound: NormalizedInbound, ctx: RouteContext): Rout
   if (inbound.kind === "unhandled") return { kind: "ignore", reason: "unhandled message type" };
 
   if (!ctx.bound) {
+    // Mid-onboarding sub-states take precedence (text-only).
+    if (ctx.activeFlow === "awaiting_onboard_consent") {
+      if (inbound.kind !== "text") return { kind: "help" };
+      return { kind: "onboard_consent_reply", agreed: isAffirmative(inbound.text) };
+    }
+    if (ctx.activeFlow === "awaiting_onboard_subject") {
+      if (inbound.kind !== "text") return { kind: "help" };
+      return { kind: "onboard_subject_reply", choice: parseSubjectChoice(inbound.text) };
+    }
+    // First contact. A 6-digit code is still the Chamber bind path.
     const code = inbound.kind === "text" ? extractBindCode(inbound.text) : null;
-    return code ? { kind: "bind", code } : { kind: "onboard" };
+    if (code) return { kind: "bind", code };
+    return { kind: "onboard_start", firstMessage: inbound.kind === "text" ? inbound.text.trim() : "" };
   }
 
   // Bound patient.
