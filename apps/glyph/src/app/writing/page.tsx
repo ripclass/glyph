@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import {
   WRITING_THESIS,
   WRITING_PAPERS,
+  WRITING_STORIES,
   WRITING_ESSAY_CLUSTERS,
   essaysInCluster,
   type WritingPiece,
@@ -62,13 +63,13 @@ function PieceMeta({ piece }: { piece: WritingPiece }) {
   );
 }
 
-/** A white-paper card. Links only once the piece is published. */
-function PaperCard({ piece }: { piece: WritingPiece }) {
+/** A card for a long-form piece (paper or story). Links only once published. */
+function PaperCard({ piece, label = "White paper" }: { piece: WritingPiece; label?: string }) {
   const inner = (
     <>
       <div className="flex items-start justify-between gap-4">
         <p className="font-mono text-[12px] uppercase tracking-wide text-lime-deep">
-          White paper
+          {label}
         </p>
         {piece.published ? (
           <ArrowUpRight
@@ -262,6 +263,28 @@ export default function WritingPage() {
               })}
             </div>
           </section>
+
+          {/* ── Stories ──────────────────────────────────────────── */}
+          {WRITING_STORIES.length > 0 && (
+            <section className="border-t border-bone-line py-16 md:py-20">
+              <Reveal>
+                <p className="font-mono text-[13px] tracking-wide text-ink-faint">
+                  <span className="text-ink">03</span> — Stories
+                </p>
+                <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
+                  The people the system is for. One life at the centre, told at
+                  length.
+                </p>
+              </Reveal>
+              <div className="mt-10 grid gap-5 md:grid-cols-2">
+                {WRITING_STORIES.map((piece, i) => (
+                  <Reveal key={piece.slug} delay={(i % 2) * 90}>
+                    <PaperCard piece={piece} label="Story" />
+                  </Reveal>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* ── CTA band ──────────────────────────────────────────── */}

@@ -36,7 +36,7 @@ export interface WritingSection {
 export interface WritingPiece {
   slug: string;
   /** "paper" = foundational long-form; "essay" = one sharp idea */
-  kind: "paper" | "essay";
+  kind: "paper" | "essay" | "story";
   /** Sequential number for essays, e.g. "01". Papers omit it. */
   number?: string;
   /** Title, sentence case */
@@ -1575,10 +1575,235 @@ export const WRITING_PIECES: WritingPiece[] = [
       },
     ],
   },
+
+  /* ── Stories ────────────────────────────────────────────────── */
+  {
+    slug: "the-blood-pressure-nobody-measured",
+    kind: "story",
+    number: "01",
+    title: "The blood pressure nobody measured",
+    tagline:
+      "She did everything right. She sought care. The system met her as a stranger at every door she reached. These are not treatment deaths. They are routing and information deaths.",
+    readMinutes: 9,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A Maa story. One pregnancy in Mymensingh, the silent climb no one measured, and the ricochet between facilities that met her as a stranger. What the verbal autopsies actually say, and what a cheap cuff and a record that travels would have changed.",
+    sections: [
+      {
+        body: [
+          "Rahima is twenty-four, and this is her second child. She lives in a village in Mymensingh, an hour of bad road from the upazila town, in a house with her husband, his mother, and a first daughter who is three. It is the eighth month. By mid-morning her head aches, and she blames the heat, because the heat is real and the headache is not yet frightening. Her feet have been swelling for two weeks. Her mother-in-law, who has carried five children of her own, says swelling is what the eighth month does, and she is not wrong often enough to be doubted.",
+          "Rahima has been to no check-up this pregnancy. The union facility is far, the visit costs a day's work and a fare, and she feels, most days, fine. She is not careless. She is doing the arithmetic that everyone around her does, and the arithmetic says: you are fine, the journey is dear, stay and work.",
+          "She is not fine. For three weeks her blood pressure has been climbing, steadily, toward the number that kills. And nobody knows, because nobody has measured it.",
+        ],
+      },
+      {
+        body: [
+          "That is the whole of it, and it is worth sitting with. The thing that is going to hurt Rahima is not rare, not mysterious, and not untreatable. It is preeclampsia, and it announces itself, weeks ahead, in a blood-pressure reading. A reading a trained neighbor can take in ninety seconds with a cuff that costs about two and a half thousand taka.",
+          "Nobody took it. Not because the cuff is unavailable or the skill is exotic, but because no one was looking, and there was no system whose job it was to look. This is the part that does not fit the usual story about maternal death. It is not, here, a treatment gap. The treatment for the emergency exists at the district hospital. It is a surveillance gap. The signal was broadcasting for three weeks on a channel no one was tuned to.",
+        ],
+        pullQuote:
+          "The thing that kills her is not rare or untreatable. It announces itself for three weeks in a number nobody measures.",
+      },
+      {
+        body: [
+          "The night it breaks, the headache does not lift. There are spots in her vision. Her face has joined her feet in swelling, and now the mother-in-law is frightened too, because this is past what the eighth month does. They do what families do, which is the thing every awareness campaign tells them to do: they seek care.",
+          "They go first to the village doctor, the man everyone calls doctor though he holds no degree, because he is near and it is night. He sees enough to know this is beyond him, and tells them to go to the union facility. The union facility is reached after a search for a vehicle. It has a nurse and no way to manage eclampsia, no magnesium sulfate, no surgeon, and it tells them to go to the upazila hospital.",
+          "At the upazila hospital, near midnight, Rahima is a stranger. There is no record of her, because she has no record. The duty doctor starts from nothing: no booking history, no blood-pressure trend, no idea this has been building for three weeks. He stabilizes what he can and refers her on to the district, because by now she is seizing, and the district is another hour. She reaches it. It is too late by a margin that a day, even an afternoon, would have closed.",
+        ],
+      },
+      {
+        body: [
+          "Here is the sentence that should be on the wall of every office that funds maternal health in this country, because the verbal autopsies say it again and again, and it is not the sentence people expect: she sought care. Almost all of the women who die of preeclampsia in Bangladesh sought care, most of them at more than one facility, before they died. They were not fatalists who stayed home. They moved. They knocked on door after door.",
+          "And each door met them as a stranger. No history arrived before the patient. No warning that she was coming. No blood-pressure trend that would have told the first doctor what the third one finally understood. Rahima did everything right. Her family did everything right. The system made her ricochet, from the village doctor to the union facility to the upazila to the district, losing at each threshold the one hour she could not spare. These are not treatment deaths. They are routing and information deaths.",
+        ],
+        pullQuote:
+          "She sought care. Each door met her as a stranger. The system made her ricochet, and the ricochet is what killed her.",
+      },
+      {
+        body: [
+          "Rahima is one woman, and also she is a number. Bangladesh's fall in maternal deaths was one of global health's real victories, and then, in the last decade, it stopped. The word the literature now uses is plateaued. With around three million births a year, the country still loses on the order of several thousand mothers annually, and deaths from preeclampsia and eclampsia, having fallen, stopped falling, and now account for roughly a quarter of them, three out of four in rural places like Rahima's.",
+          "These are the most preventable deaths left on the table, because they are the most predictable. The condition does not strike from nowhere. It writes its warning, in rising pressure, for weeks. Every one of those women was, for a while, a blood-pressure reading that no one took, on a road that, when it finally mattered, no one had mapped.",
+        ],
+      },
+      {
+        body: [
+          "Now rewind, and give Rahima the thing that was missing. Not a new hospital. Not a drug that does not exist. Just the looking, and a record that travels.",
+          "She is enrolled at the first contact anyone has with her pregnancy, wherever that is: a community health worker, a pharmacy corner, a vaccination day, a neighbor with a cuff. From then on, every contact captures one reading and puts it in her record, which lives on the cheap phone in the house and belongs to her. Not a single number on a single day, but a trend, watched. When the trajectory begins to climb, three weeks before the night it would have broken, the rising line trips an escalation under the national protocol, and the message goes, in plain Bangla, not only to Rahima but to the husband and the mother-in-law who actually decide whether she travels.",
+          "And when she is told to go, she is not sent into the dark to ricochet. The system knows which facility within reach actually stocks magnesium sulfate and actually staffs emergency obstetric care, and it tells her that one, and tells that one she is coming. She arrives as an expected patient, at the right first door, with her history and her warning already in the room. The afternoon that would have saved her is still on the clock.",
+        ],
+        pullQuote:
+          "Not a new hospital, not a new drug. Just the looking, and a record that travels.",
+      },
+      {
+        body: [
+          "This is Maa, and it is worth being honest about exactly what it is and is not, because a story like Rahima's invites the inflation that has discredited so much of this field. Maa does not treat anyone. It detects and it routes. Its ceiling is set by the quality of the facility it sends her to, which it does not control, so in a place where the right first door is itself empty, Maa can only do so much, and the design says so.",
+          "And the honest arithmetic on lives is smaller than the instinct wants. Preeclampsia's share of the annual maternal deaths is on the order of a thousand to fourteen hundred. A surveillance-and-routing system, working well at national scale, might prevent a meaningful fraction of those. The claim is therefore hundreds of mothers a year, and never more. Earlier drafts of this vision reached for bigger numbers; they were wrong, and the correction stands. Hundreds of mothers is not a small thing. It does not need inflating.",
+        ],
+      },
+      {
+        body: [
+          "The cuff is cheap. The phone is already in the house. The trend is plottable by anyone who can be taught to wrap a band around an arm and read a screen. The growth curve of the next child, the anaemia in the next pregnancy, the pressure climbing in the next Rahima, are all signals already broadcasting, weeks ahead, on channels no one is tuned to. The thing that was missing was never the medicine. It was the looking, and the record that would have carried what the looking found to the next door before she got there.",
+          "The women who died sought care. We know that now, from their own families, in the autopsies. The least we owe the next one is to make sure that when she knocks, the door already knows her name.",
+        ],
+      },
+    ],
+  },
+
+  {
+    slug: "the-cough-he-could-not-afford",
+    kind: "story",
+    number: "02",
+    title: "The cough he could not afford",
+    tagline:
+      "He is the most economically important Bangladeshi alive and the most clinically invisible. He hid the blood in his morning cough because in his world being sick is not a health problem. It is a deportation offense.",
+    readMinutes: 10,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A Continuity story. Eight years on a scaffolding in the Gulf, a cough he could not report, and the trap every sick migrant is caught in. Why health status is a deportation weapon, what it costs to come home blind, and what a doctor at home who knows his name would have changed.",
+    sections: [
+      {
+        body: [
+          "Anwar is thirty-six, and he has been in Abu Dhabi for eight years. He is from a village outside Dinajpur, the kind of place a man leaves so that the people in it do not have to. He shares a room with seven other men. He works at height, on scaffolding, in heat that by June passes forty-five degrees and does not relent until October. His back has hurt for two years, and he has stopped mentioning it, because there is no one here to mention it to and nothing to be done about it that he can afford.",
+          "What is new is the cough. In the mornings, in the grey hour before the others wake, there is blood in it. Not much. A thread, a rust, gone by the time he is on the truck. Enough that he has started waking early to cough alone, so the others do not hear.",
+          "He sends home most of what he earns and eats from what is left. He has not seen a doctor. The camp clinic costs money he has already promised to his daughter's school fees; the doctor there speaks Arabic or English, neither of which he holds; and a bad result on any medical record can cancel his permit and put him on a one-way flight inside a week. On the phone to his wife, on Friday nights, he says everything is fine. He has said it for eight years, and for eight years it has mostly been true.",
+        ],
+      },
+      {
+        body: [
+          "It is no longer true. Blood in a morning cough, in a man who has spent years breathing construction dust in a crowded room, is most likely tuberculosis. That is not a death sentence. TB is curable, slowly, with a regimen of months that has only one unforgiving rule: it must not be interrupted. Start it and stop it, and you do not return to where you began. You arrive somewhere worse, carrying a strain that the cheap drugs no longer touch.",
+          "But Anwar is not going to start it, and the reason is the whole of this story. In his world, being sick is not a health problem to be solved. It is a status problem to be hidden. The medical test that should be the beginning of his treatment is, in the logic of the kafala system he lives under, the thing most likely to end his livelihood. A positive result at his next permit renewal does not enroll him in care. It revokes his job, voids his visa, and sends him home to the debt he migrated to pay.",
+          "So he does the rational thing. He does the thing a generation of men have been taught to do by a system that punishes the honest report of a symptom. He hides it. He works through it. He buys something at a pharmacy counter that quiets the cough for a week, and when it comes back he buys it again, and the disease, untreated and unnamed, does what untreated disease does, on its own schedule, in the dark before the shift.",
+        ],
+        pullQuote:
+          "In his world, being sick is not a health problem to be solved. It is a status problem to be hidden. So he hides it.",
+      },
+      {
+        body: [
+          "Sit for a moment with who Anwar is to the country he left. There are on the order of fifteen million Bangladeshis working abroad, the great majority of them men like him in the Gulf, on scaffoldings and in kitchens and behind the wheels of other men's cars. The money they send home runs to nearly twenty-four billion dollars in a year, enough to place Bangladesh among the ten largest remittance economies on earth, enough to hold up the national reserve through every crisis of the last twenty years.",
+          "He is, by the plain arithmetic, one of the most economically important Bangladeshis alive. And he has no clinical relationship with the country he funds. He never did. There was no doctor in Bangladesh who knew him, no record to leave behind, because he left before he was old enough or settled enough to have one. The country took his remittance for eight years and never once took his blood pressure.",
+          "This is the particular cruelty of his position, and it is not an accident or an oversight. He is the most important citizen of a state that has no idea he is sick, and no channel through which it could find out, and no doctor whose job it is to ask. He is its most valuable export and its most invisible patient, and those two facts have been allowed to sit beside each other, unreconciled, for fifty years.",
+        ],
+        pullQuote:
+          "The country took his remittance for eight years and never once took his blood pressure.",
+      },
+      {
+        body: [
+          "The cough deepens through a second summer. He loses weight the others notice before he does. And he comes, as every sick migrant eventually comes, to the choice that is a trap with no clean exit.",
+          "He can fly home. A hundred thousand taka he does not have, to be seen in Dhaka by a doctor who has never met him, who will start from nothing because there is nothing, no history, no prior reading, no record of the two years his back has hurt or the year his cough has bled. And he will lose the job regardless, because a man who flies home sick does not fly back. Or he can stay, and hide it, and hope, which is what the arithmetic keeps telling him to do right up until the morning his body decides for him.",
+          "Anwar's version ends the way many do. He is sent home, mid-illness, with a folder of nothing, and he lands at the airport carrying a disease that is now well advanced and possibly resistant, into a health system that meets him exactly as the upazila hospital met the woman in the Maa story: as a stranger, at midnight, starting from zero. Whatever was begun abroad, if anything was begun, is now broken. And a broken TB course is not only his tragedy. It is one of the ways drug resistance is manufactured, and it is how a man's hidden illness becomes a neighborhood's.",
+        ],
+      },
+      {
+        body: [
+          "The shape of the harm is documented, even when the individual men are not. Roughly half of international migrant workers report occupational health problems; around a fifth report injuries on the job. In the Gulf, where the work is hottest and the protection thinnest, the toll runs to thousands of bodies sent home across the building decades, a great many of them logged under causes that were never investigated and never explained to the families who paid to receive the coffin.",
+          "Behind each of those line items is a man who, for months or years, was a symptom that no one recorded, on a body that no one examined, because the only system with a claim on him was the one that profited from his silence. Anwar is one of millions, and the thing that makes him invisible is not distance. It is that no one at home was ever assigned to look.",
+        ],
+      },
+      {
+        body: [
+          "Now rewind, and give Anwar the thing that was missing. Not a clinic in the labor camp. Not a Bangladeshi doctor licensed to practice in the Emirates, which does not exist and is not the point. Just a doctor at home who is his, and a record that travels in both directions.",
+          "Before he flew, at the registration that every legal migrant must pass through days before departure, his wallet was made and a Bangladeshi physician matched to him, chosen for his home district and his language, so that the follow-up when he comes back for Eid is down the road and not across the country. When the cough started, he did not need a private half-hour video call he could never take from a shared room on a twelve-hour shift. A literate roommate helped him record his temperature, his pulse, and a voice note in his own Dinajpuri words, in the dark before the truck came. It saved offline and synced when the data allowed.",
+          "His doctor in Bangladesh, inside her ordinary working hours, listened to the voice note. She asked the two questions that mattered, which routed back to his phone for him to answer when he could. And she told him, in Bangla he could replay as many times as he needed, what this most likely was, how serious it was, and exactly how to obtain a sputum test at a local clinic in a way that touched neither his employer nor his permit. When the worst still came and he was sent home, the handover already existed: the first clinic he reached did not start from zero, it picked up the regimen without a gap. And the same record ran the other way, so that from four thousand kilometers he could see his mother's blood pressure climbing, authorize her specialist visit, and be, for once in eight years, not helpless when the call came.",
+        ],
+        pullQuote:
+          "Continuity cannot prescribe across a border, and it does not pretend to. What it gives him is the thing he never had: a doctor at home who knows his name.",
+      },
+      {
+        body: [
+          "It is worth being exact about what this is and is not, because this population has been promised everything by everyone and given almost nothing, and another inflated promise is the last thing it needs. Continuity does not practice medicine inside the Emirates or Saudi Arabia. It cannot prescribe across a border and it never will, because the moment it pretends to, it becomes illegal and endangers every worker who depends on it. What it offers is assessment, triage, and a structured handover: the expensive diagnostic thinking done in advance, in his own language, by a doctor accountable to him, so that the paid local visit he eventually makes takes minutes instead of starting from nothing.",
+          "And the most sensitive thing in all of Glyph lives in this product. A voice note in which a frightened man names his camp, his employer, and his symptoms in his own dialect is precisely what no automatic scrub can clean. Continuity treats it that way: those flows run restricted, held back, until they can be carried without leaving home, and the design says so out loud rather than hiding the risk. It leans on the enrollment rail the state already runs, and where that partnership stalls there are slower roads through the missions and the welfare boards and the apps the workers already carry. It assumes shared phones, metered data, and dead signal at the worksite, and is built offline-first because anything else is a fantasy about a life he does not live.",
+          "It will not save him on a scaffolding. It does not pretend to be an ambulance, or a hospital, or a work permit. What it does is narrower and, for a man who has been invisible for eight years, not small: it makes him a patient. One doctor, at home, who knows his name and his history and is waiting to hear from him.",
+        ],
+      },
+      {
+        body: [
+          "Anwar sends home a piece of the reserve that keeps the lights on in a country he has not lived in for the better part of a decade. He has financed roads he will never drive and buildings he will never enter. The state has had eight years of his body and the whole of his savings, and has never asked him a single question about either.",
+          "The least it can do, before it takes the next eight, is be the thing on the other end of the line when he finally coughs alone in the dark and decides, against everything the system has taught him, to tell someone. Someone at home, who knows his name, and was waiting.",
+        ],
+      },
+    ],
+  },
+
+  {
+    slug: "the-body-this-work-uses-up",
+    kind: "story",
+    number: "03",
+    title: "The body this work uses up",
+    tagline:
+      "She makes the clothes the world wears, with hands the world will never thank. The work takes ten years of her body and gives back not even a record that any of it happened.",
+    readMinutes: 10,
+    date: "June 2026",
+    published: true,
+    standfirst:
+      "A Karigor story. Eight years on a sewing line in Ashulia, a body the work uses up on schedule, and a medical room built for the auditor instead of the worker. Why the one place her health is recorded is the place she most needs it not to be, and what a record that is finally hers would change.",
+    sections: [
+      {
+        body: [
+          "Rojina is twenty-six, and she has sewn for eight years. She is a karigor, an artisan, one of about three million on the lines that ring Dhaka, and like a growing share of them she is one of many, women and men both, who feed the country's largest export with their hands. By mid-morning her lower back has settled into an ache she no longer files under pain, only under the hour of the day. By evening her eyes burn under the long fluorescent tubes. The headache she has carried so long that she thinks of it as weather and not as a symptom.",
+          "There is a medical room one floor down. The law put it there. But walking to it costs her the hourly production target she is measured and paid against, and everyone on the line understands what the room is really for, which is the buyers' auditors who come twice a year. So she does the thing the studies say nearly everyone does. She buys Panadol at the dispensary window or the pharmacy by the gate, and she keeps sewing.",
+          "She is, this month, newly pregnant. She has told no one at the factory. She has been on the line long enough to have watched what happens to the women who tell.",
+        ],
+      },
+      {
+        body: [
+          "What is wrong with Rojina is not a single illness with a single name. It is the work itself, doing to a body what this work does to bodies, on a timetable the factories' own doctors will confirm when no auditor is in the room. The literature, built from interviews with workers and the doctors who treat them, keeps converging on the same cluster: back and joint pain, the headache that never fully lifts, eye strain, the breathing trouble that comes from years of inhaling fabric dust. Sickness and injury, the workers themselves say, are not events. They are an everyday condition of the job.",
+          "And the doctors confirm the arithmetic underneath it, which is brutal and rarely said aloud: this work cannot be done for much more than ten years before the body it is done with is used up. The highest rate of leaving belongs to women before they turn forty. Mental health, in the studies, gets a single recurring word: neglected.",
+          "Rojina is an artisan. Her hands make shirts that will hang in shops in cities she will never see, on bodies that will never know her name. And the raw material being consumed to make them is not only the cloth on the machine. It is her.",
+        ],
+        pullQuote:
+          "The raw material being consumed to make the world's clothes is not only the cloth on the machine. It is her.",
+      },
+      {
+        body: [
+          "Here is the part that should not be allowed to stand. When this work has used her up, when she leaves at thirty-five for tailoring at home, or for her village, or simply because her body will not give another year, there will be no record that any of it happened. The decade of back injury, the respiratory baseline a future doctor will need, the headaches, the day she was hurt at a machine: all of it evaporates at the factory gate. The room downstairs kept a logbook for the auditor. It never kept a history for her.",
+          "And there is a sharper cruelty stacked on top of the empty one. The single fact about her body that the factory most wants to know is the one she most needs to hide. Pregnancy, the research is blunt about this, is a documented reason women are pushed out of this industry. So the one place a record of her health reliably exists is the one place she cannot afford it to be: in the hands of an employer who can read it as a reason to let her go.",
+          "So she keeps the truth of her own body to herself, and the system records nothing, and both of those choices are rational, and both of them are made by her alone, and both of them cost her later, when she has no proof of a thing she always knew.",
+        ],
+        pullQuote:
+          "The room downstairs kept a logbook for the auditor. It never kept a history for her.",
+      },
+      {
+        body: [
+          "The infrastructure is not even missing. This is what makes Rojina's case different from the mother in the village, who had no facility within an hour. Rojina has a facility one floor down, mandated in detail by a law most people have never read. The Labour Act is specific: first aid that is actually accessible, a sick room with a dispensary once a factory passes a few hundred workers, a permanent medical centre at five thousand, three physicians at seventy-five hundred, and the treatment of any occupational disease or work injury continued at the employer's expense until the worker is cured.",
+          "On paper, she is covered. In the room, she is not, because the room is a compliance artifact, and a compliance artifact is not a care system. The studies find it plainly: workers do not go to the factory clinic. They self-treat with Panadol. The room exists. The trust and the usefulness do not.",
+        ],
+      },
+      {
+        body: [
+          "What actually moves worker health has already been shown, and it is worth saying precisely because it is so easy to get wrong. The thing that improved knowledge and behavior in Bangladeshi factories was not a better doctor or a better-equipped room. It was a trusted peer, a worker nominated from the line, delivering care and information on the floor, during work hours, in the short windows the day actually contains. The binding constraint was never the quality of the medicine. It was the distance to the clinic and the length of the break.",
+          "And the force that makes a factory change is not, in practice, the government inspector. It is the buyer, who can move a contract. After Rana Plaza, buyer-mandated and independently verified compliance transformed how the sector handles fire and structure. Worker health never got that instrument. It stayed theater: a staffed room, a logbook, a checkbox an auditor ticks. What has never existed is a way to prove the room works without turning a worker's body into the employer's data.",
+        ],
+      },
+      {
+        body: [
+          "Now rewind, and give Rojina what the room was missing. Not a new building. Not a clause the law already wrote two decades ago. Just a reason to walk down the stairs, and a record that is hers.",
+          "The medical room is staffed by a trained health assistant recruited the way the evidence says to recruit her, a respected woman from the line rather than an outsider, the person the floor already calls apa, elder sister. In the minutes between targets she takes Rojina's vitals and complaints on a tablet, and the model, working in Bangla, routes what she finds: self-care she relays in plain words, an asynchronous review by a remote physician chosen to be a woman for a woman where the caseload calls for it, or an urgent referral out the door. The room the law mandated finally has a function Rojina has a reason to enter.",
+          "And every encounter writes to Rojina's wallet, not the employer's file. Hers, by cryptography and not by a promise buried in a settings screen. Management never sees the clinical content. The early-pregnancy consultation, the question she could ask no one, the screen for the depression the studies say goes unnamed: those are visible to her and to the clinician she chooses, and to no one who could turn them against her. What the factory gets instead is exactly what the buyer audits and the law demands: proof the room is staffed, proof the encounters are real, proof an occupational injury was carried to resolution as the Act requires, and de-identified aggregates, with the small numbers suppressed, that let an honest owner fix the ventilation before an auditor finds the cluster. Her record, never. The proof, continuously.",
+        ],
+        pullQuote:
+          "Every encounter writes to her wallet, not the employer's file. Hers, by cryptography and not by a promise on a settings screen.",
+      },
+      {
+        body: [
+          "And when the work has used her up and she leaves at thirty-five, her decade leaves with her. The documented injury that can become a disability claim. The respiratory baseline the next doctor will need to read the next ten years against. The proof, in her own hands, that the employer paid for the treatment the law always entitled her to. The history that used to vanish at the gate is, this time, the worker's to keep.",
+          "It is worth being honest, because this is the hardest of the modules to hold straight, harder than the mother's or the migrant's. Here the employer is the customer and the threat at the very same time, and the entire thing lives or dies on never letting those two collapse into one. The factory pays for the compliance proof and the aggregates. The worker owns the record. A manager's dashboard with one individual's clinical data, ever, would destroy the only reason the product deserves to exist, and so the architecture forbids it rather than discouraging it.",
+        ],
+      },
+      {
+        body: [
+          "The rest of the honesty is smaller but real. The apa's minutes are production minutes, and the model only works if management actually honors the visit, which a pilot must measure rather than assume. Aggregates can quietly de-anonymize in a small factory, so the reports hide small cells from the first day. The compliance credential is only ever as strong as a buyer or a regulator is willing to treat it, and until one does it is a better-organized logbook and nothing more. Karigor starts where the buyer's leverage reaches, and makes no claim on the informal workrooms beyond it, where the conditions are worse and no auditor will ever come.",
+          "Rojina makes clothes for a world that will never learn her name. The work will take ten years of her body, and today it gives back not even the dignity of a record that the taking occurred. The artisan should own, at the very least, the history of what the making cost her. That is the smallest possible justice, and it is one a wallet in her own hand can finally deliver.",
+        ],
+      },
+    ],
+  },
 ];
 
 export const WRITING_PAPERS = WRITING_PIECES.filter((p) => p.kind === "paper");
 export const WRITING_ESSAYS = WRITING_PIECES.filter((p) => p.kind === "essay");
+export const WRITING_STORIES = WRITING_PIECES.filter((p) => p.kind === "story");
 
 export function getWritingPiece(slug: string): WritingPiece | undefined {
   return WRITING_PIECES.find((p) => p.slug === slug);
