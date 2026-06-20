@@ -77,7 +77,7 @@ describe("decideRoute", () => {
   });
 });
 
-const text = (t: string) => ({ kind: "text" as const, text: t, fromWaId: "x", providerMessageId: "p" });
+const text = (t: string) => ({ kind: "text" as const, text: t, fromWaId: "x", providerMessageId: "p", channel: "whatsapp" as const, receivedAt: new Date(), raw: {} });
 
 describe("front door (unbound)", () => {
   it("first non-code text starts onboarding", () => {

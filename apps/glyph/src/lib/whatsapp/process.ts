@@ -9,17 +9,16 @@ import { formatOutcome } from "./reply";
 import { findOrCreateWalletToken } from "./wallet-link";
 import { runTriageTurn, type TriageMsg } from "@/lib/services/triage-runner";
 import { captureDocument, resolveDocConsent, createDocConsent } from "./documents";
+import { ensureKhamHoldingOrg, createOwnedPatient } from "@/lib/services/organizations";
+import { FRONT_DOOR_CONSENT_MSG, SUBJECT_QUESTION, CONSENT_DECLINED_MSG, buildWelcome, NAME_DEFAULT } from "./front-door";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-const ONBOARD_MSG =
-  "আসসালামু আলাইকুম। এটি Glyph। আপনার রেকর্ড দেখতে ক্লিনিক থেকে পাওয়া কোডটি এখানে পাঠান। কোড না থাকলে আপনার ডাক্তারের কাছে চান।";
 const BIND_OK_MSG = "ধন্যবাদ — আপনার নম্বর যুক্ত হয়েছে। সমস্যা থাকলে এখানে লিখুন, বা 'রেকর্ড' লিখে আপনার তথ্য দেখুন।";
 const BIND_FAIL_MSG = "কোডটি কাজ করছে না বা মেয়াদ শেষ। ক্লিনিক থেকে নতুন কোড নিন।";
 const HELP_MSG = "এখন শুধু লেখা পড়তে পারি। আপনার সমস্যাটা লিখুন, অথবা 'রেকর্ড' লিখুন।";
 const CONSENT_NOTICE =
   "আপনার লেখা একটি AI-তে পাঠানো হবে — পাঠানোর আগে নাম-পরিচয় মুছে ফেলা হয়। এটি ডাক্তারের বিকল্প নয়, শুধু পরামর্শ। রাজি থাকলে 'হ্যাঁ' লিখুন।";
-const CONSENT_DECLINED_MSG = "ঠিক আছে, কোনো সমস্যা নেই। প্রয়োজনে ডাক্তার দেখান।";
 const REVOKED_MSG = "আপনার নম্বর সরিয়ে নেওয়া হয়েছে। আর কোনো বার্তা পাবেন না। আবার যুক্ত হতে ক্লিনিকের কোড পাঠান।";
 const TRIAGE_TAG = "whatsapp_triage";
 const DOC_CONSENT_NOTICE =
@@ -38,8 +37,44 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
   let patientId: string | null = link?.patientId ?? null;
   const touch = action.kind !== "ignore";
 
-  if (action.kind === "onboard") {
-    replyText = ONBOARD_MSG;
+  if (action.kind === "onboard_start") {
+    // No DID yet. Ask for consent; stash the first message for the eventual triage turn.
+    await writeFlow(admin, waId, "awaiting_onboard_consent", { pendingSymptom: action.firstMessage });
+    replyText = FRONT_DOOR_CONSENT_MSG;
+  } else if (action.kind === "onboard_consent_reply") {
+    if (action.agreed) {
+      await writeFlow(admin, waId, "awaiting_onboard_subject", { pendingSymptom: state.pendingSymptom });
+      replyText = SUBJECT_QUESTION;
+    } else {
+      await writeFlow(admin, waId, "idle", {});
+      replyText = CONSENT_DECLINED_MSG;
+    }
+  } else if (action.kind === "onboard_subject_reply") {
+    if (!action.choice) {
+      replyText = SUBJECT_QUESTION; // unrecognised, re-ask, stay in state
+    } else {
+      const grantedBy = action.choice === "self" ? "patient" : "guardian";
+      const orgId = await ensureKhamHoldingOrg(admin);
+      const created = await createOwnedPatient(admin, { ownerOrgId: orgId, name: NAME_DEFAULT, phone: waId });
+      patientId = created.id;
+      // Bind the number so future messages resolve as a known patient.
+      await admin.from("whatsapp_links").insert({ patient_id: patientId, wa_id: waId, verified_at: now.toISOString() });
+      // Record the AI-processing consent the user just gave, with correct provenance.
+      await admin.from("consent_records").insert({
+        patient_id: patientId, consent_type: "ai_processing", granted: true, granted_by: grantedBy, device_info: TRIAGE_TAG,
+      });
+      const token = await findOrCreateWalletToken(admin, patientId);
+      const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+      const welcome = buildWelcome(`${base}/wallet/${token}`);
+      const symptom = state.pendingSymptom?.trim();
+      if (symptom) {
+        const triageReply = await handleTriage(admin, waId, patientId, [{ role: "patient", content: symptom }], true, symptom);
+        replyText = `${welcome}\n\n${triageReply}`;
+      } else {
+        await writeFlow(admin, waId, "idle", {});
+        replyText = welcome;
+      }
+    }
   } else if (action.kind === "bind") {
     let redeemed: { patientId: string } | null = null;
     try {
