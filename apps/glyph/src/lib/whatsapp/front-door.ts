@@ -7,7 +7,7 @@ export const FRONT_DOOR_CONSENT_MSG =
 
 /** After consent: who is the record for. */
 export const SUBJECT_QUESTION =
-  "এটি কার জন্য? নিজের জন্য হলে '१' লিখুন, পরিবারের কারও জন্য হলে '२' লিখুন।";
+  "এটি কার জন্য? নিজের জন্য হলে '১' লিখুন, পরিবারের কারও জন্য হলে '২' লিখুন।";
 
 export const CONSENT_DECLINED_MSG = "ঠিক আছে, কোনো সমস্যা নেই। প্রয়োজনে ডাক্তার দেখান।";
 
@@ -19,7 +19,7 @@ export function buildWelcome(walletUrl: string): string {
 /** Map a free-text reply to a subject choice. Conservative: exact tokens only. */
 export function parseSubjectChoice(text: string): "self" | "family" | null {
   const t = text.trim();
-  if (["1", "१", "नजे", "आमि"].includes(t)) return "self";
-  if (["2", "२", "परिवार"].includes(t)) return "family";
+  if (["1", "১", "নিজে", "আমি"].includes(t)) return "self";
+  if (["2", "২", "পরিবার"].includes(t)) return "family";
   return null;
 }

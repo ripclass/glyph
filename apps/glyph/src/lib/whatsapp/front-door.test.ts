@@ -3,13 +3,13 @@ import { parseSubjectChoice, buildWelcome, FRONT_DOOR_CONSENT_MSG } from "./fron
 
 describe("parseSubjectChoice", () => {
   it("maps self choices", () => {
-    for (const t of ["1", "१", "नजे", " आमि "]) expect(parseSubjectChoice(t)).toBe("self");
+    for (const t of ["1", "১", "নিজে", " আমি "]) expect(parseSubjectChoice(t)).toBe("self");
   });
   it("maps family choices", () => {
-    for (const t of ["2", "२", "परिवार"]) expect(parseSubjectChoice(t)).toBe("family");
+    for (const t of ["2", "২", "পরিবার"]) expect(parseSubjectChoice(t)).toBe("family");
   });
   it("returns null for anything else", () => {
-    for (const t of ["", "hello", "3", "३"]) expect(parseSubjectChoice(t)).toBeNull();
+    for (const t of ["", "hello", "3", "৫"]) expect(parseSubjectChoice(t)).toBeNull();
   });
 });
 
