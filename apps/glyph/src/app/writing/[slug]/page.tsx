@@ -40,6 +40,12 @@ function ogImageForPiece(piece: { slug: string; number?: string }): string {
   const mod = modules.find((m) => piece.slug.startsWith(`${m}-`));
   if (mod) return `/landing/${mod}.webp`;
 
+  // Stories carry their own image (and have their own numbering, so they must
+  // be matched by slug before the essay number-range logic below).
+  if (piece.slug === "the-blood-pressure-nobody-measured") return "/landing/maa.webp";
+  if (piece.slug === "the-cough-he-could-not-afford") return "/landing/continuity.webp";
+  if (piece.slug === "the-body-this-work-uses-up") return "/landing/karigor.webp";
+
   const n = piece.number ? parseInt(piece.number, 10) : 0;
   if (piece.slug === "anatomy-of-a-plastic-bag" || (n >= 1 && n <= 9))
     return "/landing/identity.webp";
@@ -91,7 +97,7 @@ export default function WritingPiecePage({
   const piece = getWritingPiece(params.slug);
   if (!piece || !piece.published) notFound();
 
-  const kindLabel = piece.kind === "paper" ? "White paper" : "Essay";
+  const kindLabel = piece.kind === "paper" ? "White paper" : piece.kind === "story" ? "Story" : "Essay";
   const metaParts = [
     piece.number ? `No. ${piece.number}` : null,
     piece.date,
