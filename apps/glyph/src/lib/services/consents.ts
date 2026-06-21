@@ -35,7 +35,8 @@ export type ConsentType =
   | 'ai_processing'
   | 'image_capture'
   | 'whatsapp_followup'
-  | 'data_sharing';
+  | 'data_sharing'
+  | 'emergency_access';
 
 /**
  * Records a single consent for a visit, idempotently: if an active

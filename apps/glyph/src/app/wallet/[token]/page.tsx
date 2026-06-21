@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck, Loader2, Lock, Pill, MessageCircleQuestion, ChevronRight } from "lucide-react";
+import { EmergencyAccessCard } from "@/components/patient/EmergencyAccessCard";
 
 /**
  * Pocket — the patient's wallet. Public, reached by a bearer token (no login).
@@ -177,6 +178,9 @@ export default function WalletPage() {
             strokeWidth={1.8}
           />
         </Link>
+
+        {/* Emergency Access */}
+        <EmergencyAccessCard token={token} pin={pin || undefined} />
 
         {/* Visits */}
         <div className="mt-8 space-y-4">
