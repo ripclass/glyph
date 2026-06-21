@@ -122,4 +122,8 @@ describe("SOS routing", () => {
   it("other text while awaiting_sos_location → re-prompt", () => {
     expect(decideRoute(sosInbound({ text: "কী করব?" }), bound("awaiting_sos_location")).kind).toBe("sos_prompt");
   });
+  it("a location message from a bound idle patient → help (not sos_fire)", () => {
+    const a = decideRoute(sosInbound({ kind: "location", location: { lat: 23.8, lon: 90.4 } }), { bound: true, activeFlow: "idle" });
+    expect(a.kind).toBe("help");
+  });
 });

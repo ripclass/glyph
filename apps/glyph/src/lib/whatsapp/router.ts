@@ -25,7 +25,7 @@ export type RouteAction =
 
 export interface RouteContext {
   bound: boolean;
-  /** wa_conversations.active_flow: idle | triage | awaiting_triage_consent | awaiting_document_consent | awaiting_document_type */
+  /** wa_conversations.active_flow: idle | triage | awaiting_triage_consent | awaiting_document_consent | awaiting_document_type | awaiting_sos_location */
   activeFlow: string;
 }
 
