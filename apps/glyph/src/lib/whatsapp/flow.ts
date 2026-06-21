@@ -11,7 +11,8 @@ export type ActiveFlow =
   | "triage"
   | "awaiting_triage_consent"
   | "awaiting_document_consent"
-  | "awaiting_document_type";
+  | "awaiting_document_type"
+  | "awaiting_sos_location";
 
 export interface WaFlowState {
   /** The triage exchange so far (patient + glyph turns). */

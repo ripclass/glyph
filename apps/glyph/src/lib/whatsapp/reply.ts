@@ -23,3 +23,12 @@ export function formatOutcome(outcome: TriageOutcome): string {
   }
   return lines.join("\n");
 }
+
+/** The SOS confirmation reply after the broadcast fires. No PHI. */
+export function buildSosRoutingReply(view: { nearestHospitalName?: string | null; mapsUrl?: string }): string {
+  const lines = ["আমরা আপনার পরিবার ও কাছের হাসপাতালকে জানিয়েছি।"];
+  if (view.nearestHospitalName) lines.push(`নিকটতম হাসপাতাল: ${view.nearestHospitalName}।`);
+  if (view.mapsUrl) lines.push(view.mapsUrl);
+  lines.push("সাহায্য আসছে।");
+  return lines.join("\n");
+}
