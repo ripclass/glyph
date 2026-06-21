@@ -652,6 +652,140 @@ export type Database = {
           },
         ]
       }
+      emergency_alerts: {
+        Row: {
+          created_at: string
+          delivery_status: string
+          expires_at: string
+          hospital_org_id: string
+          id: string
+          minimal_dataset: Json
+          patient_id: string
+          scan_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_status?: string
+          expires_at: string
+          hospital_org_id: string
+          id?: string
+          minimal_dataset: Json
+          patient_id: string
+          scan_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_status?: string
+          expires_at?: string
+          hospital_org_id?: string
+          id?: string
+          minimal_dataset?: Json
+          patient_id?: string
+          scan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_alerts_hospital_org_id_fkey"
+            columns: ["hospital_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_alerts_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_alerts_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "emergency_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emergency_scans: {
+        Row: {
+          broadcast_count: number
+          family_notified: boolean
+          id: string
+          patient_id: string
+          routed: boolean
+          scan_lat: number | null
+          scan_lon: number | null
+          scanned_at: string
+          token: string
+        }
+        Insert: {
+          broadcast_count?: number
+          family_notified?: boolean
+          id?: string
+          patient_id: string
+          routed?: boolean
+          scan_lat?: number | null
+          scan_lon?: number | null
+          scanned_at?: string
+          token: string
+        }
+        Update: {
+          broadcast_count?: number
+          family_notified?: boolean
+          id?: string
+          patient_id?: string
+          routed?: boolean
+          scan_lat?: number | null
+          scan_lon?: number | null
+          scanned_at?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_scans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emergency_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_scanned_at: string | null
+          patient_id: string
+          revoked: boolean
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_scanned_at?: string | null
+          patient_id: string
+          revoked?: boolean
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_scanned_at?: string | null
+          patient_id?: string
+          revoked?: boolean
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_tokens_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_orders: {
         Row: {
           created_at: string | null
@@ -921,140 +1055,6 @@ export type Database = {
           },
           {
             foreignKeyName: "occupational_assessments_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      emergency_alerts: {
-        Row: {
-          created_at: string | null
-          delivery_status: string
-          expires_at: string
-          hospital_org_id: string
-          id: string
-          minimal_dataset: Json
-          patient_id: string
-          scan_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          delivery_status?: string
-          expires_at: string
-          hospital_org_id: string
-          id?: string
-          minimal_dataset: Json
-          patient_id: string
-          scan_id: string
-        }
-        Update: {
-          created_at?: string | null
-          delivery_status?: string
-          expires_at?: string
-          hospital_org_id?: string
-          id?: string
-          minimal_dataset?: Json
-          patient_id?: string
-          scan_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emergency_alerts_scan_id_fkey"
-            columns: ["scan_id"]
-            isOneToOne: false
-            referencedRelation: "emergency_scans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "emergency_alerts_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "emergency_alerts_hospital_org_id_fkey"
-            columns: ["hospital_org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      emergency_scans: {
-        Row: {
-          broadcast_count: number
-          family_notified: boolean
-          id: string
-          patient_id: string
-          routed: boolean
-          scan_lat: number | null
-          scan_lon: number | null
-          scanned_at: string
-          token: string
-        }
-        Insert: {
-          broadcast_count?: number
-          family_notified?: boolean
-          id?: string
-          patient_id: string
-          routed?: boolean
-          scan_lat?: number | null
-          scan_lon?: number | null
-          scanned_at?: string
-          token: string
-        }
-        Update: {
-          broadcast_count?: number
-          family_notified?: boolean
-          id?: string
-          patient_id?: string
-          routed?: boolean
-          scan_lat?: number | null
-          scan_lon?: number | null
-          scanned_at?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emergency_scans_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      emergency_tokens: {
-        Row: {
-          created_at: string
-          id: string
-          last_scanned_at: string | null
-          patient_id: string
-          revoked: boolean
-          token: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_scanned_at?: string | null
-          patient_id: string
-          revoked?: boolean
-          token: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_scanned_at?: string | null
-          patient_id?: string
-          revoked?: boolean
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emergency_tokens_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
@@ -1989,6 +1989,7 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
 
 /** Convenience aliases for Row types */
 export type Clinic = Database['public']['Tables']['clinics']['Row'];
