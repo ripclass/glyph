@@ -97,3 +97,33 @@ describe("front door (unbound)", () => {
       .toEqual({ kind: "onboard_subject_reply", choice: "self" });
   });
 });
+
+const sosInbound = (over: Record<string, unknown>) => ({
+  channel: "whatsapp", providerMessageId: "x", fromWaId: "8801700000000",
+  receivedAt: new Date(0), kind: "text", text: "", raw: {}, ...over,
+} as never);
+
+describe("SOS routing", () => {
+  const bound = (activeFlow = "idle") => ({ bound: true, activeFlow });
+
+  it("an SOS word from idle → sos_prompt", () => {
+    expect(decideRoute(sosInbound({ text: "SOS" }), bound()).kind).toBe("sos_prompt");
+  });
+  it("SOS preempts an active triage flow", () => {
+    expect(decideRoute(sosInbound({ text: "জরুরি" }), bound("triage")).kind).toBe("sos_prompt");
+  });
+  it("a location while awaiting_sos_location → sos_fire with coords", () => {
+    const a = decideRoute(sosInbound({ kind: "location", location: { lat: 23.8, lon: 90.4 } }), bound("awaiting_sos_location"));
+    expect(a).toEqual({ kind: "sos_fire", coords: { lat: 23.8, lon: 90.4 } });
+  });
+  it("a cancel word while awaiting_sos_location → sos_cancel", () => {
+    expect(decideRoute(sosInbound({ text: "বাতিল" }), bound("awaiting_sos_location")).kind).toBe("sos_cancel");
+  });
+  it("other text while awaiting_sos_location → re-prompt", () => {
+    expect(decideRoute(sosInbound({ text: "কী করব?" }), bound("awaiting_sos_location")).kind).toBe("sos_prompt");
+  });
+  it("a location message from a bound idle patient → help (not sos_fire)", () => {
+    const a = decideRoute(sosInbound({ kind: "location", location: { lat: 23.8, lon: 90.4 } }), { bound: true, activeFlow: "idle" });
+    expect(a.kind).toBe("help");
+  });
+});

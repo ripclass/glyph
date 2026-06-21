@@ -1,6 +1,6 @@
 import type { NormalizedInbound } from "./types";
 import { extractBindCode } from "./binding";
-import { isAffirmative, isStopWord, isRecordRequest } from "./intents";
+import { isAffirmative, isStopWord, isRecordRequest, isSosWord, isCancelWord } from "./intents";
 import { parseDocType, type DocType } from "./doc-type";
 import { parseSubjectChoice } from "./front-door";
 
@@ -18,11 +18,14 @@ export type RouteAction =
   | { kind: "document_type_reply"; docType: DocType | null }
   | { kind: "wallet" }
   | { kind: "revoke" }
+  | { kind: "sos_prompt" }
+  | { kind: "sos_fire"; coords: { lat: number; lon: number } }
+  | { kind: "sos_cancel" }
   | { kind: "help" };
 
 export interface RouteContext {
   bound: boolean;
-  /** wa_conversations.active_flow: idle | triage | awaiting_triage_consent | awaiting_document_consent | awaiting_document_type */
+  /** wa_conversations.active_flow: idle | triage | awaiting_triage_consent | awaiting_document_consent | awaiting_document_type | awaiting_sos_location */
   activeFlow: string;
 }
 
@@ -52,6 +55,14 @@ export function decideRoute(inbound: NormalizedInbound, ctx: RouteContext): Rout
   }
 
   // Bound patient.
+  // Emergency self-SOS preempts any other bound sub-flow.
+  if (ctx.activeFlow === "awaiting_sos_location") {
+    if (inbound.kind === "location" && inbound.location) return { kind: "sos_fire", coords: inbound.location };
+    if (inbound.kind === "text" && isCancelWord(inbound.text)) return { kind: "sos_cancel" };
+    return { kind: "sos_prompt" }; // re-ask for location
+  }
+  if (inbound.kind === "text" && isSosWord(inbound.text)) return { kind: "sos_prompt" };
+
   if (ctx.activeFlow === "awaiting_triage_consent") {
     if (inbound.kind !== "text") return { kind: "help" };
     return { kind: "triage_consent_reply", agreed: isAffirmative(inbound.text) };

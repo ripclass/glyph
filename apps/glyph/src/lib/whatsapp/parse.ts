@@ -34,5 +34,8 @@ function normalise(message: WAInboundMessage, value: WAChangeValue): NormalizedI
   if (message.type === "document" && message.document) {
     return { ...base, kind: "document", text: message.document.caption ?? "", mediaId: message.document.id, mediaMimeType: message.document.mime_type };
   }
+  if (message.type === "location" && message.location) {
+    return { ...base, kind: "location", text: "", location: { lat: message.location.latitude, lon: message.location.longitude } };
+  }
   return { ...base, kind: "unhandled", text: "" };
 }

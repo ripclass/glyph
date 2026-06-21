@@ -118,6 +118,32 @@ export async function setEmergencyAccess(
   return { token: null };
 }
 
+/**
+ * Enable emergency access for a patient WITHOUT touching their profile fields
+ * (used by self-SOS, where the act of SOS-ing is the opt-in). Flips the flag,
+ * records a standing emergency_access consent tagged 'whatsapp_sos', and
+ * find-or-creates the emergency token. Returns the token.
+ */
+export async function ensureEmergencyEnabled(admin: Admin, patientId: string): Promise<string> {
+  await admin.from("patients").update({ emergency_access_enabled: true }).eq("id", patientId);
+  const { data: existing } = await admin
+    .from("consent_records")
+    .select("id")
+    .eq("patient_id", patientId)
+    .eq("consent_type", "emergency_access")
+    .eq("granted", true)
+    .is("withdrawn_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (!existing) {
+    await admin.from("consent_records").insert({
+      patient_id: patientId, consent_type: "emergency_access", granted: true,
+      granted_by: "patient", device_info: "whatsapp_sos",
+    });
+  }
+  return findOrCreateToken(admin, patientId);
+}
+
 /** Revokes the current emergency token and issues a fresh one. */
 export async function rotateEmergencyToken(admin: Admin, patientId: string): Promise<string> {
   await admin

@@ -5,10 +5,11 @@ import { resolveLinkByWaId, redeemBindCode } from "./binding";
 import { sendText } from "./send";
 import { isWindowOpen, nextWindowExpiry } from "./window";
 import { readFlow, writeFlow } from "./flow";
-import { formatOutcome } from "./reply";
+import { formatOutcome, buildSosRoutingReply } from "./reply";
 import { findOrCreateWalletToken } from "./wallet-link";
 import { runTriageTurn, type TriageMsg } from "@/lib/services/triage-runner";
 import { captureDocument, resolveDocConsent, createDocConsent } from "./documents";
+import { ensureEmergencyEnabled, runEmergencyScan } from "@/lib/services/emergency";
 import { ensureKhamHoldingOrg, createOwnedPatient } from "@/lib/services/organizations";
 import { FRONT_DOOR_CONSENT_MSG, SUBJECT_QUESTION, CONSENT_DECLINED_MSG, buildWelcome, NAME_DEFAULT } from "./front-door";
 
@@ -26,6 +27,9 @@ const DOC_CONSENT_NOTICE =
 const DOC_TYPE_QUESTION = "এটা কি প্রেসক্রিপশন না ল্যাব রিপোর্ট? প্রেসক্রিপশন হলে '১', রিপোর্ট হলে '২' লিখুন।";
 const DOC_OK_MSG = "পেয়েছি ✓ ডাক্তার দেখার আগে এটি প্রস্তুত থাকবে।";
 const DOC_FAIL_MSG = "দুঃখিত, ছবিটি পড়া গেল না। আবার একটি পরিষ্কার ছবি পাঠান, অথবা ক্লিনিকে দেখান।";
+const SOS_PROMPT_MSG = "🆘 জরুরি অবস্থা? নিশ্চিত করতে এখনই আপনার বর্তমান লোকেশন পাঠান (📎 → Location)। বাতিল করতে 'বাতিল' লিখুন।";
+const SOS_CANCEL_MSG = "ঠিক আছে, বাতিল করা হলো।";
+const SOS_FAIL_MSG = "জরুরি বার্তা পাঠানো গেল না। সরাসরি নিকটস্থ হাসপাতালে যান বা পরিবারকে ফোন করুন।";
 
 export async function processInbound(admin: Admin, inbound: NormalizedInbound, now: Date): Promise<void> {
   const waId = inbound.fromWaId;
@@ -112,6 +116,24 @@ export async function processInbound(admin: Admin, inbound: NormalizedInbound, n
     await admin.from("whatsapp_links").update({ revoked: true }).eq("wa_id", waId).eq("revoked", false);
     await writeFlow(admin, waId, "idle", {});
     replyText = REVOKED_MSG;
+  } else if (action.kind === "sos_prompt") {
+    await writeFlow(admin, waId, "awaiting_sos_location", {});
+    replyText = SOS_PROMPT_MSG;
+  } else if (action.kind === "sos_fire") {
+    if (patientId) {
+      try {
+        const token = await ensureEmergencyEnabled(admin, patientId);
+        const view = await runEmergencyScan(admin, token, action.coords);
+        replyText = buildSosRoutingReply(view);
+      } catch (err) {
+        console.error("[wa/process] sos_fire error:", err);
+        replyText = SOS_FAIL_MSG;
+      }
+    }
+    await writeFlow(admin, waId, "idle", {});
+  } else if (action.kind === "sos_cancel") {
+    await writeFlow(admin, waId, "idle", {});
+    replyText = SOS_CANCEL_MSG;
   } else if (action.kind === "wallet") {
     if (patientId) {
       try {

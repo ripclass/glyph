@@ -10,6 +10,8 @@ function norm(text: string): string {
 const AFFIRMATIVE = ["হ্যাঁ", "হ্যা", "জি", "জ্বি", "ঠিক আছে", "আচ্ছা", "রাজি", "সম্মত", "yes", "ok", "okay", "y", "👍", "✓", "accept"];
 const STOP = ["stop", "unsubscribe", "বন্ধ", "আনসাবস্ক্রাইব", "বন্ধ করুন", "remove", "cancel"];
 const RECORD = ["record", "records", "রেকর্ড", "my record", "আমার রেকর্ড", "রিপোর্ট", "report", "history", "ইতিহাস", "প্রেসক্রিপশন"];
+const SOS = ["sos", "🆘", "save me", "emergency", "জরুরি", "বাঁচাও"];
+const CANCEL = ["বাতিল", "cancel", "stop", "বন্ধ"];
 
 /** A short affirmative ("yes"/"হ্যাঁ"/👍). Only matches SHORT replies to avoid a symptom that contains "ok". */
 export function isAffirmative(text: string): boolean {
@@ -32,4 +34,14 @@ export function isStopWord(text: string): boolean {
 
 export function isRecordRequest(text: string): boolean {
   return isWholeMessage(text, RECORD);
+}
+
+/** An explicit emergency trigger (whole-message, high precision). */
+export function isSosWord(text: string): boolean {
+  return isWholeMessage(text, SOS);
+}
+
+/** A cancel/stop reply used to abort the SOS location step. */
+export function isCancelWord(text: string): boolean {
+  return isWholeMessage(text, CANCEL);
 }
