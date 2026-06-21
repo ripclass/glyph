@@ -44,4 +44,17 @@ describe("extractInbound", () => {
   it("yields nothing for a payload with no messages (status update)", () => {
     expect([...extractInbound({ entry: [{ changes: [{ value: {} }] }] })]).toHaveLength(0);
   });
+
+  it("normalizes a location message to kind:location with coords", () => {
+    const payload = {
+      entry: [{ changes: [{ value: { messages: [{
+        id: "wamid.loc1", from: "8801700000000", timestamp: "1718900000",
+        type: "location", location: { latitude: 23.8103, longitude: 90.4125 },
+      }] } }] }],
+    };
+    const [msg] = [...extractInbound(payload as never)];
+    expect(msg.kind).toBe("location");
+    expect(msg.location).toEqual({ lat: 23.8103, lon: 90.4125 });
+    expect(msg.text).toBe("");
+  });
 });

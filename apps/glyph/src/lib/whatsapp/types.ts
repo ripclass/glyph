@@ -1,6 +1,6 @@
 /** WhatsApp Cloud API inbound payload shapes (subset we consume) + normalized form. */
 
-export type WaKind = "text" | "audio" | "image" | "document" | "unhandled";
+export type WaKind = "text" | "audio" | "image" | "document" | "location" | "unhandled";
 
 export interface NormalizedInbound {
   channel: "whatsapp";
@@ -14,6 +14,7 @@ export interface NormalizedInbound {
   text: string;
   mediaId?: string;
   mediaMimeType?: string;
+  location?: { lat: number; lon: number };
   raw: unknown;
 }
 
@@ -27,6 +28,7 @@ export interface WAInboundMessage {
   audio?: { id: string; mime_type: string };
   image?: { id: string; mime_type: string; caption?: string };
   document?: { id: string; mime_type: string; caption?: string };
+  location?: { latitude: number; longitude: number; name?: string; address?: string };
 }
 
 export interface WAChangeValue {
