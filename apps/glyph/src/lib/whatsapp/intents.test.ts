@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isAffirmative, isStopWord, isRecordRequest } from "./intents";
+import { isAffirmative, isStopWord, isRecordRequest, isSosWord, isCancelWord } from "./intents";
 
 describe("isAffirmative", () => {
   it("matches Bangla + English yes", () => {
@@ -27,5 +27,26 @@ describe("isRecordRequest", () => {
   });
   it("rejects a symptom", () => {
     expect(isRecordRequest("তিন দিন ধরে জ্বর")).toBe(false);
+  });
+});
+
+describe("isSosWord", () => {
+  it("matches explicit SOS words (whole message)", () => {
+    for (const w of ["SOS", "sos", "🆘", "জরুরি", "বাঁচাও", "save me", "emergency"]) {
+      expect(isSosWord(w)).toBe(true);
+    }
+  });
+  it("does NOT match a symptom that merely contains a word", () => {
+    expect(isSosWord("আমার জরুরি ভিত্তিতে ওষুধ দরকার, মাথা ব্যথা করছে")).toBe(false);
+    expect(isSosWord("help me understand my report please")).toBe(false);
+  });
+});
+
+describe("isCancelWord", () => {
+  it("matches cancel/stop words", () => {
+    for (const w of ["বাতিল", "cancel", "stop"]) expect(isCancelWord(w)).toBe(true);
+  });
+  it("does not match other text", () => {
+    expect(isCancelWord("আমার বুকে ব্যথা")).toBe(false);
   });
 });
