@@ -496,6 +496,82 @@ export const PRODUCTS: ProductContent[] = [
     audience: "Families · Diaspora · Specialist panels",
   },
   {
+    slug: "beacon",
+    name: "Glyph Beacon",
+    codename: "the emergency interface",
+    headline: "The nearest stranger is the first responder",
+    standfirst:
+      "A man collapses on a street in Dhaka at dusk. A rider is hit at a junction. A mother goes down in a bus. No siren is coming, because the dispatch you would call does not reliably answer. What happens next is what happens a thousand times a day across the country: strangers stop. They lift him, find a CNG or a rickshaw, and carry him to whichever hospital someone half-remembers, on their own time, for a person they will never see again. Beacon is built for that minute. It does not replace the stranger who stops. It hands him a destination, a way to alert the hospitals, and a way to reach the family, in the moment he has already decided to help.",
+    image: "/landing/beacon.webp",
+    imageAlt: "A phone on the ground at dusk, a stranger's hand reaching for it",
+    sections: [
+      {
+        index: "01",
+        heading: "The thing we rely on and never name",
+        body: [
+          "Bangladesh has a national emergency number, but for a medical crisis on the road it is not the system that answers. The system that answers is the people standing nearby. Every Bangladeshi knows this is true. Most of us have been on one side of it, and many on both. And yet there is no name for it, no line in a budget, no box on an org chart. The country's real emergency response is not the ambulance and not the hotline. It is the uncredited, reflexive generosity of strangers.",
+          "The kindness of strangers is not a sentiment here. It is infrastructure. Beacon starts from that fact instead of wishing it away. If strangers are the system the country actually has, the question is small and practical: what is the least we can do to help it work? Not a fleet of ambulances the state has not built. Not a dispatch center that does not exist. The phone already in the patient's pocket, and the willingness already on the street.",
+        ],
+        pullQuote:
+          "The country's real emergency response is the uncredited generosity of strangers. Here, the kindness of strangers is infrastructure.",
+      },
+      {
+        index: "02",
+        heading: "What the helper cannot know",
+        body: [
+          "The strangers who stop are not short on willingness. They are short on information, and they always have been. Three things they cannot find out in the minute that decides everything.",
+          "Where to take him. The nearest hospital may be the wrong one, jammed behind traffic, or shut for the night. The helper guesses, and a guess on a bad road can cost the patient the hour that decided whether he lived.",
+          "Who to tell. The man's family does not know. He arrives alone, and the people who could speak for him, who know his heart condition and his medicines, are unreachable, because no one has their number and he cannot give it.",
+          "What is wrong with him. He reaches the hospital as a stranger to the hospital too. The duty doctor starts from zero, at night, in a corridor, on a body that cannot answer, while the record that would have warned them sits in a plastic bag at home. Willingness without information is just a faster way to the wrong door.",
+        ],
+      },
+      {
+        index: "03",
+        heading: "A code that turns a bystander into a dispatcher",
+        body: [
+          "The patient is already carrying the one thing that closes all three gaps: a phone. So Beacon is a small, scannable emergency code, sitting on the phone's lock screen and on a printed card in the wallet, readable without unlocking anything.",
+          "A stranger scans it. Not to read the record. To act. In the seconds after the scan, three things happen at once. The helper is told where to run. Nearby hospitals are told someone is coming. The family is told it happened. The bystander who stopped, with no training and no authority, becomes the dispatcher the country never built.",
+          "This is the whole idea. The country was always going to be saved by strangers. Beacon hands them a map, a line to the hospitals, and a destination, in the moment they have already chosen to help.",
+        ],
+        pullQuote:
+          "A stranger scans it. Not to read the record. To act. The bystander becomes the dispatcher the country never built.",
+      },
+      {
+        index: "04",
+        heading: "One scan, and what each person sees",
+        body: [
+          "The design turns on a single rule: the same scan tells different people different things, and the stranger is told the least.",
+          "To the stranger, the scan shows a destination and a thank-you, and no medical data at all. The nearest hospital, directions, a line saying the hospitals and the family have been alerted, and the words thank you for stopping. The helper does not need the diagnosis to save the life. He needs to know where to run.",
+          "To nearby hospitals, the scan sends a brief, time-boxed alert with only the basics, so the emergency room can begin to prepare before the patient is through the door. And it does not bet on one hospital. It lights up several at once, because the closest may be unreachable behind a jam while the second-closest is clear. Whichever can respond, responds.",
+          "To the family, the scan fires a message to the contacts the patient chose in advance: an emergency code was scanned, near here, at this time. Within minutes a relative is reachable, and the person who arrived alone is no longer alone. Every scan is logged, and the patient is told it happened, so the system is accountable to the one person it is about.",
+        ],
+        pullQuote:
+          "The helper does not need the diagnosis to save the life. He needs to know where to run.",
+      },
+      {
+        index: "05",
+        heading: "Why the stranger sees nothing",
+        body: [
+          "It would be easier to make the scan show everything, and it would be a catastrophe. A code that displayed a person's blood type, diagnoses, and medicines to anyone who pointed a camera at it would be a gift to every thief and blackmailer. The most identifying thing a person owns cannot be the most exposed.",
+          "So the stranger is shown a destination and nothing else. The clinical basics travel only to the hospitals and the family, in a minimal form, for a few hours, audited, with the patient notified each time. This is the same break-glass discipline Hospital uses at admission: read-only, time-boxed, audited, patient-notified. An emergency scan does not open the record. It pages for help. The lock never comes off, even at the worst moment, because the worst moment is exactly when the wrong person is most likely to be holding the phone.",
+          "The honesty is part of the safety. Everything in the card is what the patient entered themselves, so every screen says, plainly, self-reported, verify on arrival. The routing says directions to the nearest hospital, never this hospital will treat you, because the nearest hospital may be closed or full. And this is not a replacement for 999. It dispatches no ambulance. What it does is make the ambulance the country already has, which is strangers and the phones in their pockets, better aimed and less alone.",
+        ],
+        pullQuote: "An emergency scan does not open the record. It pages for help.",
+      },
+      {
+        index: "06",
+        heading: "Where it stands",
+        body: [
+          "Built, merged, and deliberately dark. The emergency code, the stranger-scan page, the time-boxed hospital broadcast, and the family ping run in production today, and so does the first trigger: a patient who has bound WhatsApp can text SOS, confirm by sharing location, and fire the same engine. It is inert by design. Nothing happens until a patient opts in, fills the card, and chooses the contacts.",
+          "Three things stand between the build and the first life it protects, and none of them are code. The break-glass protocol needs independent clinical, legal, and governance review before any real use. Two emergency WhatsApp templates, one for family and one for hospitals, need carrier approval. And the broadcast only works where hospitals have joined and published their location, which today is almost nowhere. Beyond the WhatsApp trigger, a one-tap SOS button inside Pocket and a proxied call line that connects a helper to the family without exposing a number are specified and sequenced next. Beacon ships last among the patient interfaces, on purpose, because it consumes the wallet, the family circle, and the hospital network the others build. The honest claim is not coverage. It is that a person found by a stranger is no longer found by a stranger with nothing.",
+        ],
+      },
+    ],
+    status:
+      "Built and merged, intentionally dark. Inert until a patient opts in, and held from launch pending independent review of the break-glass protocol, carrier-approved emergency templates, and hospitals that have joined and published their location.",
+    audience: "Patients · Families · Bystanders · Hospitals",
+  },
+  {
     slug: "identity",
     name: "Identity & Matching",
     codename: "what everything stands on",
