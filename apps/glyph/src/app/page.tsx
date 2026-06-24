@@ -22,6 +22,7 @@ import {
   ArrowDown,
   ArrowUpRight,
   QrCode,
+  RadioTower,
 } from "lucide-react";
 import { WaitlistForm } from "@/components/landing/WaitlistForm";
 import { Reveal } from "@/components/landing/Reveal";
@@ -486,7 +487,7 @@ function Products() {
         </div>
 
         {/* The foundation */}
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <div className="mt-5 grid gap-5 md:grid-cols-3">
           <Reveal>
             <Link
               href="/identity"
@@ -530,6 +531,30 @@ function Products() {
                   Bangladesh&apos;s own clinical AI: open weights, trained on
                   consented local encounters, fluent in the languages patients
                   actually speak. Everything it learns stays in the country.
+                </p>
+              </div>
+            </Link>
+          </Reveal>
+          <Reveal delay={180}>
+            <Link
+              href="/beacon"
+              className="group flex h-full gap-5 rounded-3xl border border-bone-line bg-bone-raise p-7 transition hover:border-ink/25"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-lime">
+                <RadioTower className="h-5 w-5 text-ink" strokeWidth={1.8} />
+              </span>
+              <div>
+                <h3 className="font-display text-lg font-semibold tracking-tight">
+                  Glyph Beacon
+                  <span className="ml-2 font-mono text-[11px] font-normal text-ink-faint">
+                    the emergency interface
+                  </span>
+                </h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
+                  When a patient is carried in by strangers, a lock-screen
+                  scan routes the helper to a hospital, alerts several at
+                  once, and pings the family. The stranger sees a destination
+                  and a thank-you, never the record.
                 </p>
               </div>
             </Link>
